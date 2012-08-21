@@ -134,7 +134,11 @@ struct treq_phonebook_delete_record {
 	enum tel_phonebook_type phonebook_type;
 	unsigned short index;
 };
-
+/*WILL BE REMOVED - START*/
+struct tresp_phonebook_select {
+	enum tel_phonebook_result result;
+};
+/*WILL BE REMOVED - END*/
 struct tresp_phonebook_get_count {
 	enum tel_phonebook_result result;
 	enum tel_phonebook_type type;
@@ -151,47 +155,17 @@ struct tresp_phonebook_get_info {
 	unsigned short text_length_max;
 };
 
+struct tel_phonebook_usim_meta {
+	enum tel_phonebook_field_type field;
+	unsigned short index_max;
+	unsigned short text_max;
+	unsigned short used_count;
+};
+
 struct tresp_phonebook_get_usim_info {
 	enum tel_phonebook_result result;
-	unsigned short name_index_max;
-	unsigned short name_length_max;
-	unsigned short name_used_count;
-
-	unsigned short number_index_max;
-	unsigned short number_length_max;
-	unsigned short number_used_count;
-
-	unsigned short anr1_index_max;
-	unsigned short anr1_length_max;
-	unsigned short anr1_used_count;
-
-	unsigned short anr2_index_max;
-	unsigned short anr2_length_max;
-	unsigned short anr2_used_count;
-
-	unsigned short anr3_index_max;
-	unsigned short anr3_length_max;
-	unsigned short anr3_used_count;
-
-	unsigned short email1_index_max;
-	unsigned short email1_length_max;
-	unsigned short email1_used_count;
-
-	unsigned short email2_index_max;
-	unsigned short email2_length_max;
-	unsigned short email2_used_count;
-
-	unsigned short email3_index_max;
-	unsigned short email3_length_max;
-	unsigned short email3_used_count;
-
-	unsigned short email4_index_max;
-	unsigned short email4_length_max;
-	unsigned short email4_used_count;
-
-	unsigned short grp_index_max;
-	unsigned short grp_length_max;
-	unsigned short grp_used_count;
+	int field_count;
+	struct tel_phonebook_usim_meta field_list[13]; //supported fields are 13 currently.
 };
 
 struct tresp_phonebook_read_record {

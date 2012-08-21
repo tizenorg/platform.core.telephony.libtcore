@@ -52,6 +52,8 @@ typedef struct tcore_communicator_type Communicator;
 typedef struct tcore_user_request_type UserRequest;
 typedef struct tcore_server_type Server;
 typedef struct tcore_storage_type Storage;
+typedef struct tcore_at_type TcoreAT;
+typedef struct tcore_udev_type TcoreUdev;
 
 enum tcore_hook_return {
 	TCORE_HOOK_RETURN_STOP_PROPAGATION = FALSE,

@@ -96,6 +96,9 @@ struct tcore_call_operations {
 	TReturn (*mute)(CoreObject *o, UserRequest *ur);
 	TReturn (*unmute)(CoreObject *o, UserRequest *ur);
 	TReturn (*get_mute_status)(CoreObject *o, UserRequest *ur);
+	TReturn (*set_sound_recording)(CoreObject *o, UserRequest *ur);
+	TReturn (*set_sound_equalization)(CoreObject *o, UserRequest *ur);
+	TReturn (*set_sound_noise_reduction)(CoreObject *o, UserRequest *ur);
 	TReturn (*set_active_line)(CoreObject *o, UserRequest *ur);
 	TReturn (*get_active_line)(CoreObject *o, UserRequest *ur);
 	TReturn (*activate_ccbs)(CoreObject *o, UserRequest *ur);
@@ -146,7 +149,7 @@ struct tcore_call_control_operations {
 };
 
 // Call Core API
-CoreObject*				tcore_call_new(TcorePlugin *p, const char *name, struct tcore_call_operations *ops);
+CoreObject*				tcore_call_new(TcorePlugin *p, const char *name, struct tcore_call_operations *ops, TcoreHal *hal);
 void					tcore_call_free( CoreObject *o);
 
 

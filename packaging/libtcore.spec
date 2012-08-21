@@ -1,7 +1,7 @@
 #sbs-git:slp/pkgs/l/libtcore
-Name:       libtcore
-Summary:    Telephony-core library
-Version: 0.1.14
+Name: libtcore
+Summary: Telephony-core library
+Version: 0.1.44
 Release:    1
 Group:      System/Libraries
 License:    Apache
@@ -11,6 +11,7 @@ Requires(postun): /sbin/ldconfig
 BuildRequires:  cmake
 BuildRequires:  pkgconfig(glib-2.0)
 BuildRequires:  pkgconfig(dlog)
+BuildRequires:  pkgconfig(gudev-1.0)
 
 %description
 Telephony-core library

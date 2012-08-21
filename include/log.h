@@ -34,7 +34,7 @@ __BEGIN_DECLS
 #define msg(fmt,args...)  { RLOG(LOG_INFO, TCORE_LOG_TAG, fmt "\n", ##args); }
 #define dbg(fmt,args...)  { RLOG(LOG_DEBUG, TCORE_LOG_TAG, "<%s:%d> " fmt "\n", __func__, __LINE__, ##args); }
 #define warn(fmt,args...)  { RLOG(LOG_WARN, TCORE_LOG_TAG, "<%s:%d> " fmt "\n", __func__, __LINE__, ##args); }
-#define err(fmt,args...)  { RLOG(LOG_FATAL, TCORE_LOG_TAG, "<%s:%D> " fmt "\n", __func__, __LINE__, ##args); }
+#define err(fmt,args...)  { RLOG(LOG_FATAL, TCORE_LOG_TAG, "<%s:%d> " fmt "\n", __func__, __LINE__, ##args); }
 
 #else
 
@@ -62,10 +62,14 @@ __BEGIN_DECLS
 #define TCORE_LOG_FILE stdout
 #endif
 
-#define msg(fmt,args...)  fprintf(TCORE_LOG_FILE, fmt "\n", ##args); fflush(TCORE_LOG_FILE);
-#define dbg(fmt,args...)  fprintf(TCORE_LOG_FILE, ANSI_COLOR_LIGHTGRAY "<%s:%s> " ANSI_COLOR_NORMAL fmt "\n", __FILE__, __FUNCTION__, ##args); fflush(TCORE_LOG_FILE);
-#define warn(fmt,args...) fprintf(TCORE_LOG_FILE, ANSI_COLOR_YELLOW "<%s:%s> " ANSI_COLOR_NORMAL fmt "\n", __FILE__, __FUNCTION__, ##args); fflush(TCORE_LOG_FILE);
-#define err(fmt,args...)  fprintf(TCORE_LOG_FILE, ANSI_COLOR_LIGHTRED "<%s:%s> " ANSI_COLOR_NORMAL fmt "\n", __FILE__, __FUNCTION__, ##args); fflush(TCORE_LOG_FILE);
+#ifndef TCORE_LOG_FUNC
+#define TCORE_LOG_FUNC fprintf
+#endif
+
+#define msg(fmt,args...)  TCORE_LOG_FUNC(TCORE_LOG_FILE, fmt "\n", ##args); fflush(TCORE_LOG_FILE);
+#define dbg(fmt,args...)  TCORE_LOG_FUNC(TCORE_LOG_FILE, ANSI_COLOR_LIGHTGRAY "<%s:%s> " ANSI_COLOR_NORMAL fmt "\n", __FILE__, __FUNCTION__, ##args); fflush(TCORE_LOG_FILE);
+#define warn(fmt,args...) TCORE_LOG_FUNC(TCORE_LOG_FILE, ANSI_COLOR_YELLOW "<%s:%s> " ANSI_COLOR_NORMAL fmt "\n", __FILE__, __FUNCTION__, ##args); fflush(TCORE_LOG_FILE);
+#define err(fmt,args...)  TCORE_LOG_FUNC(TCORE_LOG_FILE, ANSI_COLOR_LIGHTRED "<%s:%s> " ANSI_COLOR_NORMAL fmt "\n", __FILE__, __FUNCTION__, ##args); fflush(TCORE_LOG_FILE);
 
 #endif
 

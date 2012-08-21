@@ -66,7 +66,7 @@ enum tcore_return {
 	TCORE_RETURN_EALREADY = EALREADY, /* Operation already in progress */
 	TCORE_RETURN_ETIMEDOUT = ETIMEDOUT, /* Connection timed out */
 	TCORE_RETURN_EMSGSIZE = EMSGSIZE, /* Message too long */
-
+	TCORE_RETURN_ENODATA = ENODATA, /* No data available */
 
 	TCORE_RETURN_SERVER_WRONG_PLUGIN = TCORE_RETURN | TCORE_TYPE_SERVER,
 

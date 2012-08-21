@@ -75,8 +75,11 @@ GHashTable* tcore_util_marshal_get_object(GHashTable *ht, const gchar *key);
 enum tcore_dcs_type
             tcore_util_get_cbs_coding_scheme(unsigned char encode);
 
-char*       tcore_util_unpack_gsm7bit(const char *src, unsigned int src_len);
-char*       tcore_util_pack_gsm7bit(const char* src, unsigned int src_len);
+unsigned char* tcore_util_decode_hex(const char *src, int len);
+
+unsigned char* tcore_util_unpack_gsm7bit(const unsigned char *src, unsigned int src_len);
+unsigned char* tcore_util_pack_gsm7bit(const unsigned char *src, unsigned int src_len);
+char*       tcore_util_convert_bcd2ascii(const char *src, int src_len, int max_len);
 
 __END_DECLS
 

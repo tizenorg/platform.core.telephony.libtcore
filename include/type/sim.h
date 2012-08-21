@@ -38,7 +38,7 @@ __BEGIN_DECLS
 #define SIM_ECC_STRING_LEN_MAX 50 //telephony defined
 #define SIM_ECC_RECORD_CNT_MAX 15 //telephony defined
 #define SIM_CF_RECORD_CNT_MAX 2 //telephony defined
-#define SIM_MSISDN_RECORD_CNT_MAX 3 //telephony defined
+#define SIM_MSISDN_RECORD_CNT_MAX 10 //telephony defined
 #define SIM_GROUP_IDENTIFIER_LEN_MAX 10 //telephony defined
 #define SIM_MAIL_BOX_IDENTIFIER_LEN_MAX 5 //3gpp
 #define SIM_OPL_PNN_RECORD_CNT_MAX 5//85 //telephony defined
@@ -208,6 +208,15 @@ enum tel_sim_facility_type {
 	SIM_FACILITY_PU, /**< network sUbset Personalization */
 	SIM_FACILITY_PP, /**< service Provider Personalization */
 	SIM_FACILITY_PC, /**< Corporate Personalization */
+};
+
+enum tel_sim_lock_status {
+	SIM_LOCK_STATUS_UNLOCKED,
+	SIM_LOCK_STATUS_PIN,
+	SIM_LOCK_STATUS_PUK,
+	SIM_LOCK_STATUS_PIN2,
+	SIM_LOCK_STATUS_PUK2,
+	SIM_LOCK_STATUS_PERM_BLOCKED,
 };
 
 enum tel_sim_cphs_dynamic_flag_selected_line {
@@ -709,6 +718,10 @@ struct treq_sim_enable_facility {
 	char password[39];
 };
 
+struct treq_sim_get_lock_info {
+	enum tel_sim_facility_type type;
+};
+
 struct treq_sim_transmit_apdu {
 	unsigned int apdu_length;
 	unsigned char apdu[256];
@@ -783,11 +796,7 @@ struct treq_sim_get_pnn {
 
 };
 
-struct treq_sim_get_cphs_short_netname {
-
-};
-
-struct treq_sim_get_cphs_full_netname {
+struct treq_sim_get_cphs_netname {
 
 };
 
@@ -832,6 +841,13 @@ struct tresp_sim_disable_facility {
 struct tresp_sim_enable_facility {
 	enum tel_sim_pin_operation_result result;
 	enum tel_sim_facility_type type;
+	int retry_count;
+};
+
+struct tresp_sim_get_lock_info {
+	enum tel_sim_pin_operation_result result;
+	enum tel_sim_facility_type type;
+	enum tel_sim_lock_status lock_status;
 	int retry_count;
 };
 
@@ -945,12 +961,9 @@ struct tel_sim_pnn_list {
 	struct tel_sim_pnn pnn[SIM_OPL_PNN_RECORD_CNT_MAX];
 };
 
-struct tel_sim_cphs_short_netname {
-	unsigned char short_name[SIM_CPHS_OPERATOR_NAME_SHORT_FORM_LEN_MAX+1];
-};
-
-struct tel_sim_cphs_full_netname {
+struct tel_sim_cphs_netname {
 	unsigned char full_name[SIM_CPHS_OPERATOR_NAME_LEN_MAX+1];
+	unsigned char short_name[SIM_CPHS_OPERATOR_NAME_SHORT_FORM_LEN_MAX+1];
 };
 
 struct tel_sim_oplmnwact {
@@ -979,8 +992,7 @@ struct tresp_sim_read {
 		struct tel_sim_spdi spdi;
 		struct tel_sim_opl_list opl;
 		struct tel_sim_pnn_list pnn;
-		struct tel_sim_cphs_short_netname cphs_s_name;
-		struct tel_sim_cphs_full_netname cphs_f_name;
+		struct tel_sim_cphs_netname cphs_net;
 		struct tel_sim_oplmnwact_list opwa;
 	} data;
 };

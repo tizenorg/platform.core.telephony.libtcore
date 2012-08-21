@@ -51,6 +51,9 @@ TReturn       tcore_server_add_hal(Server *s, TcoreHal *hal);
 GSList*       tcore_server_ref_hals(Server *s);
 TcoreHal*     tcore_server_find_hal(Server *s, const char *name);
 
+TReturn       tcore_server_link_udev(Server *s, TcoreUdev *udev);
+TcoreUdev*    tcore_server_ref_udev(Server *s);
+
 TReturn       tcore_server_dispatch_request(Server *s, UserRequest *ur);
 TReturn       tcore_server_send_notification(Server *s, CoreObject *source,
                   enum tcore_notification_command command,

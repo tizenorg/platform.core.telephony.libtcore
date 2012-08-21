@@ -70,7 +70,7 @@ static void _free_hook(CoreObject *o)
 	}
 }
 
-CoreObject *tcore_context_new(TcorePlugin *p, const char *name)
+CoreObject *tcore_context_new(TcorePlugin *p, const char *name, TcoreHal *hal)
 {
 	CoreObject *o = NULL;
 	struct private_object_data *po = NULL;
@@ -78,7 +78,7 @@ CoreObject *tcore_context_new(TcorePlugin *p, const char *name)
 	if (!p)
 		return NULL;
 
-	o = tcore_object_new(p, name);
+	o = tcore_object_new(p, name, hal);
 	if (!o)
 		return NULL;
 

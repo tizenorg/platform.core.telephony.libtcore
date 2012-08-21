@@ -75,11 +75,12 @@ TReturn       tcore_pending_emit_response_callback(TcorePending *pending,
                   int data_len, const void *data);
 
 
-TcoreQueue*   tcore_queue_new(TcorePlugin *plugin);
+TcoreQueue*   tcore_queue_new(TcoreHal *hal);
 void          tcore_queue_free(TcoreQueue *qeueu);
 
 TReturn       tcore_queue_push(TcoreQueue *queue, TcorePending *pending);
 TcorePending* tcore_queue_pop(TcoreQueue *queue);
+TcorePending* tcore_queue_pop_by_pending(TcoreQueue *queue, TcorePending *pending);
 TcorePending* tcore_queue_pop_timeout_pending(TcoreQueue *queue);
 TcorePending* tcore_queue_ref_head(TcoreQueue *queue);
 TcorePending* tcore_queue_ref_tail(TcoreQueue *queue);
@@ -87,7 +88,7 @@ TcorePending* tcore_queue_pop_by_id(TcoreQueue *queue, unsigned int id);
 TcorePending* tcore_queue_ref_pending_by_id(TcoreQueue *queue, unsigned int id);
 TcorePending* tcore_queue_ref_next_pending(TcoreQueue *queue);
 unsigned int  tcore_queue_get_length(TcoreQueue *queue);
-TcorePlugin*  tcore_queue_ref_plugin(TcoreQueue *queue);
+TcoreHal*     tcore_queue_ref_hal(TcoreQueue *queue);
 
 __END_DECLS
 

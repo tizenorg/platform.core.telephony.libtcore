@@ -29,6 +29,29 @@ enum modem_state {
 	MODEM_STATE_ERROR,
 };
 
+enum modem_dun_pincontrol_signal {
+	DUN_PINCONTROL_SIGNAL_DCD = 0x01,
+	DUN_PINCONTROL_SIGNAL_DTR = 0x04,
+	DUN_PINCONTROL_SIGNAL_DSR = 0x06,
+	DUN_PINCONTROL_SIGNAL_RTS = 0x07,
+	DUN_PINCONTROL_SIGNAL_CTS = 0x08,
+	DUN_PINCONTROL_SIGNAL_RI = 0x09
+};
+
+enum modem_dun_pincontrol_status {
+	DUN_PINCONTROL_STATUS_OFF = 0x00,
+	DUN_PINCONTROL_STATUS_ON = 0x01,
+};
+
+struct treq_modem_power_on {
+};
+
+struct treq_modem_power_off {
+};
+
+struct treq_modem_power_reset {
+};
+
 struct treq_modem_set_flightmode {
 	int enable;
 };
@@ -42,6 +65,26 @@ struct treq_modem_get_imei {
 struct treq_modem_get_version {
 };
 
+struct treq_modem_get_sn {
+};
+
+struct treq_modem_set_dun_pin_control {
+	enum modem_dun_pincontrol_signal signal;
+	enum modem_dun_pincontrol_status status;
+};
+
+
+struct tresp_modem_power_on {
+	TReturn result;
+};
+
+struct tresp_modem_power_off {
+	TReturn result;
+};
+
+struct tresp_modem_power_reset {
+	TReturn result;
+};
 
 struct tresp_modem_set_flightmode {
 	TReturn result;
@@ -59,8 +102,19 @@ struct tresp_modem_get_imei {
 
 struct tresp_modem_get_version {
 	TReturn result;
-	char software[20];
-	char hardware[20];
+	char software[33];
+	char hardware[33];
+	char calibration[33];
+	char product_code[33];
+};
+
+struct tresp_modem_get_sn {
+	TReturn result;
+	char sn[13];
+};
+
+struct tresp_modem_set_dun_pin_control {
+	int result;
 };
 
 struct tnoti_modem_power {
@@ -69,6 +123,14 @@ struct tnoti_modem_power {
 
 struct tnoti_modem_flight_mode {
 	int enable;
+};
+
+struct tnoti_modem_dun_pin_control {
+	enum modem_dun_pincontrol_signal signal;
+	enum modem_dun_pincontrol_status status;
+};
+
+struct tnoti_modem_dun_external_call {
 };
 
 __END_DECLS

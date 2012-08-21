@@ -29,9 +29,11 @@
 
 #include "tcore.h"
 #include "hal.h"
+#include "at.h"
 #include "queue.h"
 #include "plugin.h"
 #include "user_request.h"
+#include "server.h"
 
 //#define IDLE_SEND_PRIORITY G_PRIORITY_DEFAULT
 #define IDLE_SEND_PRIORITY G_PRIORITY_HIGH
@@ -55,6 +57,9 @@ struct tcore_hal_type {
 	GSList *callbacks;
 	gboolean power_state;
 	GSList *hook_list_send;
+
+	enum tcore_hal_mode mode;
+	TcoreAT *at;
 };
 
 static gboolean _hal_idle_send(void *user_data)
@@ -80,15 +85,26 @@ static gboolean _hal_idle_send(void *user_data)
 
 	data = tcore_pending_ref_request_data(p, &data_len);
 	dbg("queue len=%d, pending=0x%x, id=0x%x, data_len=%d",
-			tcore_queue_get_length(h->queue), p, tcore_pending_get_id(p), data_len);
+			tcore_queue_get_length(h->queue), (unsigned int)p, tcore_pending_get_id(p), data_len);
 
-	ret = tcore_hal_send_data(h, data_len, data);
+	if (h->mode == TCORE_HAL_MODE_AT) {
+		ret = tcore_at_set_request(h->at, data, TRUE);
+	}
+	else {
+		ret = tcore_hal_send_data(h, data_len, data);
+	}
+
+	if (ret == TCORE_RETURN_SUCCESS) {
+		tcore_pending_emit_send_callback(p, TRUE);
+	}
+	else {
+		tcore_pending_emit_send_callback(p, FALSE);
+	}
+
 	if (ret != TCORE_RETURN_HOOK_STOP) {
-		tcore_pending_emit_send_callback(p, ret);
-
 		if (tcore_pending_get_auto_free_status_after_sent(p)) {
 			q = tcore_hal_ref_queue(h);
-			p = tcore_queue_pop(q);
+			tcore_queue_pop_by_pending(q, p);
 			tcore_pending_free(p);
 
 			/* renew idler */
@@ -111,11 +127,12 @@ out:
 }
 
 TcoreHal *tcore_hal_new(TcorePlugin *plugin, const char *name,
-		struct tcore_hal_operations *hops)
+		struct tcore_hal_operations *hops,
+		enum tcore_hal_mode mode)
 {
 	TcoreHal *h;
 
-	if (!plugin || !name)
+	if (!name)
 		return NULL;
 
 	h = calloc(sizeof(struct tcore_hal_type), 1);
@@ -125,9 +142,14 @@ TcoreHal *tcore_hal_new(TcorePlugin *plugin, const char *name,
 	h->parent_plugin = plugin;
 	h->ops = hops;
 	h->name = strdup(name);
-	h->queue = tcore_queue_new(plugin);
+	h->queue = tcore_queue_new(h);
+	h->mode = mode;
 
-	tcore_plugin_set_hal(plugin, h);
+	if (mode == TCORE_HAL_MODE_AT)
+		h->at = tcore_at_new(h);
+
+	if (plugin)
+		tcore_server_add_hal(tcore_plugin_ref_server(plugin), h);
 
 	return h;
 }
@@ -147,6 +169,9 @@ void tcore_hal_free(TcoreHal *hal)
 
 	if (hal->queue)
 		tcore_queue_free(hal->queue);
+
+	if (hal->at)
+		tcore_at_free(hal->at);
 
 	free(hal);
 }
@@ -176,6 +201,22 @@ char *tcore_hal_get_name(TcoreHal *hal)
 		return strdup(hal->name);
 
 	return NULL;
+}
+
+TcoreAT *tcore_hal_get_at(TcoreHal *hal)
+{
+	if (!hal)
+		return NULL;
+
+	return hal->at;
+}
+
+enum tcore_hal_mode tcore_hal_get_mode(TcoreHal *hal)
+{
+	if (!hal)
+		return TCORE_HAL_MODE_UNKNOWN;
+
+	return hal->mode;
 }
 
 TReturn tcore_hal_link_user_data(TcoreHal *hal, void *user_data)
@@ -220,18 +261,18 @@ TReturn tcore_hal_send_data(TcoreHal *hal, unsigned int data_len, void *data)
 }
 
 /* Send data by Queue */
-TReturn tcore_hal_send_request(TcoreHal *hal, TcorePending *plugin)
+TReturn tcore_hal_send_request(TcoreHal *hal, TcorePending *pending)
 {
 	int qlen = 0;
 	enum tcore_pending_priority priority;
 
-	if (!hal || !plugin)
+	if (!hal || !pending)
 		return TCORE_RETURN_EINVAL;
 
 	qlen = tcore_queue_get_length(hal->queue);
-	tcore_queue_push(hal->queue, plugin);
+	tcore_queue_push(hal->queue, pending);
 
-	tcore_pending_get_priority(plugin, &priority);
+	tcore_pending_get_priority(pending, &priority);
 	if (priority == TCORE_PENDING_PRIORITY_IMMEDIATELY) {
 		dbg("IMMEDIATELY pending !!");
 		_hal_idle_send(hal);
@@ -245,19 +286,12 @@ TReturn tcore_hal_send_request(TcoreHal *hal, TcorePending *plugin)
 	return TCORE_RETURN_SUCCESS;
 }
 
-TReturn tcore_hal_dispatch_notification_data(TcoreHal *hal, const char *event,
-		const void *data)
+TReturn tcore_hal_send_force(TcoreHal *hal)
 {
-	TcorePlugin *p = NULL;
-
-	if (!hal || !event)
+	if (!hal)
 		return TCORE_RETURN_EINVAL;
 
-	p = tcore_hal_ref_plugin(hal);
-	if (!p)
-		return TCORE_RETURN_SERVER_WRONG_PLUGIN;
-
-	tcore_plugin_core_object_event_emit(p, event, data);
+	_hal_idle_send(hal);
 
 	return TCORE_RETURN_SUCCESS;
 }
@@ -273,18 +307,28 @@ TReturn tcore_hal_dispatch_response_data(TcoreHal *hal, int id,
 	if (data_len > 0 && data == NULL)
 		return TCORE_RETURN_EINVAL;
 
-	p = tcore_queue_pop_by_id(hal->queue, id);
-	if (!p) {
-		dbg("unknown pending (id=0x%x)", id);
-		return TCORE_RETURN_PENDING_WRONG_ID;
+	if (hal->mode == TCORE_HAL_MODE_AT) {
+		gboolean ret;
+		ret = tcore_at_process(hal->at, data_len, data);
+		if (ret) {
+			/* Send next request in queue */
+			g_idle_add_full(IDLE_SEND_PRIORITY, _hal_idle_send, hal, NULL );
+		}
 	}
+	else {
+		p = tcore_queue_pop_by_id(hal->queue, id);
+		if (!p) {
+			dbg("unknown pending (id=0x%x)", id);
+			return TCORE_RETURN_PENDING_WRONG_ID;
+		}
 
-	tcore_pending_emit_response_callback(p, data_len, data);
-	tcore_user_request_free(tcore_pending_ref_user_request(p));
-	tcore_pending_free(p);
+		tcore_pending_emit_response_callback(p, data_len, data);
+		tcore_user_request_free(tcore_pending_ref_user_request(p));
+		tcore_pending_free(p);
 
-	/* Send next request in queue */
-	g_idle_add_full(IDLE_SEND_PRIORITY, _hal_idle_send, hal, NULL);
+		/* Send next request in queue */
+		g_idle_add_full(IDLE_SEND_PRIORITY, _hal_idle_send, hal, NULL );
+	}
 
 	return TCORE_RETURN_SUCCESS;
 }

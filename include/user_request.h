@@ -42,7 +42,9 @@ typedef void (*UserRequestResponseHook)(UserRequest *ur,
 
 UserRequest*  tcore_user_request_new(Communicator *comm, const char *modem_name);
 void          tcore_user_request_free(UserRequest *ur);
-UserRequest*  tcore_user_request_dup(UserRequest *ur);
+
+UserRequest*  tcore_user_request_ref(UserRequest *ur);
+void          tcore_user_request_unref(UserRequest *ur);
 
 TReturn       tcore_user_request_set_free_hook(UserRequest *ur,
                   UserRequestFreeHook free_hook);

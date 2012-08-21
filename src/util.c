@@ -416,9 +416,48 @@ enum tcore_dcs_type tcore_util_get_cbs_coding_scheme(unsigned char encode)
 	return dcs;
 }
 
-char *tcore_util_unpack_gsm7bit(const char *src, unsigned int src_len)
+#define CONVERT_HEXCHAR_TO_INT(h, i) if ((h) >= '0' && (h) <= '9') (i) = (h) - '0'; \
+	else if ((h) >= 'A' && (h) <= 'F') (i) = (h) - 'A' + 10; \
+	else if ((h) >= 'a' && (h) <= 'f') (i) = (h) - 'a' + 10; \
+	else (i) = 0;
+
+
+unsigned char *tcore_util_decode_hex(const char *src, int len)
 {
-	char *dest;
+	unsigned char *buf;
+	int i = 0;
+	int j = 0;
+	int out_len = 0;
+	int value1 = 0;
+	int value2 = 0;
+
+	if (!src)
+		return NULL;
+
+	if (len == -1) {
+		out_len = strlen(src) / 2 + 1;
+	}
+	else {
+		out_len = len;
+	}
+
+	buf = calloc(out_len, 1);
+	if (!buf)
+		return NULL;
+
+	for (; j < out_len; i+= 2, j++) {
+		CONVERT_HEXCHAR_TO_INT(src[i], value1);
+		CONVERT_HEXCHAR_TO_INT(src[i+1], value2);
+
+		buf[j] = (value1 << 4) + value2;
+	}
+
+	return buf;
+}
+
+unsigned char *tcore_util_unpack_gsm7bit(const unsigned char *src, unsigned int src_len)
+{
+	unsigned char *dest;
 	int i = 0;
 	unsigned int pos = 0;
 	unsigned char shift = 0;
@@ -463,9 +502,9 @@ char *tcore_util_unpack_gsm7bit(const char *src, unsigned int src_len)
 	return dest;
 }
 
-char *tcore_util_pack_gsm7bit(const char* src, unsigned int src_len)
+unsigned char *tcore_util_pack_gsm7bit(const unsigned char *src, unsigned int src_len)
 {
-	char *dest;
+	unsigned char *dest;
 	unsigned int i = 0;
 	unsigned int pos = 0, shift = 0;
 	unsigned int outlen = 0;
@@ -505,6 +544,78 @@ char *tcore_util_pack_gsm7bit(const char* src, unsigned int src_len)
 		}
 	}
 
+	return dest;
+}
+
+char* tcore_util_convert_bcd2ascii(const char* src, int src_len, int max_len)
+{
+	int index = 0, len=0;
+	char l_bcd = 0x00, h_bcd = 0x0F;
+	char *dest = NULL;
+
+	if(!src)
+		return NULL;
+
+	if(src_len*2 > max_len){
+		err("[SAT] PARSER - number length exceeds the max");
+		return NULL;
+	}
+
+	dest = malloc((src_len*2)*sizeof(char)+1);
+	memset(dest, 0, (src_len*2)*sizeof(char)+1);
+
+	for(index = 0; index < src_len; index++){
+		l_bcd = src[index] & 0x0F;
+		h_bcd = (src[index] & 0xF0) >> 0x04;
+
+		switch(l_bcd){
+			case 0x0A:
+				dest[len++] = '*';
+				break;
+			case 0x0B:
+				dest[len++] = '#';
+				break;
+			case 0x0C:
+				dest[len++] = 'p'; //Pause
+				break;
+			case 0x0D:
+				dest[len++] = '?'; //Wild Card character
+				break;
+			case 0x0E: //ignore, RFU
+			case 0x0F: //ignore in l_bcd
+				break;
+			default:
+				dest[len++] = l_bcd+'0'; //digits 0~9
+				break;
+		}//l_lbcd switch
+
+		switch(h_bcd){
+			case 0x0A:
+				dest[len++] = '*';
+				break;
+			case 0x0B:
+				dest[len++] = '#';
+				break;
+			case 0x0C:
+				dest[len++] = 'p'; //Pause
+				break;
+			case 0x0D:
+				dest[len++] = '?'; //Wild Card character
+				break;
+			case 0x0E: //ignore, RFU
+			case 0x0F:
+				dest[len] = '\0'; //Null termination
+				break;
+			default:
+				dest[len++] = h_bcd+'0'; //digits 0~9
+				break;
+		}//h_bcd switch
+	}
+
+	if(h_bcd != 0x0F)
+		dest[len] = '\0';
+
+	dbg("[SAT] SAT PARSER - number(%s) len(%d)", dest, len);
 	return dest;
 }
 

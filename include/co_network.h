@@ -38,6 +38,7 @@ enum tcore_network_name_type {
 };
 
 enum tcore_network_name_priority {
+	TCORE_NETWORK_NAME_PRIORITY_UNKNOWN,
 	TCORE_NETWORK_NAME_PRIORITY_NETWORK,
 	TCORE_NETWORK_NAME_PRIORITY_SPN,
 	TCORE_NETWORK_NAME_PRIORITY_ANY,
@@ -66,11 +67,13 @@ struct tcore_network_operations {
 	TReturn (*get_power_on_attach)(CoreObject *o, UserRequest *ur);
 	TReturn (*set_cancel_manual_search)(CoreObject *o, UserRequest *ur);
 	TReturn (*get_serving_network)(CoreObject *o, UserRequest *ur);
+	TReturn (*set_mode)(CoreObject *o, UserRequest *ur);
+	TReturn (*get_mode)(CoreObject *o, UserRequest *ur);
 };
 
 
 CoreObject* tcore_network_new(TcorePlugin *plugin, const char *name,
-                struct tcore_network_operations *ops);
+                struct tcore_network_operations *ops, TcoreHal *hal);
 void        tcore_network_free(CoreObject *co);
 
 TReturn     tcore_network_set_plmn(CoreObject *co, const char *plmn);

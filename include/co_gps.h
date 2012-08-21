@@ -18,26 +18,20 @@
  * limitations under the License.
  */
 
-#ifndef __TCORE_CO_SAP_H__
-#define __TCORE_CO_SAP_H__
+#ifndef __TCORE_CO_GPS_H__
+#define __TCORE_CO_GPS_H__
 
 #include <core_object.h>
 
 __BEGIN_DECLS
 
-struct tcore_sap_operations {
-	TReturn (*connect)(CoreObject *o, UserRequest *ur);
-	TReturn (*disconnect)(CoreObject *o, UserRequest *ur);
-	TReturn (*req_status)(CoreObject *o, UserRequest *ur);
-	TReturn (*set_transport_protocol)(CoreObject *o, UserRequest *ur);
-	TReturn (*set_power)(CoreObject *o, UserRequest *ur);
-	TReturn (*get_atr)(CoreObject *o, UserRequest *ur);
-	TReturn (*transfer_apdu)(CoreObject *o, UserRequest *ur);
-	TReturn (*get_cardreader_status)(CoreObject *o, UserRequest *ur);
+
+struct tcore_gps_operations {
+	TReturn (*confirm_measure_pos)(CoreObject *o, UserRequest *ur);
 };
 
-CoreObject* tcore_sap_new(TcorePlugin *p, const char *name, struct tcore_sap_operations *ops, TcoreHal *hal);
-void        tcore_sap_free(CoreObject *o);
+CoreObject*  tcore_gps_new(TcorePlugin *p, const char *name, struct tcore_gps_operations *ops, TcoreHal *hal);
+void         tcore_gps_free(CoreObject *o);
 
 __END_DECLS
 

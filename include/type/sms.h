@@ -818,10 +818,10 @@ struct treq_sms_set_mem_status {
 	int	memory_status;
 };
 
-struct treq_sms_get_pref_brearer {
+struct treq_sms_get_pref_bearer {
 };
 
-struct treq_sms_set_pref_brearer {
+struct treq_sms_set_pref_bearer {
 	int	svc;
 };
 
@@ -896,11 +896,13 @@ struct tresp_sms_set_mem_status {
 	int	result;
 };
 
-struct tresp_sms_get_pref_brearer {
+struct tresp_sms_get_pref_bearer {
+	int	result;
 };
 
-struct tresp_sms_set_pref_brearer {
+struct tresp_sms_set_pref_bearer {
 	int	svc;
+	int	result;
 };
 
 struct tresp_sms_set_delivery_report {
@@ -949,8 +951,8 @@ struct tnoti_sms_memory_status {
 	int	status;
 };
 
-struct tnoti_sms_device_ready_status {
-	int	status;
+struct tnoti_sms_ready_status {
+	gboolean	status;
 };
 
 __END_DECLS

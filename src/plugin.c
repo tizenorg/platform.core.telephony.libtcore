@@ -29,7 +29,6 @@
 #include <glib.h>
 
 #include "tcore.h"
-#include "hal.h"
 #include "core_object.h"
 #include "plugin.h"
 #include "server.h"
@@ -40,7 +39,6 @@ struct tcore_plugin_type {
 	void *handle;
 
 	void *user_data;
-	TcoreHal *hal;
 	Communicator *comm;
 	GSList *list_co;
 	GHashTable *property;
@@ -58,8 +56,10 @@ TcorePlugin *tcore_plugin_new(Server *server,
 	if (!p)
 		return NULL;
 
+	if (filename)
+		p->filename = strdup(filename);
+
 	p->desc = desc;
-	p->filename = strdup(filename);
 	p->property = g_hash_table_new(g_str_hash, g_str_equal);
 	p->handle = handle;
 	p->parent_server = server;
@@ -76,11 +76,6 @@ void tcore_plugin_free(TcorePlugin *plugin)
 		return;
 
 	dbg("");
-
-	if (plugin->hal) {
-		tcore_hal_free(plugin->hal);
-		plugin->hal = NULL;
-	}
 
 	if (plugin->list_co) {
 		for (list = plugin->list_co; list; list = list->next) {
@@ -155,24 +150,6 @@ Server *tcore_plugin_ref_server(TcorePlugin *plugin)
 		return NULL;
 
 	return plugin->parent_server;
-}
-
-TReturn tcore_plugin_set_hal(TcorePlugin *plugin, TcoreHal *hal)
-{
-	if (!plugin)
-		return TCORE_RETURN_EINVAL;
-
-	plugin->hal = hal;
-
-	return tcore_server_add_hal(plugin->parent_server, hal);
-}
-
-TcoreHal *tcore_plugin_ref_hal(TcorePlugin *plugin)
-{
-	if (!plugin)
-		return NULL;
-
-	return plugin->hal;
 }
 
 TReturn tcore_plugin_link_user_data(TcorePlugin *plugin, void *user_data)

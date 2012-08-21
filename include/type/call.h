@@ -345,12 +345,15 @@ enum telephony_call_sound_volume_level {
 	CALL_SOUND_VOLUME_LEVEL_9,
 };
 
-enum telephony_call_sound_error_cause {
-	CALL_SOUND_OK,
+enum telephony_call_sound_ringback_tone_status {
+	CALL_SOUND_RINGBACK_TONE_START,
+	CALL_SOUND_RINGBACK_TONE_END,
 };
 
-
-
+enum telephony_call_sound_direction {
+	CALL_SOUND_DIRECTION_LEFT,
+	CALL_SOUND_DIRECTION_RIGHT,
+};
 
 /**********
   Struct
@@ -397,35 +400,164 @@ struct treq_call_dtmf {
 	char digits[ MAX_CALL_DTMF_DIGITS_LEN ]; 
 };
 
+struct treq_call_active {
+	unsigned int id;
+};
+
+struct treq_call_hold {
+	unsigned int id;
+};
+
+struct treq_call_swap {
+	unsigned int id;
+};
+
+struct treq_call_join {
+	unsigned int id;
+};
+
+struct treq_call_split {
+	unsigned int id;
+};
+
+struct treq_call_transfer {
+	unsigned int id;
+};
+
+struct treq_call_deflect {
+	unsigned int id;
+	char number[MAX_CALL_NUMBER_LEN];
+};
+
 struct treq_call_sound_set_path {
 	enum telephony_call_sound_path path;
+	gboolean extra_volume_on;
 };
 
 struct treq_call_sound_set_volume_level {
-	enum telephony_call_sound_type			sound;
-	enum telephony_call_sound_device			device;
-	enum telephony_call_sound_volume_level	volume;
+	enum telephony_call_sound_type sound;
+	enum telephony_call_sound_device device;
+	enum telephony_call_sound_volume_level volume;
 };
 
 struct treq_call_sound_get_volume_level {
-	enum telephony_call_sound_type		sound;
-	enum telephony_call_sound_device	device;
+	enum telephony_call_sound_type sound;
+	enum telephony_call_sound_device device;
 };
 
+struct treq_call_sound_set_recording {
+	gboolean state;
+};
+
+#define MAX_SOUND_EQ_PARAMETER_SIZE 13
+struct treq_call_sound_set_equalization {
+	gboolean mode;
+	enum telephony_call_sound_direction direction;
+	char parameter[ MAX_SOUND_EQ_PARAMETER_SIZE ];
+};
+
+struct treq_call_sound_set_noise_reduction {
+	gboolean status;
+};
 
 // Response
 
-struct tresp_call_general {
-	enum telephony_call_type type;
-	unsigned int	id;
-	gboolean		err;
-	enum telephony_call_error_cause cause;
+struct tresp_call_dial {
+	gboolean err;
 };
 
-struct tresp_call_sound_general {
-	gboolean		err;
-	enum telephony_call_sound_error_cause cause;
+struct tresp_call_answer {
+	unsigned int id;
+	gboolean err;
 };
+
+struct tresp_call_end {
+	enum telephony_call_end_type type;
+	unsigned int id;
+	gboolean err;
+};
+
+struct tresp_call_hold {
+	unsigned int id;
+	gboolean err;
+};
+
+struct tresp_call_active {
+	unsigned int id;
+	gboolean err;
+};
+
+struct tresp_call_swap {
+	unsigned int id;
+	gboolean err;
+};
+
+struct tresp_call_join {
+	unsigned int id;
+	gboolean err;
+};
+
+struct tresp_call_split {
+	unsigned int id;
+	gboolean err;
+};
+
+struct tresp_call_deflect {
+	unsigned int id;
+	gboolean err;
+};
+
+struct tresp_call_transfer {
+	unsigned int id;
+	gboolean err;
+};
+
+struct tresp_call_dtmf {
+	gboolean err;
+};
+
+struct tresp_call_sound_set_path {
+	gboolean err;
+};
+
+struct tresp_call_sound_set_volume_level {
+	gboolean err;
+};
+
+struct tresp_call_sound_get_volume_level {
+	int record_num;
+	struct volume_info {
+		enum telephony_call_sound_type sound;
+		enum telephony_call_sound_volume_level volume;
+	} *record;
+	gboolean err;
+};
+
+struct tresp_call_mute {
+	gboolean err;
+};
+
+struct tresp_call_unmute {
+	gboolean err;
+};
+
+struct tresp_call_get_mute_status {
+	int status;
+	gboolean err;
+};
+
+struct tresp_call_sound_set_recording {
+	gboolean err;
+};
+
+struct tresp_call_sound_set_equalization {
+	gboolean err;
+};
+
+struct tresp_call_sound_set_noise_reduction {
+	gboolean err;
+};
+
 
 // Notification
 
@@ -469,6 +601,26 @@ struct tnoti_call_status_waiting {
 	unsigned int	id;
 };
 
+struct tnoti_call_sound_path {
+	enum telephony_call_sound_path path;
+};
+
+struct tnoti_call_sound_ringback_tone {
+	enum telephony_call_sound_ringback_tone_status status;
+};
+
+struct tnoti_call_sound_wbamr {
+	gboolean status;
+};
+
+struct tnoti_call_sound_equalization {
+	gboolean mode;
+	enum telephony_call_sound_direction direction;
+};
+
+struct tnoti_call_sound_noise_reduction {
+	gboolean status;
+};
 
 __END_DECLS
 

@@ -31,31 +31,121 @@
 
 struct private_object_data {
 	struct tcore_sms_operations *ops;
+	gboolean b_readyStatus;
 };
 
-//static int		_tcore_util_sms_encode_smsParameters(const telephony_sms_Params_t *incoming, unsigned char *data, int SMSPRecordLen);
+/**
+ * This function is used to encode SMS Parameters to TPDU on EFsmsp
+ *
+ * @return		length of string
+ * @param[in]		incoming - telephony_sms_Params_t
+ * @param[in]		data - TPDU data
+ * @Interface		Synchronous.
+ * @remark
+ * @Refer
+ */
+int _tcore_util_sms_encode_smsParameters(const struct telephony_sms_Params *incoming, unsigned char *data, int SMSPRecordLen)
+{
+	struct telephony_sms_Params *smsParams =  (struct telephony_sms_Params *)incoming;
+	unsigned int nPIDIndex = 0;
+	unsigned char nOffset = 0;
+
+	if(incoming == NULL || data == NULL)
+		return FALSE;
+
+	memset(data, 0xff, SMSPRecordLen);//pSmsParam->RecordLen);
+
+	dbg(" Record index = %d", (int) smsParams->recordIndex);
+	dbg(" Alpha ID Len = %d", (int) smsParams->alphaIdLen);
+	dbg(" Record Length : %d", SMSPRecordLen);//pSmsParam->RecordLen);
+
+	if (SMSPRecordLen/*pSmsParam->RecordLen*/>= nDefaultSMSPWithoutAlphaId) {
+		nPIDIndex = SMSPRecordLen
+				/*pSmsParam->RecordLen*/- nDefaultSMSPWithoutAlphaId;
+	}
+
+	//dongil01.park(2008/12/27) - Check Point
+	memcpy(data, smsParams->szAlphaId, (int) nPIDIndex/*pSmsParam->AlphaIdLen*/);
+
+	dbg(" Alpha ID : %s", smsParams->szAlphaId);
+	dbg(" nPIDIndex = %d", nPIDIndex);
+
+	data[nPIDIndex] = smsParams->paramIndicator;
+
+	dbg(" Param Indicator = %02x",	smsParams->paramIndicator);
+
+	if ((smsParams->paramIndicator & SMSPValidDestAddr) == 0x00) {
+		nOffset = nDestAddrOffset;
+
+		data[nPIDIndex + (nOffset)] = smsParams->tpDestAddr.dialNumLen + 1;
+		data[nPIDIndex + (++nOffset)] = ((smsParams->tpDestAddr.typeOfNum << 4) | smsParams->tpDestAddr.numPlanId) | 0x80;
+
+		memcpy(&data[nPIDIndex + (++nOffset)], &smsParams->tpDestAddr.diallingNum, smsParams->tpDestAddr.dialNumLen);
+
+		dbg(" nextIndex = %d", nPIDIndex);
+	}
+
+	if( (smsParams->paramIndicator & SMSPValidSvcAddr) == 0x00 )
+	{
+		dbg("TON [%d] / NPI [%d]", smsParams->tpSvcCntrAddr.typeOfNum, smsParams->tpSvcCntrAddr.numPlanId);
+
+		nOffset = nSCAAddrOffset;
+
+		dbg("SCA Length : %d", smsParams->tpSvcCntrAddr.dialNumLen);
+
+		data[nPIDIndex + (nOffset)] = smsParams->tpSvcCntrAddr.dialNumLen + 1;
+		data[nPIDIndex + (++nOffset)] = ((smsParams->tpSvcCntrAddr.typeOfNum << 4) | smsParams->tpSvcCntrAddr.numPlanId) | 0x80;
+
+		memcpy(&data[nPIDIndex + (++nOffset)], &smsParams->tpSvcCntrAddr.diallingNum, smsParams->tpSvcCntrAddr.dialNumLen);
+
+		dbg(" nextIndex = %d", nPIDIndex);
+	}
+
+	if ((smsParams->paramIndicator & SMSPValidPID) == 0x00) {
+		nOffset = nPIDOffset;
+
+		data[nPIDIndex + nOffset] = smsParams->tpProtocolId;
+		dbg(" PID = %02x", smsParams->tpProtocolId);
+		dbg(" nextIndex = %d", nPIDIndex);
+	}
+
+	if ((smsParams->paramIndicator & SMSPValidDCS) == 0x00) {
+		nOffset = nDCSOffset;
+
+		data[nPIDIndex + nOffset] = smsParams->tpDataCodingScheme;
+		dbg(" DCS = %02x", smsParams->tpDataCodingScheme);
+		dbg(" nextIndex = %d", nPIDIndex);
+	}
+
+	if ((smsParams->paramIndicator & SMSPValidVP) == 0x00) {
+		nOffset = nVPOffset;
+
+		data[nPIDIndex + nOffset] = smsParams->tpValidityPeriod;
+		dbg(" VP = %02x", smsParams->tpValidityPeriod);
+		dbg(" nextIndex = %d", nPIDIndex);
+	}
+
+	return TRUE;
+
+}
 
 static TReturn _dispatcher(CoreObject *o, UserRequest *ur)
 {
-	TcorePlugin *p = NULL;
-	struct property_sms_info *property = NULL;
 	enum tcore_request_command command;
 	struct private_object_data *po = NULL;
 	TReturn rtn = TCORE_RETURN_SUCCESS;
 
 	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_SMS, TCORE_RETURN_EINVAL);
 
-	p = tcore_object_ref_plugin(o);
-	property = tcore_plugin_ref_property(p, "SMS");
-	if (property->bDevice_Ready == FALSE) {
-		dbg("[tcore_SMS] DEVICE_NOT_READY");
-		return TCORE_RETURN_ENOSYS; /* TAPI_API_NETTEXT_DEVICE_NOT_READY */
-	}
-
 	po = tcore_object_ref_object(o);
 	if (!po || !po->ops) {
 		dbg("[tcore_SMS] ERR: private_object is NULL or ops is NULL");
 		return TCORE_RETURN_ENOSYS;
+	}
+
+	if(po->b_readyStatus == FALSE) {
+		dbg("[tcore_SMS] DEVICE_NOT_READY");
+		return TCORE_RETURN_ENOSYS; /* TAPI_API_NETTEXT_DEVICE_NOT_READY */
 	}
 
 	command = tcore_user_request_get_command(ur);
@@ -249,7 +339,6 @@ static TReturn _dispatcher(CoreObject *o, UserRequest *ur)
 	return rtn;
 }
 
-
 static void _free_hook(CoreObject *o)
 {
 	struct private_object_data *po = NULL;
@@ -263,7 +352,54 @@ static void _free_hook(CoreObject *o)
 	}
 }
 
-CoreObject *tcore_sms_new(TcorePlugin *p, const char *name, struct tcore_sms_operations *ops)
+static void _clone_hook(CoreObject *src, CoreObject *dest)
+{
+	struct private_object_data *src_po = NULL;
+	struct private_object_data *dest_po = NULL;
+
+	if (!src || !dest)
+		return;
+
+	dest_po = calloc(sizeof(struct private_object_data), 1);
+	if (!dest_po) {
+		tcore_object_link_object(dest, NULL);
+		return;
+	}
+
+	src_po = tcore_object_ref_object(src);
+	dest_po->ops = src_po->ops;
+
+	tcore_object_link_object(dest, dest_po);
+}
+
+gboolean tcore_sms_get_ready_status(CoreObject *o)
+{
+	struct private_object_data *po = NULL;
+	po = tcore_object_ref_object(o);
+	if (!po) {
+		dbg("po access fail");
+		return FALSE;
+	}
+
+	return po->b_readyStatus;
+}
+
+gboolean tcore_sms_set_ready_status(CoreObject *o, int status)
+{
+	struct private_object_data *po = NULL;
+	po = tcore_object_ref_object(o);
+	if (!po) {
+		dbg("po access fail");
+		return FALSE;
+	}
+
+	po->b_readyStatus = status;
+
+	return TRUE;
+}
+
+CoreObject *tcore_sms_new(TcorePlugin *p, const char *name,
+		struct tcore_sms_operations *ops, TcoreHal *hal)
 {
 	CoreObject *o = NULL;
 	struct private_object_data *po = NULL;
@@ -271,7 +407,7 @@ CoreObject *tcore_sms_new(TcorePlugin *p, const char *name, struct tcore_sms_ope
 	if (!p)
 		return NULL;
 
-	o = tcore_object_new(p, name);
+	o = tcore_object_new(p, name, hal);
 	if (!o)
 		return NULL;
 
@@ -286,6 +422,7 @@ CoreObject *tcore_sms_new(TcorePlugin *p, const char *name, struct tcore_sms_ope
 	tcore_object_set_type(o, CORE_OBJECT_TYPE_SMS);
 	tcore_object_link_object(o, po);
 	tcore_object_set_free_hook(o, _free_hook);
+	tcore_object_set_clone_hook(o, _clone_hook);
 	tcore_object_set_dispatcher(o, _dispatcher);
 
 	return o;
@@ -303,101 +440,6 @@ void tcore_sms_free(CoreObject *o)
 
 	free(po);
 	tcore_object_free(o);
-}
-
-/**
- * This function is used to encode SMS Parameters to TPDU on EFsmsp
- *
- * @return		length of string
- * @param[in]		incoming - telephony_sms_Params_t
- * @param[in]		data - TPDU data
- * @Interface		Synchronous.
- * @remark
- * @Refer
- */
-int _tcore_util_sms_encode_smsParameters(const struct telephony_sms_Params *incoming, unsigned char *data, int SMSPRecordLen)
-{
-	struct telephony_sms_Params *smsParams =  (struct telephony_sms_Params *)incoming;
-	unsigned int nPIDIndex = 0;
-	unsigned char nOffset = 0;
-
-	if(incoming == NULL || data == NULL)
-		return FALSE;
-
-	memset(data, 0xff, SMSPRecordLen);//pSmsParam->RecordLen);
-
-	dbg(" Record index = %d", (int) smsParams->recordIndex);
-	dbg(" Alpha ID Len = %d", (int) smsParams->alphaIdLen);
-	dbg(" Record Length : %d", SMSPRecordLen);//pSmsParam->RecordLen);
-
-	if (SMSPRecordLen/*pSmsParam->RecordLen*/>= nDefaultSMSPWithoutAlphaId) {
-		nPIDIndex = SMSPRecordLen
-				/*pSmsParam->RecordLen*/- nDefaultSMSPWithoutAlphaId;
-	}
-
-	//dongil01.park(2008/12/27) - Check Point
-	memcpy(data, smsParams->szAlphaId, (int) nPIDIndex/*pSmsParam->AlphaIdLen*/);
-
-	dbg(" Alpha ID : %s", smsParams->szAlphaId);
-	dbg(" nPIDIndex = %d", nPIDIndex);
-
-	data[nPIDIndex] = smsParams->paramIndicator;
-
-	dbg(" Param Indicator = %02x",	smsParams->paramIndicator);
-
-	if ((smsParams->paramIndicator & SMSPValidDestAddr) == 0x00) {
-		nOffset = nDestAddrOffset;
-
-		data[nPIDIndex + (nOffset)] = smsParams->tpDestAddr.dialNumLen + 1;
-		data[nPIDIndex + (++nOffset)] = ((smsParams->tpDestAddr.typeOfNum << 4) | smsParams->tpDestAddr.numPlanId) | 0x80;
-
-		memcpy(&data[nPIDIndex + (++nOffset)], &smsParams->tpDestAddr.diallingNum, smsParams->tpDestAddr.dialNumLen);
-
-		dbg(" nextIndex = %d", nPIDIndex);
-	}
-
-	if( (smsParams->paramIndicator & SMSPValidSvcAddr) == 0x00 )
-	{
-		dbg("TON [%d] / NPI [%d]", smsParams->tpSvcCntrAddr.typeOfNum, smsParams->tpSvcCntrAddr.numPlanId);
-
-		nOffset = nSCAAddrOffset;
-
-		dbg("SCA Length : %d", smsParams->tpSvcCntrAddr.dialNumLen);
-
-		data[nPIDIndex + (nOffset)] = smsParams->tpSvcCntrAddr.dialNumLen + 1;
-		data[nPIDIndex + (++nOffset)] = ((smsParams->tpSvcCntrAddr.typeOfNum << 4) | smsParams->tpSvcCntrAddr.numPlanId) | 0x80;
-
-		memcpy(&data[nPIDIndex + (++nOffset)], &smsParams->tpSvcCntrAddr.diallingNum, smsParams->tpSvcCntrAddr.dialNumLen);
-
-		dbg(" nextIndex = %d", nPIDIndex);
-	}
-
-	if ((smsParams->paramIndicator & SMSPValidPID) == 0x00) {
-		nOffset = nPIDOffset;
-
-		data[nPIDIndex + nOffset] = smsParams->tpProtocolId;
-		dbg(" PID = %02x", smsParams->tpProtocolId);
-		dbg(" nextIndex = %d", nPIDIndex);
-	}
-
-	if ((smsParams->paramIndicator & SMSPValidDCS) == 0x00) {
-		nOffset = nDCSOffset;
-
-		data[nPIDIndex + nOffset] = smsParams->tpDataCodingScheme;
-		dbg(" DCS = %02x", smsParams->tpDataCodingScheme);
-		dbg(" nextIndex = %d", nPIDIndex);
-	}
-
-	if ((smsParams->paramIndicator & SMSPValidVP) == 0x00) {
-		nOffset = nVPOffset;
-
-		data[nPIDIndex + nOffset] = smsParams->tpValidityPeriod;
-		dbg(" VP = %02x", smsParams->tpValidityPeriod);
-		dbg(" nextIndex = %d", nPIDIndex);
-	}
-
-	return TRUE;
-
 }
 
 

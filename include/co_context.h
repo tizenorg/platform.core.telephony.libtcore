@@ -68,7 +68,7 @@ enum co_context_auth {
 	CONTEXT_AUTH_CHAP
 };
 
-CoreObject*              tcore_context_new(TcorePlugin *p, const char *name);
+CoreObject*              tcore_context_new(TcorePlugin *p, const char *name, TcoreHal *hal);
 void                     tcore_context_free(CoreObject *o);
 
 TReturn                  tcore_context_set_state(CoreObject *o, enum co_context_state state);

@@ -48,7 +48,7 @@ struct private_object_data {
 	char *network_name_spn;
 	enum tcore_network_name_priority network_name_priority;
 
-	GSList *network_operator_info_table[999];
+	GSList *network_operator_info_table[1000];
 };
 
 static TReturn _dispatcher(CoreObject *co, UserRequest *ur)
@@ -169,6 +169,20 @@ static TReturn _dispatcher(CoreObject *co, UserRequest *ur)
 			return po->ops->get_serving_network(co, ur);
 			break;
 
+		case TREQ_NETWORK_SET_MODE:
+			if (!po->ops->set_mode)
+				return TCORE_RETURN_ENOSYS;
+
+			return po->ops->set_mode(co, ur);
+			break;
+
+		case TREQ_NETWORK_GET_MODE:
+			if (!po->ops->get_mode)
+				return TCORE_RETURN_ENOSYS;
+
+			return po->ops->get_mode(co, ur);
+			break;
+
 		default:
 			break;
 	}
@@ -189,8 +203,28 @@ static void _free_hook(CoreObject *co)
 	}
 }
 
+static void _clone_hook(CoreObject *src, CoreObject *dest)
+{
+	struct private_object_data *src_po = NULL;
+	struct private_object_data *dest_po = NULL;
+
+	if (!src || !dest)
+		return;
+
+	dest_po = calloc(sizeof(struct private_object_data), 1);
+	if (!dest_po) {
+		tcore_object_link_object(dest, NULL);
+		return;
+	}
+
+	src_po = tcore_object_ref_object(src);
+	dest_po->ops = src_po->ops;
+
+	tcore_object_link_object(dest, dest_po);
+}
+
 CoreObject *tcore_network_new(TcorePlugin *plugin, const char *name,
-		struct tcore_network_operations *ops)
+		struct tcore_network_operations *ops, TcoreHal *hal)
 {
 	CoreObject *o = NULL;
 	struct private_object_data *po = NULL;
@@ -198,7 +232,7 @@ CoreObject *tcore_network_new(TcorePlugin *plugin, const char *name,
 	if (!plugin)
 		return NULL;
 
-	o = tcore_object_new(plugin, name);
+	o = tcore_object_new(plugin, name, hal);
 	if (!o)
 		return NULL;
 
@@ -213,6 +247,7 @@ CoreObject *tcore_network_new(TcorePlugin *plugin, const char *name,
 	tcore_object_set_type(o, CORE_OBJECT_TYPE_NETWORK);
 	tcore_object_link_object(o, po);
 	tcore_object_set_free_hook(o, _free_hook);
+	tcore_object_set_clone_hook(o, _clone_hook);
 	tcore_object_set_dispatcher(o, _dispatcher);
 
 	return o;
@@ -656,7 +691,11 @@ TReturn tcore_network_operator_info_add(CoreObject *co,
 		return TCORE_RETURN_EINVAL;
 
 	mcc_index = atoi(noi->mcc);
-	po->network_operator_info_table[mcc_index] = g_slist_append(po->network_operator_info_table[mcc_index], noi);
+	if (mcc_index > 999)
+		return TCORE_RETURN_EINVAL;
+
+	po->network_operator_info_table[mcc_index] = g_slist_append(
+			po->network_operator_info_table[mcc_index], noi);
 
 	return TCORE_RETURN_SUCCESS;
 }
@@ -679,9 +718,12 @@ tcore_network_operator_info_find(CoreObject *co, const char *mcc, const char *mn
 		return NULL;
 
 	mcc_index = atoi(mcc);
+	if (mcc_index > 999)
+		return NULL;
+
 	list = po->network_operator_info_table[mcc_index];
 	if (list == NULL) {
-		dbg("mcc[%d] is not in table", mcc_index);
+		dbg("mcc[%d] is not in operator table", mcc_index);
 		return NULL;
 	}
 
@@ -699,6 +741,7 @@ tcore_network_operator_info_find(CoreObject *co, const char *mcc, const char *mn
 			return data;
 	}
 
-	dbg("mnc[%s] is not in list", mnc);
+	dbg("mcc[%s] mnc[%s] is not in operator table", mcc, mnc);
+
 	return NULL;
 }

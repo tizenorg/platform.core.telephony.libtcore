@@ -117,6 +117,21 @@ enum telephony_network_acquisition_order {
 	NETWORK_ORDER_NO_CHANGE = 0x04
 };
 
+enum telephony_network_icon_info_type {
+	NETWORK_ICON_INFO_RSSI = 0x01,
+	NETWORK_ICON_INFO_BATTERY = 0x02,
+	NETWORK_ICON_INFO_HDR_RSSI = 0x04,
+	NETWORK_ICON_INFO_ALL = 0xFF,
+};
+
+enum telephony_network_mode {
+	NETWORK_MODE_AUTO = 0x00,
+	NETWORK_MODE_GSM = 0x01,
+	NETWORK_MODE_WCDMA = 0x02,
+	NETWORK_MODE_CDMA = 0x04,
+	NETWORK_MODE_LTE = 0x08,
+};
+
 struct treq_network_search { /* no data */
 };
 struct treq_network_set_plmn_selection_mode {
@@ -159,12 +174,19 @@ struct treq_network_set_cancel_manual_search { /* no data */
 };
 struct treq_network_get_serving_network { /* no data */
 };
+struct treq_network_set_mode {
+	enum telephony_network_mode mode;
+};
+struct treq_network_get_mode { /* no data */
+};
 
 
 struct tresp_network_search {
+	TReturn result;
 	int list_count;
 	struct {
 		enum telephony_network_plmn_status  status;
+		char name[17];
 		char plmn[7];
 		enum telephony_network_access_technology act;
 		unsigned int lac;
@@ -179,6 +201,7 @@ struct tresp_network_set_plmn_selection_mode {
 };
 
 struct tresp_network_get_plmn_selection_mode {
+	TReturn result;
 	enum telephony_network_select_mode mode;
 };
 
@@ -187,6 +210,7 @@ struct tresp_network_set_service_domain {
 };
 
 struct tresp_network_get_service_domain {
+	TReturn result;
 	enum telephony_network_service_domain domain;
 };
 
@@ -195,6 +219,7 @@ struct tresp_network_set_band {
 };
 
 struct tresp_network_get_band {
+	TReturn result;
 	enum telephony_network_band_mode mode;
 	enum telephony_network_band band;
 };
@@ -204,6 +229,7 @@ struct tresp_network_set_preferred_plmn {
 };
 
 struct tresp_network_get_preferred_plmn {
+	TReturn result;
 	int list_count;
 	struct {
 		int ef_index;
@@ -218,6 +244,7 @@ struct tresp_network_set_order {
 };
 
 struct tresp_network_get_order {
+	TReturn result;
 	enum telephony_network_acquisition_order order;
 };
 
@@ -226,6 +253,7 @@ struct tresp_network_set_power_on_attach {
 };
 
 struct tresp_network_get_power_on_attach {
+	TReturn result;
 	int enabled;
 };
 
@@ -234,6 +262,7 @@ struct tresp_network_set_cancel_manual_search {
 };
 
 struct tresp_network_get_serving_network {
+	TReturn result;
 	char plmn[7];
 	enum telephony_network_access_technology act;
 	struct {
@@ -246,9 +275,18 @@ struct tresp_network_get_serving_network {
 		int bs_id;
 		int bs_lat;
 		int bs_long;
-		int reg_sonze;
+		int reg_zone;
 		int pilot_pn;
 	} cdma;
+};
+
+struct tresp_network_set_mode {
+	TReturn result;
+};
+
+struct tresp_network_get_mode {
+	TReturn result;
+	enum telephony_network_mode mode;
 };
 
 
@@ -265,7 +303,7 @@ struct tnoti_network_location_cellinfo {
 };
 
 struct tnoti_network_icon_info {
-	int type;
+	enum telephony_network_icon_info_type type;
 	int rssi;
 	int battery;
 	int hdr_rssi;
@@ -284,7 +322,7 @@ struct tnoti_network_change {
 		int bs_id;
 		int bs_lat;
 		int bs_long;
-		int reg_sonze;
+		int reg_zone;
 		int pilot_pn;
 	} cdma;
 };

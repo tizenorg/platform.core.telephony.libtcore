@@ -32,6 +32,7 @@ struct tcore_sim_operations {
 	TReturn (*get_facility_status)(CoreObject *o, UserRequest *ur);
 	TReturn (*enable_facility)(CoreObject *o, UserRequest *ur);
 	TReturn (*disable_facility)(CoreObject *o, UserRequest *ur);
+	TReturn (*get_lock_info)(CoreObject *o, UserRequest *ur);
 	TReturn (*read_file)(CoreObject *o, UserRequest *ur);
 	TReturn (*update_file)(CoreObject *o, UserRequest *ur);
 	TReturn (*transmit_apdu)(CoreObject *o, UserRequest *ur);
@@ -39,7 +40,7 @@ struct tcore_sim_operations {
 	TReturn (*req_authentication)(CoreObject *o, UserRequest *ur);
 };
 
-CoreObject*          tcore_sim_new(TcorePlugin *p, const char *name, struct tcore_sim_operations *ops);
+CoreObject*          tcore_sim_new(TcorePlugin *p, const char *name, struct tcore_sim_operations *ops, TcoreHal *hal);
 void                 tcore_sim_free(CoreObject *n);
 
 enum tel_sim_type    tcore_sim_get_type(CoreObject *o);
@@ -87,15 +88,15 @@ gboolean             tcore_sim_decode_vmwf(struct tel_sim_cphs_mw *p_vmwf,	unsig
 gboolean             tcore_sim_decode_mwis(struct tel_sim_mw *pMwis, unsigned char *p_in, int in_length);
 gboolean             tcore_sim_encode_mwis( char *p_out, int out_length, struct tel_sim_mw *pMwis);
 gboolean             tcore_sim_encode_vmwf(char *p_out, int out_length, struct tel_sim_cphs_mw *p_vmwf);
-gboolean             tcore_sim_decode_ons(struct tel_sim_cphs_full_netname *p_on, unsigned char* p_in, int in_length);
+gboolean             tcore_sim_decode_ons(unsigned char *p_out, unsigned char *p_in, int in_length);
 gboolean             tcore_sim_decode_cfis(struct tel_sim_callforwarding *cfis, unsigned char *p_in, int in_length);
-char*                tcore_sim_encode_cfis(const struct tel_sim_callforwarding *cfis);
+char*             tcore_sim_encode_cfis(int *out_length, const struct tel_sim_callforwarding *p_cfis);
 gboolean             tcore_sim_decode_dynamic_flag(struct tel_sim_cphs_dflag *p_df, unsigned char *p_in, int in_length);
 gboolean             tcore_sim_decode_dynamic2_flag(struct tel_sim_cphs_dflag2 *p_d2f, unsigned char *p_in, int in_length);
 gboolean             tcore_sim_encode_dynamic_flag(char *p_out, int out_length, struct tel_sim_cphs_dflag *p_df);
 gboolean             tcore_sim_encode_dynamic2_flag(char *p_out, int out_length, struct tel_sim_cphs_dflag2 *p_d2f);
 gboolean             tcore_sim_decode_cphs_info(struct tel_sim_cphs_info *pCphsInfo, unsigned char *p_in, int in_length);
-gboolean             tcore_sim_decode_short_ons(struct tel_sim_cphs_short_netname *p_short_name, unsigned char *p_in, int in_length);
+gboolean             tcore_sim_decode_short_ons(unsigned char *p_out, unsigned char *p_in, int in_length);
 gboolean             tcore_sim_decode_information_number(struct tel_sim_cphs_info_number *p_info, unsigned char* p_in, int in_length);
 gboolean             tcore_sim_decode_opl(struct tel_sim_opl *p_opl, unsigned char *p_in, int in_length);
 gboolean             tcore_sim_decode_pnn(struct tel_sim_pnn *p_pnn, unsigned char* p_in, int in_length);

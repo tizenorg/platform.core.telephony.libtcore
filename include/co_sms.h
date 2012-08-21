@@ -42,7 +42,6 @@ __BEGIN_DECLS
 
 struct property_sms_info {
 	int	g_trans_id;
-	int	bDevice_Ready;
 	int	SMSPRecordLen;
 };
 
@@ -68,9 +67,11 @@ struct tcore_sms_operations {
 };
 
 
-CoreObject* tcore_sms_new(TcorePlugin *p, const char *name, struct tcore_sms_operations *ops);
-void        tcore_sms_free(CoreObject * n);
 int         _tcore_util_sms_encode_smsParameters(const struct telephony_sms_Params *incoming, unsigned char *data, int SMSPRecordLen);
+gboolean    tcore_sms_get_ready_status(CoreObject *o);
+gboolean    tcore_sms_set_ready_status(CoreObject *o, int status);
+CoreObject* tcore_sms_new(TcorePlugin *p, const char *name, struct tcore_sms_operations *ops, TcoreHal *hal);
+void        tcore_sms_free(CoreObject * n);
 
 __END_DECLS
 

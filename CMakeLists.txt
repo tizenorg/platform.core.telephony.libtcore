@@ -10,7 +10,7 @@ SET(INCLUDEDIR "\${prefix}/include")
 
 # Set required packages
 INCLUDE(FindPkgConfig)
-pkg_check_modules(pkgs REQUIRED glib-2.0 dlog)
+pkg_check_modules(pkgs REQUIRED glib-2.0 dlog gudev-1.0)
 
 FOREACH(flag ${pkgs_CFLAGS})
 	SET(EXTRA_CFLAGS "${EXTRA_CFLAGS} ${flag}")
@@ -28,6 +28,8 @@ SET(SRCS
 		src/server.c
 		src/plugin.c
 		src/hal.c
+		src/at.c
+		src/udev.c
 		src/communicator.c
 		src/storage.c
 		src/queue.c
@@ -45,6 +47,7 @@ SET(SRCS
 		src/co_ss.c
 		src/co_sms.c
 		src/co_phonebook.c
+		src/co_gps.c
 )
 
 
@@ -64,3 +67,5 @@ INSTALL(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/ DESTINATION include/tcore
 INSTALL(TARGETS tcore
 		LIBRARY DESTINATION lib)
 INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/tcore.pc DESTINATION lib/pkgconfig)
+
+#ADD_SUBDIRECTORY(unit-test)

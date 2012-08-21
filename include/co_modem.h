@@ -33,10 +33,12 @@ struct tcore_modem_operations {
 	TReturn (*set_flight_mode)(CoreObject *o, UserRequest *ur);
 	TReturn (*get_imei)(CoreObject *o, UserRequest *ur);
 	TReturn (*get_version)(CoreObject *o, UserRequest *ur);
+	TReturn (*get_sn)(CoreObject *o, UserRequest *ur);
+	TReturn (*dun_pin_ctrl)(CoreObject *o, UserRequest *ur);
 };
 
 
-CoreObject*      tcore_modem_new(TcorePlugin *p, const char *name, struct tcore_modem_operations *ops);
+CoreObject*      tcore_modem_new(TcorePlugin *p, const char *name, struct tcore_modem_operations *ops, TcoreHal *hal);
 void             tcore_modem_free(CoreObject *o);
 
 TReturn          tcore_modem_set_flight_mode_state(CoreObject *o, gboolean flag);

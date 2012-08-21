@@ -37,6 +37,7 @@ __BEGIN_DECLS
 #define CORE_OBJECT_TYPE_PHONEBOOK     (CORE_OBJECT_TYPE_DEFAULT | TCORE_TYPE_PHONEBOOK)
 #define CORE_OBJECT_TYPE_SOUND         (CORE_OBJECT_TYPE_DEFAULT | TCORE_TYPE_SOUND)
 #define CORE_OBJECT_TYPE_CUSTOM        (CORE_OBJECT_TYPE_DEFAULT | TCORE_TYPE_CUSTOM)
+#define CORE_OBJECT_TYPE_GPS           (CORE_OBJECT_TYPE_DEFAULT | TCORE_TYPE_GPS)
 
 #define CORE_OBJECT_CHECK(o,t) \
 	if (!o) { warn("core_object is NULL"); return; } \
@@ -46,13 +47,17 @@ __BEGIN_DECLS
 	if (tcore_object_get_type(o) != t) { warn("type(0x%x != 0x%x) mismatch", tcore_object_get_type(o), t); return r; }
 
 typedef void (*CoreObjectFreeHook)(CoreObject *co);
-typedef void (*CoreObjectCallback)(CoreObject *co, const void *event_info, void *user_data);
+typedef void (*CoreObjectCloneHook)(CoreObject *src, CoreObject *dest);
+typedef gboolean (*CoreObjectCallback)(CoreObject *co, const void *event_info, void *user_data);
 typedef TReturn (*CoreObjectDispatcher)(CoreObject *co, UserRequest *ur);
 
-CoreObject*      tcore_object_new(TcorePlugin *plugin, const char *name);
+CoreObject*      tcore_object_new(TcorePlugin *plugin, const char *name, TcoreHal *hal);
 void             tcore_object_free(CoreObject *co);
 
 TReturn          tcore_object_set_free_hook(CoreObject *co, CoreObjectFreeHook free_hook);
+TReturn          tcore_object_set_clone_hook(CoreObject *co, CoreObjectCloneHook clone_hook);
+
+CoreObject*      tcore_object_clone(CoreObject *src, TcorePlugin *new_parent, const char *new_name);
 
 TReturn          tcore_object_set_name(CoreObject *co, const char *name);
 const char*      tcore_object_ref_name(CoreObject *co);
@@ -65,6 +70,9 @@ void*            tcore_object_ref_object(CoreObject *co);
 
 TReturn          tcore_object_set_type(CoreObject *co, unsigned int type);
 unsigned int     tcore_object_get_type(CoreObject *co);
+
+TReturn          tcore_object_set_hal(CoreObject *co, TcoreHal *hal);
+TcoreHal*        tcore_object_get_hal(CoreObject *co);
 
 TReturn          tcore_object_link_user_data(CoreObject *co, void *user_data);
 void*            tcore_object_ref_user_data(CoreObject *co);

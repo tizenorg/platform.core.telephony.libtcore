@@ -30,12 +30,11 @@ __BEGIN_DECLS
 #define PS_MAX_CID  4
 
 struct tcore_ps_operations {
-	TReturn (*pin_ctrl)(CoreObject *o, UserRequest *ur);
 	TReturn (*activate_context)(CoreObject *co_ps, CoreObject *context, void *user_data);
 	TReturn (*deactivate_context)(CoreObject *co_ps, CoreObject *context, void *user_data);
 };
 
-CoreObject*  tcore_ps_new(TcorePlugin *p, const char *name, struct tcore_ps_operations *ops);
+CoreObject*  tcore_ps_new(TcorePlugin *p, const char *name, struct tcore_ps_operations *ops, TcoreHal *hal);
 void         tcore_ps_free(CoreObject *o);
 
 TReturn      tcore_ps_add_context(CoreObject *o, CoreObject *ctx_o);

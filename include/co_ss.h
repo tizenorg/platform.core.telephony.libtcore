@@ -176,7 +176,7 @@ struct tcore_ss_operations {
 };
 
 
-CoreObject* tcore_ss_new(TcorePlugin *p, const char *name, struct tcore_ss_operations *ops);
+CoreObject* tcore_ss_new(TcorePlugin *p, const char *name, struct tcore_ss_operations *ops, TcoreHal *hal);
 void        tcore_ss_free(CoreObject *o);
 
 struct ussd_session*	tcore_ss_ussd_create_session( CoreObject *o, enum tcore_ss_ussd_type type, void *data, int data_len );

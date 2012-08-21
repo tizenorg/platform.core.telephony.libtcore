@@ -1,7 +1,81 @@
+libtcore (0.1.23) unstable; urgency=low
+
+  * Replace dun_pin_ctrl from ps to modem
+  * Git: slp/pkgs/l/libtcore
+  * Tag: libtcore_0.1.23
+
+ -- DongHoo Park <donghoo.park@samsung.com>  Mon, 11 Jun 2012 14:32:10 +0900
+
+libtcore (0.1.22) unstable; urgency=low
+
+  * Add phonebook selection feature
+  * Git: slp/pkgs/l/libtcore
+  * Tag: libtcore_0.1.22
+
+ -- Youngman Park <youngman.park@samsung.com>  Tue, 22 May 2012 11:57:45 +0900
+
+libtcore (0.1.21) unstable; urgency=low
+
+  * Add sat proactive command
+  * Fix user_request_dup
+  * Git: slp/pkgs/l/libtcore
+  * Tag: libtcore_0.1.21
+
+ -- Inho Oh <inho48.oh@samsung.com>  Tue, 22 May 2012 10:47:29 +0900
+
+libtcore (0.1.20) unstable; urgency=low
+
+  * add req,resp type for getting sim lock info
+  * Git: slp/pkgs/l/libtcore
+  * Tag: libtcore_0.1.20
+
+ -- Kyeongchul Kim <kyeongchul.kim@samsung.com>  Thu, 17 May 2012 17:35:34 +0900
+
+libtcore (0.1.19) unstable; urgency=low
+
+  * Fix SPN in NO-SIM state
+  * Add HSUPA, HSPA
+  * Git: slp/pkgs/l/libtcore
+  * Tag: libtcore_0.1.19
+
+ -- Inho Oh <inho48.oh@samsung.com>  Thu, 10 May 2012 11:00:05 +0900
+
+libtcore (0.1.18) unstable; urgency=low
+
+  * Fix OBS build error
+  * Git: slp/pkgs/l/libtcore
+  * Tag: libtcore_0.1.18
+
+ -- Youngman Park <youngman.park@samsung.com>  Tue, 08 May 2012 16:17:01 +0900
+
+libtcore (0.1.17) unstable; urgency=low
+
+  * Add Call New API ( call custom service )
+  * Git: slp/pkgs/l/libtcore
+  * Tag: libtcore_0.1.17
+
+ -- Youngman Park <youngman.park@samsung.com>  Mon, 07 May 2012 17:40:01 +0900
+
+libtcore (0.1.16) unstable; urgency=low
+
+  * Add pending timeout
+  * Git: slp/pkgs/l/libtcore
+  * Tag: libtcore_0.1.16
+
+ -- Inho Oh <inho48.oh@samsung.com>  Thu, 03 May 2012 15:12:01 +0900
+
+libtcore (0.1.15) unstable; urgency=low
+
+  * Fix typo bug & network icon info type
+  * Git: slp/pkgs/l/libtcore
+  * Tag: libtcore_0.1.15
+
+ -- Inho Oh <inho48.oh@samsung.com>  Tue, 24 Apr 2012 14:24:50 +0900
+
 libtcore (0.1.14) unstable; urgency=low
 
   * Fix ip string bug
-  * Git: pkgs/l/libtcore
+  * Git: slp/pkgs/l/libtcore
   * Tag: libtcore_0.1.14
 
  -- Inho Oh <inho48.oh@samsung.com>  Thu, 05 Apr 2012 13:40:08 +0900
@@ -9,7 +83,7 @@ libtcore (0.1.14) unstable; urgency=low
 libtcore (0.1.13) unstable; urgency=low
 
   * fixed SAT TR operation - RESULT_BACKWARD_MOVE_BY_USER case and so on
-  * Git: pkgs/l/libtcore
+  * Git: slp/pkgs/l/libtcore
   * Tag: libtcore_0.1.13
 
  -- Kyeongchul Kim <kyeongchul.kim@samsung.com>  Mon, 02 Apr 2012 20:33:33 +0900
@@ -17,7 +91,7 @@ libtcore (0.1.13) unstable; urgency=low
 libtcore (0.1.12) unstable; urgency=low
 
   * version up for code sync with public binary 
-  * Git: pkgs/l/libtcore
+  * Git: slp/pkgs/l/libtcore
   * Tag: libtcore_0.1.12
 
  -- Kyeongchul Kim <kyeongchul.kim@samsung.com>  Mon, 02 Apr 2012 12:18:03 +0900
@@ -25,7 +99,7 @@ libtcore (0.1.12) unstable; urgency=low
 libtcore (0.1.11) unstable; urgency=low
 
   * Apply coding guide line, Fix obs build break
-  * Git: pkgs/l/libtcore
+  * Git: slp/pkgs/l/libtcore
   * Tag: libtcore_0.1.11
 
  -- DongHoo Park <donghoo.park@samsung.com>  Fri, 30 Mar 2012 10:53:48 +0900
@@ -33,7 +107,7 @@ libtcore (0.1.11) unstable; urgency=low
 libtcore (0.1.10) unstable; urgency=low
 
   * Fix SAT TR
-  * Git: pkgs/l/libtcore
+  * Git: slp/pkgs/l/libtcore
   * Tag: libtcore_0.1.10
 
  -- DongHoo Park <donghoo.park@samsung.com>  Thu, 29 Mar 2012 16:35:42 +0900
@@ -41,7 +115,7 @@ libtcore (0.1.10) unstable; urgency=low
 libtcore (0.1.9) unstable; urgency=low
 
    * Fix prefix (TAPI_ to TCORE_) 
-   * Git: pkgs/l/libtcore
+   * Git: slp/pkgs/l/libtcore
    * Tag: libtcore_0.1.9
 
  -- Inho Oh <inho48.oh@samsung.com>  Tue, 27 Mar 2012 22:04:25 +0900
@@ -49,7 +123,7 @@ libtcore (0.1.9) unstable; urgency=low
 libtcore (0.1.8) unstable; urgency=low
 
    * Apply SAT encoding functions
-   * Git: pkgs/l/libtcore
+   * Git: slp/pkgs/l/libtcore
    * Tag: libtcore_0.1.8
 
  -- Kyeongchul Kim <kyeongchul.kim@samsung.com>  Tue, 27 Mar 2012 20:46:13 +0900
@@ -57,7 +131,7 @@ libtcore (0.1.8) unstable; urgency=low
 libtcore (0.1.7) unstable; urgency=low
 
    * Fix sat
-   * Git: pkgs/l/libtcore
+   * Git: slp/pkgs/l/libtcore
    * Tag: libtcore_0.1.7
 
  -- Inho Oh <inho48.oh@samsung.com>  Thu, 22 Mar 2012 14:33:47 +0900
@@ -65,7 +139,7 @@ libtcore (0.1.7) unstable; urgency=low
 libtcore (0.1.6) unstable; urgency=low
 
    * version up
-   * Git: pkgs/l/libtcore
+   * Git: slp/pkgs/l/libtcore
    * Tag: libtcore_0.1.6
 
  -- DongHoo Park <donghoo.park@samsung.com>  Wed, 21 Mar 2012 14:08:51 +0900
@@ -73,7 +147,7 @@ libtcore (0.1.6) unstable; urgency=low
 libtcore (0.1.5) unstable; urgency=low
 
   * add tcore_network_get/set_network_name_priority
-  * Git: pkgs/l/libtcore
+  * Git: slp/pkgs/l/libtcore
   * Tag: libtcore_0.1.5
 
  -- Inho Oh <inho48.oh@samsung.com>  Tue, 20 Mar 2012 17:04:56 +0900
@@ -81,23 +155,23 @@ libtcore (0.1.5) unstable; urgency=low
 libtcore (0.1.4) unstable; urgency=low
 
   * change member name of enum telephony_ps_pdp_err 
-  * Git: pkgs/l/libtcore
+  * Git: slp/pkgs/l/libtcore
   * Tag: libtcore_0.1.4
 
  -- Kyeongchul Kim <kyeongchul.kim@samsung.com>  Mon, 19 Mar 2012 22:56:49 +0900
 
 libtcore (0.1.3) unstable; urgency=low
 
-  * Add HSDPA noti and so on 
-  * Git: pkgs/l/libtcore
+  * Add the HSDPA Noti
+  * Git: slp/pkgs/l/libtcore
   * Tag: libtcore_0.1.3
 
- -- Kyeongchul Kim <kyeongchul.kim@samsung.com>  Tue, 20 Mar 2012 15:51:46 +0900
+ -- DongHoo Park <donghoo.park@samsung.com>  Mon, 19 Mar 2012 14:44:45 +0900
 
 libtcore (0.1.2) unstable; urgency=low
 
   * Add Code for Video Call 
-  * Git: pkgs/l/libtcore
+  * Git: slp/pkgs/l/libtcore
   * Tag: libtcore_0.1.2
 
  -- Youngman Park <youngman.park@samsung.com>  Sat, 17 Mar 2012 18:15:30 +0900
@@ -105,7 +179,7 @@ libtcore (0.1.2) unstable; urgency=low
 libtcore (0.1.1) unstable; urgency=low
 
   * Version info change & Fix OBS Build break
-  * Git: pkgs/l/libtcore
+  * Git: slp/pkgs/l/libtcore
   * Tag: libtcore_0.1.1
 
  -- DongHoo Park <donghoo.park@samsung.com>  Fri, 16 Mar 2012 13:40:30 +0900
@@ -113,7 +187,7 @@ libtcore (0.1.1) unstable; urgency=low
 libtcore (0.1.0-1) unstable; urgency=low
 
   * Fix arm/i386 version mismatch
-  * Git: pkgs/l/libtcore
+  * Git: slp/pkgs/l/libtcore
   * Tag: libtcore_0.1.0-1
 
  -- Inho Oh <inho48.oh@samsung.com>  Thu, 15 Mar 2012 23:40:55 +0900
@@ -121,7 +195,7 @@ libtcore (0.1.0-1) unstable; urgency=low
 libtcore (0.1.0) unstable; urgency=low
 
   * Initial
-  * Git: pkgs/l/libtcore
+  * Git: slp/pkgs/l/libtcore
   * Tag: libtcore_0.1.0
 
  -- Inho Oh <inho48.oh@samsung.com>  Thu, 15 Mar 2012 22:37:29 +0900

@@ -51,9 +51,6 @@ char*        tcore_plugin_get_filename(TcorePlugin *plugin);
 char*        tcore_plugin_ref_plugin_name(TcorePlugin *plugin);
 Server*      tcore_plugin_ref_server(TcorePlugin *plugin);
 
-TReturn      tcore_plugin_set_hal(TcorePlugin *plugin, TcoreHal *hal);
-TcoreHal*    tcore_plugin_ref_hal(TcorePlugin *plugin);
-
 TReturn      tcore_plugin_link_user_data(TcorePlugin *plugin, void *user_data);
 void*        tcore_plugin_ref_user_data(TcorePlugin *plugin);
 

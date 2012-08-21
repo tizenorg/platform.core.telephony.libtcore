@@ -52,23 +52,11 @@ enum telephony_ps_pdp_err {
 	PDP_FAILURE_CAUSE_MAX,
 };
 
-enum telephony_ps_dun_pincontrol_signal {
-	DUN_PINCONTROL_SIGNAL_DCD = 0x01,
-	DUN_PINCONTROL_SIGNAL_DTR = 0x04,
-	DUN_PINCONTROL_SIGNAL_DSR = 0x06,
-	DUN_PINCONTROL_SIGNAL_RTS = 0x07,
-	DUN_PINCONTROL_SIGNAL_CTS = 0x08,
-	DUN_PINCONTROL_SIGNAL_RI = 0x09
-};
-
-enum telephony_ps_dun_pincontrol_status {
-	DUN_PINCONTROL_STATUS_OFF = 0x00,
-	DUN_PINCONTROL_STATUS_ON = 0x01,
-};
-
 enum telephony_ps_protocol_status {
 	TELEPHONY_HSDPA_OFF = 0x00,
 	TELEPHONY_HSDPA_ON = 0x01,
+	TELEPHONY_HSUPA_ON = 0x02,
+	TELEPHONY_HSPA_ON = 0x03,
 };
 
 enum telephony_ps_state {
@@ -117,17 +105,6 @@ struct tresp_ps_set_pdp_deactivate {
 	int result;
 };
 
-
-struct treq_ps_set_dun_pin_control {
-	enum telephony_ps_dun_pincontrol_signal signal;
-	enum telephony_ps_dun_pincontrol_status status;
-};
-
-struct tresp_ps_set_dun_pin_control {
-	int result;
-};
-
-
 struct tnoti_ps_call_status {
 	int context_id;
 	int state;
@@ -146,11 +123,6 @@ struct tnoti_ps_pdp_ipconfiguration {
 	unsigned char gateway[4];
 	unsigned char subnet_mask[4];
 	char devname[16];
-};
-
-struct tnoti_ps_dun_pin_control {
-	enum telephony_ps_dun_pincontrol_signal signal;
-	enum telephony_ps_dun_pincontrol_status status;
 };
 
 struct tnoti_ps_external_call {

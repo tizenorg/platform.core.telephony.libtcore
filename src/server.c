@@ -37,6 +37,7 @@
 #include "co_ps.h"
 #include "communicator.h"
 #include "storage.h"
+#include "udev.h"
 
 struct tcore_server_type {
 	GMainLoop *mainloop;
@@ -47,6 +48,7 @@ struct tcore_server_type {
 	GSList *hook_list_request;
 	GSList *hook_list_notification;
 	TcorePlugin *default_plugin;
+	TcoreUdev *udev;
 };
 
 struct hook_request_type {
@@ -198,7 +200,7 @@ TcorePlugin *tcore_server_find_plugin(Server *s, const char *name)
 	GSList *list;
 	TcorePlugin *p;
 
-	if (strncmp(name, TCORE_PLUGIN_DEFAULT, strlen(name)) == 0) {
+	if (g_strcmp0(name, TCORE_PLUGIN_DEFAULT) == 0) {
 		return _find_default_plugin(s);
 	}
 
@@ -208,7 +210,7 @@ TcorePlugin *tcore_server_find_plugin(Server *s, const char *name)
 			continue;
 		}
 
-		if (strncmp(tcore_plugin_get_description(p)->name, name, strlen(name)) == 0) {
+		if (g_strcmp0(tcore_plugin_get_description(p)->name, name) == 0) {
 			return p;
 		}
 	}
@@ -255,7 +257,7 @@ Communicator *tcore_server_find_communicator(Server *s, const char *name)
 			continue;
 		}
 
-		if (strncmp(tcore_communicator_ref_name(comm), name, strlen(name)) == 0) {
+		if (g_strcmp0(tcore_communicator_ref_name(comm), name) == 0) {
 			return comm;
 		}
 	}
@@ -294,7 +296,7 @@ Storage *tcore_server_find_storage(Server *s, const char *name)
 			continue;
 		}
 
-		if (strncmp(tcore_storage_ref_name(strg), name, strlen(name)) == 0) {
+		if (g_strcmp0(tcore_storage_ref_name(strg), name) == 0) {
 			return strg;
 		}
 	}
@@ -351,7 +353,7 @@ TcoreHal *tcore_server_find_hal(Server *s, const char *name)
 		if (!buf)
 			continue;
 
-		if (strncmp(buf, name, strlen(name)) == 0) {
+		if (g_strcmp0(buf, name) == 0) {
 			free(buf);
 			return hal;
 		}
@@ -360,6 +362,24 @@ TcoreHal *tcore_server_find_hal(Server *s, const char *name)
 	}
 
 	return NULL;
+}
+
+TReturn tcore_server_link_udev(Server *s, TcoreUdev *udev)
+{
+	if (!s || !udev)
+		return TCORE_RETURN_EINVAL;
+
+	s->udev = udev;
+
+	return TCORE_RETURN_SUCCESS;
+}
+
+TcoreUdev *tcore_server_ref_udev(Server *s)
+{
+	if (!s)
+		return NULL;
+
+	return s->udev;
 }
 
 TReturn tcore_server_dispatch_request(Server *s, UserRequest *ur)
@@ -403,7 +423,6 @@ TReturn tcore_server_dispatch_request(Server *s, UserRequest *ur)
 	command = tcore_user_request_get_command(ur);
 
 	category = CORE_OBJECT_TYPE_DEFAULT | (command & 0x0FF00000);
-	dbg("Category = 0x%x, command = 0x%x", category, command);
 
 	co_list = tcore_plugin_get_core_objects_bytype(p, category);
 	if (!co_list) {
@@ -420,6 +439,8 @@ TReturn tcore_server_dispatch_request(Server *s, UserRequest *ur)
 
 		if (tcore_object_dispatch_request(o, ur) == TCORE_RETURN_SUCCESS)
 			ret = TCORE_RETURN_SUCCESS;
+		else
+			dbg("failed...");
 	}
 
 	g_slist_free(co_list);

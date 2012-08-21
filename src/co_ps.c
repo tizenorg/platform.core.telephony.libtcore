@@ -60,18 +60,31 @@ static TReturn _dispatcher(CoreObject *o, UserRequest *ur)
 
 	command = tcore_user_request_get_command(ur);
 	switch (command) {
-		case TREQ_PS_SET_DUN_PIN_CONTROL:
-			if (!po->ops->pin_ctrl)
-				return TCORE_RETURN_ENOSYS;
-
-			return po->ops->pin_ctrl(o, ur);
-			break;
-
 		default:
 			break;
 	}
 
 	return TCORE_RETURN_SUCCESS;
+}
+
+static void _clone_hook(CoreObject *src, CoreObject *dest)
+{
+	struct private_object_data *src_po = NULL;
+	struct private_object_data *dest_po = NULL;
+
+	if (!src || !dest)
+		return;
+
+	dest_po = calloc(sizeof(struct private_object_data), 1);
+	if (!dest_po) {
+		tcore_object_link_object(dest, NULL);
+		return;
+	}
+
+	src_po = tcore_object_ref_object(src);
+	dest_po->ops = src_po->ops;
+
+	tcore_object_link_object(dest, dest_po);
 }
 
 static void _free_hook(CoreObject *o)
@@ -182,7 +195,8 @@ static gboolean _ps_is_duplicated_apn(CoreObject *o, CoreObject *ps_context)
 	return FALSE;
 }
 
-CoreObject *tcore_ps_new(TcorePlugin *p, const char *name, struct tcore_ps_operations *ops)
+CoreObject *tcore_ps_new(TcorePlugin *p, const char *name,
+		struct tcore_ps_operations *ops, TcoreHal *hal)
 {
 	CoreObject *o = NULL;
 	struct private_object_data *po = NULL;
@@ -190,7 +204,7 @@ CoreObject *tcore_ps_new(TcorePlugin *p, const char *name, struct tcore_ps_opera
 	if (!p)
 		return NULL;
 
-	o = tcore_object_new(p, name);
+	o = tcore_object_new(p, name, hal);
 	if (!o)
 		return NULL;
 
@@ -205,6 +219,7 @@ CoreObject *tcore_ps_new(TcorePlugin *p, const char *name, struct tcore_ps_opera
 	tcore_object_set_type(o, CORE_OBJECT_TYPE_PS);
 	tcore_object_link_object(o, po);
 	tcore_object_set_free_hook(o, _free_hook);
+	tcore_object_set_clone_hook(o, _clone_hook);
 	tcore_object_set_dispatcher(o, _dispatcher);
 
 	return o;

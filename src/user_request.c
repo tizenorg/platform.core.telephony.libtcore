@@ -29,6 +29,7 @@
 #include "communicator.h"
 
 struct tcore_user_request_type {
+	int ref;
 	struct tcore_user_info ui;
 
 	Communicator *comm;
@@ -71,6 +72,11 @@ void tcore_user_request_free(UserRequest *ur)
 	if (!ur)
 		return;
 
+	if ( ur->ref > 0 ) {
+		ur->ref--;
+		return ;
+	}
+
 	if (ur->free_hook)
 		ur->free_hook(ur);
 
@@ -83,48 +89,34 @@ void tcore_user_request_free(UserRequest *ur)
 	if(ur->metainfo)
 		free(ur->metainfo);
 
-	dbg("user_request(0x%x) free.", ur);
+	dbg("user_request(0x%x) free.", (unsigned int)ur);
 
 	free(ur);
 }
 
-UserRequest *tcore_user_request_dup(UserRequest *ur)
+UserRequest *tcore_user_request_ref(UserRequest *ur)
 {
-	UserRequest *dest;
-
 	if (!ur)
 		return NULL;
 
-	dest = tcore_user_request_new(ur->comm, ur->modem_name);
-	if (!dest)
-		return NULL;
+	ur->ref++;
 
-	tcore_user_request_set_user_info(dest, &(ur->ui));
-	dest->command = ur->command;
-
-	if (ur->data_len > 0) {
-		dest->data = calloc(ur->data_len, 1);
-		dest->data_len = ur->data_len;
-		memcpy(dest->data, ur->data, ur->data_len);
-	}
-
-	if (ur->metainfo_len > 0) {
-		dest->metainfo = calloc(ur->metainfo_len,1);
-		dest->metainfo_len = ur->metainfo_len;
-		memcpy(dest->metainfo, ur->metainfo, ur->metainfo_len);
-	}
-
-	if (ur->free_hook)
-		dest->free_hook = ur->free_hook;
-
-	if (ur->response_hook)
-		dest->response_hook = ur->response_hook;
-
-	if (ur->response_hook_user_data)
-		dest->response_hook_user_data = ur->response_hook_user_data;
-
-	return dest;
+	return ur;
 }
+
+void tcore_user_request_unref(UserRequest *ur)
+{
+	if (!ur)
+		return ;
+
+	if ( ur->ref > 0 )
+		ur->ref--;
+	else
+		tcore_user_request_free( ur );
+
+	return ;
+}
+
 
 TReturn tcore_user_request_set_free_hook(UserRequest *ur,
 		UserRequestFreeHook free_hook)
@@ -179,6 +171,7 @@ TReturn tcore_user_request_set_user_info(UserRequest *ur,
 	ur->ui.pid = ui->pid;
 	ur->ui.channel_id = ui->channel_id;
 	ur->ui.client_cmd = ui->client_cmd;
+	ur->ui.user_data = ui->user_data;
 
 	if (ur->ui.appname) {
 		dbg("free old appname (%s)", ur->ui.appname);

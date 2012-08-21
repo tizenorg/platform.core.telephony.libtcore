@@ -105,6 +105,13 @@ static TReturn _dispatcher(CoreObject *o, UserRequest *ur)
 			return po->ops->enable_facility(o, ur);
 			break;
 
+		case TREQ_SIM_GET_LOCK_INFO:
+			if (!po->ops->get_lock_info)
+				return TCORE_RETURN_ENOSYS;
+
+			return po->ops->get_lock_info(o, ur);
+			break;
+
 		case TREQ_SIM_TRANSMIT_APDU:
 			if (!po->ops->transmit_apdu)
 				return TCORE_RETURN_ENOSYS;
@@ -139,8 +146,7 @@ static TReturn _dispatcher(CoreObject *o, UserRequest *ur)
 		case TREQ_SIM_GET_SPDI:
 		case TREQ_SIM_GET_OPL:
 		case TREQ_SIM_GET_PNN:
-		case TREQ_SIM_GET_CPHS_SHORTNETNAME:
-		case TREQ_SIM_GET_CPHS_FULLNETNAME:
+		case TREQ_SIM_GET_CPHS_NETNAME:
 		case TREQ_SIM_GET_OPLMNWACT:
 			if (!po->ops->read_file)
 				return TCORE_RETURN_ENOSYS;
@@ -160,6 +166,26 @@ static TReturn _dispatcher(CoreObject *o, UserRequest *ur)
 	}
 
 	return TCORE_RETURN_SUCCESS;
+}
+
+static void _clone_hook(CoreObject *src, CoreObject *dest)
+{
+	struct private_object_data *src_po = NULL;
+	struct private_object_data *dest_po = NULL;
+
+	if (!src || !dest)
+		return;
+
+	dest_po = calloc(sizeof(struct private_object_data), 1);
+	if (!dest_po) {
+		tcore_object_link_object(dest, NULL);
+		return;
+	}
+
+	src_po = tcore_object_ref_object(src);
+	dest_po->ops = src_po->ops;
+
+	tcore_object_link_object(dest, dest_po);
 }
 
 static void _free_hook(CoreObject *o)
@@ -387,6 +413,7 @@ static gboolean _is_empty(unsigned char* p_in, int in_length)
 		if (p_in[i] != 0xFF)
 			return FALSE;
 	}
+	dbg("current index has empty data");
 	return TRUE;		// this is empty record.
 }
 
@@ -890,8 +917,10 @@ gboolean tcore_sim_decode_msisdn(struct tel_sim_msisdn *p_msisdn, unsigned char 
 	if (in_length == 0)
 		return FALSE;
 
-	if (_is_empty(p_in, in_length) == TRUE)
-		return TRUE;	// this is empty record
+	if (_is_empty(p_in, in_length) == TRUE) {
+		memset(p_msisdn, 0, sizeof(struct tel_sim_msisdn));
+		return FALSE;
+	}
 
 	X = in_length - 14;	// get alpha id max length
 
@@ -931,8 +960,9 @@ gboolean tcore_sim_decode_xdn(struct tel_sim_dialing_number *p_xdn, unsigned cha
 	if (in_length == 0)
 		return FALSE;
 
-	if (_is_empty(p_in, in_length) == TRUE)
-		return TRUE;	// this is empty record
+	if (_is_empty(p_in, in_length) == TRUE) {
+		return FALSE;	// this is empty record
+	}
 
 	X = in_length - 14;	// get alpha id max length
 
@@ -1106,7 +1136,7 @@ gboolean tcore_sim_decode_uecc(struct tel_sim_ecc *p_ecc, unsigned char* p_in, i
 
 	if (_is_empty(p_in, in_length) == TRUE) {
 		memset(p_ecc, 0, sizeof(struct tel_sim_ecc));
-		return TRUE;
+		return FALSE;
 	}
 
 	//get the BCD length of the ECC
@@ -1192,8 +1222,9 @@ gboolean tcore_sim_decode_mbi(struct tel_sim_mbi *p_mbi, unsigned char *p_in, in
 	if (in_length == 0 || in_length > SIM_MAIL_BOX_IDENTIFIER_LEN_MAX)
 		return FALSE;
 
-	if ( _is_empty(p_in, in_length) == TRUE)
-		return TRUE; // this is empty record
+	if ( _is_empty(p_in, in_length) == TRUE) {
+		return FALSE; // this is empty record
+	}
 
 	p_mbi->VoiceMailBoxIdentifier = p_in[0];
 	p_mbi->FaxMailBoxIdentifier = p_in[1];
@@ -1227,7 +1258,7 @@ gboolean tcore_sim_decode_cff(struct tel_sim_callforwarding *cfis, unsigned char
 	if (in_length == 0)
 		return FALSE;
 
-	dbg( "flag(0)=%x, packetlen=%lu ", p_in[0], in_length);
+	dbg( "flag(0)=%x, packetlen=%d ", (unsigned int)p_in[0], in_length);
 	dbg( "flag(1)=%x", p_in[1]);
 
 	if ((p_in[0] & 0x0F) == 0x0A) {
@@ -1802,24 +1833,25 @@ gboolean tcore_sim_encode_vmwf(char *p_out, int out_length, struct tel_sim_cphs_
 	return TRUE;
 }
 
-gboolean tcore_sim_decode_ons(struct tel_sim_cphs_full_netname *p_on,unsigned  char* p_in, int in_length)
+gboolean tcore_sim_decode_ons(unsigned char* p_out,unsigned  char* p_in, int in_length)
 {
 	int length;
-	memset((void*) p_on, 0, sizeof(struct tel_sim_cphs_full_netname));
+	memset((void*) p_out, 0, SIM_CPHS_OPERATOR_NAME_LEN_MAX+1);
 
 	if (in_length == 0)
 		return FALSE;
 
-	if (_is_empty(p_in, in_length) == TRUE)
-		return TRUE;
+	if (_is_empty(p_in, in_length) == TRUE) {
+		return FALSE;
+	}
 
 	/* current telephony supports 25 byte cphs-operator name string.*/
 	if (in_length >= SIM_CPHS_OPERATOR_NAME_LEN_MAX)
 		in_length = SIM_CPHS_OPERATOR_NAME_LEN_MAX;
 
-	length = _get_string(p_on->full_name, p_in, in_length);
-	p_on->full_name[length] = '\0';
-	dbg( "Operator Name is (%s) & Length (%d) ",	p_on->full_name, length);
+	length = _get_string(p_out, p_in, in_length);
+	p_out[length] = '\0';
+	dbg( "Operator Name is (%s) & Length (%d) ",	p_out, length);
 
 	return TRUE;
 }
@@ -1827,14 +1859,16 @@ gboolean tcore_sim_decode_ons(struct tel_sim_cphs_full_netname *p_on,unsigned  c
 gboolean tcore_sim_decode_cfis(struct tel_sim_callforwarding *cfis, unsigned char *p_in, int in_length)
 {
 	int bcd_byte;	// dialing number max length
-	int i = 0, j = 0;
+	int i = 0;
 	struct tel_sim_cfis p_cfis = {0,};
 
 	if (in_length == 0)
 		return FALSE;
 
-	if (_is_empty(p_in, in_length) == TRUE)
+	if (_is_empty(p_in, in_length) == TRUE) {
+		dbg("empty record. all data is set 0xff");
 		return TRUE;	// this is empty record
+	}
 
 	p_cfis.MspNumber = p_in[i++];
 	p_cfis.Status = p_in[i++];
@@ -1864,10 +1898,7 @@ gboolean tcore_sim_decode_cfis(struct tel_sim_callforwarding *cfis, unsigned cha
 	dbg( "DiallingnumLen %d", p_cfis.DiallingnumLen);
 	dbg( "TypeOfNumber %d", p_cfis.TypeOfNumber);
 	dbg( "NumberingPlanIdent %d", p_cfis.NumberingPlanIdent);
-
-	for (j = 0; j < p_cfis.DiallingnumLen; j++) {
-		dbg( "Dialing number[j][%c]", j, p_cfis.DiallingNum[j]);
-	}
+	dbg( "Dialing number[%s]", p_cfis.DiallingNum);
 
 	if(p_cfis.Status & 0x01)
 		cfis->voice1 = TRUE;
@@ -1882,29 +1913,11 @@ gboolean tcore_sim_decode_cfis(struct tel_sim_callforwarding *cfis, unsigned cha
 	return TRUE;
 }
 
-char* tcore_sim_encode_cfis(const struct tel_sim_callforwarding *p_cfis)
+char* tcore_sim_encode_cfis(int *out_length, const struct tel_sim_callforwarding *p_cfis)
 {
-	char *p_out = NULL;
-	p_out = calloc(16+1, 1);
+	char *encoded_o = NULL;
+	encoded_o = calloc(16, 1); // EF-CFIS record length is 16
 
-	memset(p_out, 0x00, 16+1);
-
-	if(p_cfis->voice1 )
-		p_out[1] = p_out[1] | 0x01;
-	if(p_cfis->fax )
-		p_out[1] = p_out[1] | 0x02;
-	if(p_cfis->data )
-		p_out[1] = p_out[1] | 0x04;
-	if(p_cfis->sms )
-		p_out[1] = p_out[1] | 0x08;
-	if(p_cfis->voice1 )
-		p_out[1] = p_out[1] | 0x0a;
-
-	p_out[16] = '\0';
-
-	return p_out;
-
-#if 0
 	/*
 	 Bytes	Description							M/O		Length
 	 1		MSP number							M		1 byte
@@ -1915,35 +1928,23 @@ char* tcore_sim_encode_cfis(const struct tel_sim_callforwarding *p_cfis)
 	 15		Capability/Configuration2 Record Identifier	M		1 byte
 	 16		Extension 7 Record Identifier				M		1 byte
 	 */
-	p_out[0] = p_cfis.MspNumber;
-	p_out[1] = p_cfis->Status;
-	dbg("p_out[%d]=[%x] , p_cfis->Status[%d]",1, p_out[1], p_cfis->Status);
+	encoded_o[0] = 0x01; //default profile
 
-	// set length of BCD number/SSC contents
-	// p_xdn->diallingnumLen is maximum digit length. = 20 bytes.
-	// convert to BCD length and add 1 byte.
-	p_out[ 2] = ((p_cfis->DiallingnumLen + 1) / 2) + 1;
+	if(p_cfis->voice1 )
+		encoded_o[1] = encoded_o[1] | 0x01;
+	if(p_cfis->fax )
+		encoded_o[1] = encoded_o[1] | 0x02;
+	if(p_cfis->data )
+		encoded_o[1] = encoded_o[1] | 0x04;
+	if(p_cfis->sms )
+		encoded_o[1] = encoded_o[1] | 0x08;
+	if(p_cfis->allbearer )
+		encoded_o[1] = encoded_o[1] | 0x0a;
 
-	// set TON and NPI
-	p_out[3] = 0x80;
-	p_out[3] |= (p_cfis->TypeOfNumber & 0x07) << 4;
-	p_out[3] |= p_cfis->NumberingPlanIdent & 0x0F;
+	memset(&encoded_o[2], 0xff, 14);
 
-	// set dialing number/SSC string
-	memset((void*) bcdCode, 0xFF, SIM_XDN_NUMBER_LEN_MAX / 2);
-
-	_digit_to_bcd((char*) bcdCode, (char*) p_cfis->DiallingNum, p_cfis->DiallingnumLen);
-
-	memcpy((void*) &p_out[4], bcdCode, SIM_XDN_NUMBER_LEN_MAX / 2);
-
-	// set Capability/Configuration Identifier
-	p_out[14] = 0xff;
-
-	// set extension1 record Identifier
-	p_out[15] = 0xff;
-
-	return TRUE;
-#endif
+	*out_length = 16;
+	return encoded_o;
 }
 
 gboolean tcore_sim_decode_dynamic_flag(struct tel_sim_cphs_dflag *p_df, unsigned char *p_in, int in_length)
@@ -2051,14 +2052,14 @@ gboolean tcore_sim_decode_cphs_info(struct tel_sim_cphs_info *pCphsInfo, unsigne
 	return TRUE;
 }
 
-gboolean tcore_sim_decode_short_ons(struct tel_sim_cphs_short_netname *p_short_name, unsigned char *p_in, int in_length)
+gboolean tcore_sim_decode_short_ons(unsigned char *p_out, unsigned char *p_in, int in_length)
 {
 	int length;
 
-	memset(p_short_name, 0x00, sizeof(struct tel_sim_cphs_short_netname));
+	memset(p_out, 0x00, SIM_CPHS_OPERATOR_NAME_SHORT_FORM_LEN_MAX+1);
 
 	if (_is_empty(p_in, in_length) == TRUE){
-		return TRUE;	// this is empty record
+		return FALSE;	// this is empty record
 	}
 
 	/*CPHS specification shows current EF include 10 bytes */
@@ -2068,9 +2069,9 @@ gboolean tcore_sim_decode_short_ons(struct tel_sim_cphs_short_netname *p_short_n
 	if(in_length > SIM_CPHS_OPERATOR_NAME_SHORT_FORM_LEN_MAX)
 		in_length = SIM_CPHS_OPERATOR_NAME_SHORT_FORM_LEN_MAX;
 
-	length = _get_string( p_short_name->short_name, p_in, in_length );
-	p_short_name->short_name[length] = '\0';
-	dbg( "Operator short Name is (%s) &  length (%d)", p_short_name->short_name, length);
+	length = _get_string( p_out, p_in, in_length );
+	p_out[length] = '\0';
+	dbg( "Operator short Name is (%s) &  length (%d)", p_out, length);
 	return TRUE;
 }
 
@@ -2085,8 +2086,9 @@ gboolean tcore_sim_decode_information_number(struct tel_sim_cphs_info_number *p_
 		dbg( " \t0x%04X.", p_in[i]);
 	}
 
-	if (_is_empty(p_in, in_length) == TRUE)
-		return TRUE;	// this is empty record
+	if (_is_empty(p_in, in_length) == TRUE) {
+		return FALSE;	// this is empty record
+	}
 
 	p_info->AlphaIdLength = p_in[0];
 
@@ -2119,7 +2121,7 @@ gboolean tcore_sim_decode_opl(struct tel_sim_opl *p_opl, unsigned char *p_in, in
 
 	if (_is_empty(p_in, in_length) == TRUE) {
 		memset(p_opl, 0x00, sizeof(struct tel_sim_opl));
-		return TRUE;	// this is empty record
+		return FALSE;	// this is empty record
 	}
 	_bcd_to_digit((char*) packetInDigit, (char*) &p_in[0], 3);
 	dbg( "AFTER _bcd_to_digit 4th[0x%x]", packetInDigit[3]);
@@ -2152,7 +2154,7 @@ gboolean tcore_sim_decode_pnn(struct tel_sim_pnn *p_pnn, unsigned char* p_in, in
 
 	if (_is_empty(p_in, in_length) == TRUE) {
 		memset(p_pnn, 0x00, sizeof(struct tel_sim_pnn));
-		return TRUE;	// this is empty record
+		return FALSE;	// this is empty record
 	}
 
 	/*Full name for network IEI(Information Element Identifier),0x43*/
@@ -2437,7 +2439,8 @@ static void tcore_sim_initialize_context(CoreObject *o)
 	po->mb_file = SIM_EF_INVALID;
 }
 
-CoreObject *tcore_sim_new(TcorePlugin *p, const char *name, struct tcore_sim_operations *ops)
+CoreObject *tcore_sim_new(TcorePlugin *p, const char *name,
+		struct tcore_sim_operations *ops, TcoreHal *hal)
 {
 	CoreObject *o = NULL;
 	struct private_object_data *po = NULL;
@@ -2445,7 +2448,7 @@ CoreObject *tcore_sim_new(TcorePlugin *p, const char *name, struct tcore_sim_ope
 	if (!p)
 		return NULL;
 
-	o = tcore_object_new(p, name);
+	o = tcore_object_new(p, name, hal);
 	if (!o)
 		return NULL;
 
@@ -2460,6 +2463,7 @@ CoreObject *tcore_sim_new(TcorePlugin *p, const char *name, struct tcore_sim_ope
 	tcore_object_set_type(o, CORE_OBJECT_TYPE_SIM);
 	tcore_object_link_object(o, po);
 	tcore_object_set_free_hook(o, _free_hook);
+	tcore_object_set_clone_hook(o, _clone_hook);
 	tcore_object_set_dispatcher(o, _dispatcher);
 
 	tcore_sim_initialize_context(o);

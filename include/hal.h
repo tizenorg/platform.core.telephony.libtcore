@@ -33,17 +33,27 @@ enum tcore_hal_recv_data_type {
 	TCORE_HAL_RECV_UNKNOWN
 };
 
+enum tcore_hal_mode {
+	TCORE_HAL_MODE_UNKNOWN,
+	TCORE_HAL_MODE_AT,
+	TCORE_HAL_MODE_CUSTOM
+};
+
 struct tcore_hal_operations {
 	TReturn (*power)(TcoreHal *hal, gboolean flag);
 	TReturn (*send)(TcoreHal *hal, unsigned int data_len, void *data);
 };
 
 TcoreHal*    tcore_hal_new(TcorePlugin *plugin, const char *name,
-                 struct tcore_hal_operations *hops);
+                 struct tcore_hal_operations *hops,
+                 enum tcore_hal_mode mode);
 void         tcore_hal_free(TcoreHal *hal);
 
 TReturn      tcore_hal_set_name(TcoreHal *hal, const char *name);
 char*        tcore_hal_get_name(TcoreHal *hal);
+
+TcoreAT*     tcore_hal_get_at(TcoreHal *hal);
+enum tcore_hal_mode tcore_hal_get_mode(TcoreHal *hal);
 
 TReturn      tcore_hal_set_power(TcoreHal *hal, gboolean flag);
 
@@ -51,10 +61,9 @@ TReturn      tcore_hal_link_user_data(TcoreHal *hal, void *user_data);
 void*        tcore_hal_ref_user_data(TcoreHal *hal);
 
 TReturn      tcore_hal_send_data(TcoreHal *hal, unsigned int data_len, void *data);
-TReturn      tcore_hal_send_request(TcoreHal *hal, TcorePending *plugin);
+TReturn      tcore_hal_send_request(TcoreHal *hal, TcorePending *pending);
+TReturn      tcore_hal_send_force(TcoreHal *hal);
 
-TReturn      tcore_hal_dispatch_notification_data(TcoreHal *hal,
-                 const char *event, const void *data);
 TReturn      tcore_hal_dispatch_response_data(TcoreHal *hal, int id,
                  unsigned int data_len, const void *data);
 
