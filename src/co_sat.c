@@ -471,8 +471,8 @@ static enum tcore_sat_result _sat_decode_address_tlv(unsigned char* tlv_str, int
 		_sat_decode_ton_npi(src_data[index++], &address_obj->ton, &address_obj->npi);
 		str_ascii = tcore_util_convert_bcd2ascii((const char*)&src_data[index], address_len-1, SAT_DIALING_NUMBER_LEN_MAX);
 		if(str_ascii){
-			memcpy(address_obj->dialing_number, str_ascii, sizeof(str_ascii));
-			address_obj->dialing_number_len = sizeof(str_ascii);
+			memcpy(address_obj->dialing_number, str_ascii, strlen(str_ascii));
+			address_obj->dialing_number_len = strlen(str_ascii);
 			g_free(str_ascii);
 		}
 	}

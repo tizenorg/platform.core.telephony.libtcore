@@ -70,19 +70,28 @@ struct tcore_pending_type {
 	TcoreQueue *queue;
 };
 
+enum search_field {
+	SEARCH_FIELD_ID_ALL = 0x01,
+	SEARCH_FIELD_ID_WAIT = 0x11,
+	SEARCH_FIELD_ID_SENT = 0x21,
+	SEARCH_FIELD_COMMAND_ALL = 0x02,
+	SEARCH_FIELD_COMMAND_WAIT = 0x12,
+	SEARCH_FIELD_COMMAND_SENT = 0x22,
+};
+
 static gboolean _on_pending_timeout(gpointer user_data)
 {
 	TcorePending *p = user_data;
+
+	dbg("pending timeout!!");
 
 	if (!p)
 		return FALSE;
 
 	tcore_pending_emit_timeout_callback(p);
 
-	p = tcore_queue_pop(p->queue);
-	tcore_pending_free(p);
-
-	p->timer_src = 0;
+	p->on_response = NULL;
+	tcore_hal_dispatch_response_data(p->queue->hal, p->id, 0, NULL);
 
 	return FALSE;
 }
@@ -289,9 +298,10 @@ TReturn tcore_pending_emit_send_callback(TcorePending *pending, gboolean result)
 	if (pending->on_send)
 		pending->on_send(pending, result, pending->on_send_user_data);
 
-	if (result == TCORE_RETURN_SUCCESS) {
+	if (result == TRUE) {
 		if (pending->flag_auto_free_after_sent == FALSE && pending->timeout > 0) {
 			/* timer */
+			dbg("start pending timer! (%d secs)", pending->timeout);
 			pending->timer_src = g_timeout_add_seconds(pending->timeout, _on_pending_timeout, pending);
 		}
 	}
@@ -520,11 +530,12 @@ TcorePending *tcore_queue_ref_tail(TcoreQueue *queue)
 }
 
 
-static TcorePending *_tcore_queue_search(TcoreQueue *queue, unsigned int id,
-		gboolean flag_pop)
+static TcorePending *_tcore_queue_search_full(TcoreQueue *queue, unsigned int id,
+		enum tcore_request_command command, enum search_field field, gboolean flag_pop)
 {
 	TcorePending *pending = NULL;
 	int i = 0;
+	UserRequest *ur;
 
 	if (!queue)
 		return NULL;
@@ -534,11 +545,37 @@ static TcorePending *_tcore_queue_search(TcoreQueue *queue, unsigned int id,
 		if (!pending)
 			return NULL;
 
-		if (pending->id == id) {
-			if (flag_pop == TRUE) {
-				pending = g_queue_pop_nth(queue->gq, i);
+		if ((field & 0xF0) == 0x10) {
+			/* search option is wait pending */
+			if (pending->flag_sent) {
+				i++;
+				continue;
 			}
-			break;
+		}
+		else if ((field & 0xF0) == 0x20) {
+			/* search option is sent pending */
+			if (pending->flag_sent == FALSE) {
+				i++;
+				continue;
+			}
+		}
+
+		if ((field & 0x0F) == SEARCH_FIELD_ID_ALL) {
+			if (pending->id == id) {
+				if (flag_pop == TRUE) {
+					pending = g_queue_pop_nth(queue->gq, i);
+				}
+				break;
+			}
+		}
+		else if ((field & 0x0F) == SEARCH_FIELD_COMMAND_ALL) {
+			ur = tcore_pending_ref_user_request(pending);
+			if (tcore_user_request_get_command(ur) == command) {
+				if (flag_pop == TRUE) {
+					pending = g_queue_pop_nth(queue->gq, i);
+				}
+				break;
+			}
 		}
 
 		i++;
@@ -547,12 +584,21 @@ static TcorePending *_tcore_queue_search(TcoreQueue *queue, unsigned int id,
 	return pending;
 }
 
+TcorePending *tcore_queue_search_by_command(TcoreQueue *queue,
+		enum tcore_request_command command, gboolean flag_sent)
+{
+	if (flag_sent)
+		return _tcore_queue_search_full(queue, 0, command, SEARCH_FIELD_COMMAND_SENT, FALSE);
+
+	return _tcore_queue_search_full(queue, 0, command, SEARCH_FIELD_COMMAND_WAIT, FALSE);
+}
+
 TcorePending *tcore_queue_pop_by_id(TcoreQueue *queue, unsigned int id)
 {
 	if (!queue)
 		return NULL;
 
-	return _tcore_queue_search(queue, id, TRUE);
+	return _tcore_queue_search_full(queue, id, 0, SEARCH_FIELD_ID_ALL, TRUE);
 }
 
 TcorePending *tcore_queue_ref_pending_by_id(TcoreQueue *queue, unsigned int id)
@@ -560,7 +606,7 @@ TcorePending *tcore_queue_ref_pending_by_id(TcoreQueue *queue, unsigned int id)
 	if (!queue)
 		return NULL;
 
-	return _tcore_queue_search(queue, id, FALSE);
+	return _tcore_queue_search_full(queue, id, 0, SEARCH_FIELD_ID_ALL, FALSE);
 }
 
 TcorePending *tcore_queue_ref_next_pending(TcoreQueue *queue)
@@ -615,4 +661,32 @@ TcoreHal *tcore_queue_ref_hal(TcoreQueue *queue)
 		return NULL;
 
 	return queue->hal;
+}
+
+TReturn tcore_queue_cancel_pending_by_command(TcoreQueue *queue, enum tcore_request_command command)
+{
+	TcorePending *pending;
+
+	if (!queue)
+		return TCORE_RETURN_EINVAL;
+
+	while (1) {
+		pending = _tcore_queue_search_full(queue, 0, command, SEARCH_FIELD_COMMAND_ALL, FALSE);
+		if (!pending)
+			break;
+
+		dbg("pending(0x%x) cancel", pending);
+
+		if (queue->hal) {
+			tcore_hal_dispatch_response_data(queue->hal, pending->id, 0, NULL);
+		}
+		else {
+			pending = tcore_queue_pop_by_pending(queue, pending);
+			tcore_pending_emit_response_callback(pending, 0, NULL);
+			tcore_user_request_unref(tcore_pending_ref_user_request(pending));
+			tcore_pending_free(pending);
+		}
+	}
+
+	return TCORE_RETURN_SUCCESS;
 }

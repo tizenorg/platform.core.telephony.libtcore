@@ -50,7 +50,7 @@ __BEGIN_DECLS
 #define SAT_SUB_ADDR_LEN_MAX 30
 #define SAT_CCP_DATA_LEN_MAX 30	 /**<	max length of ccp data 		*/
 #define SAT_URL_LEN_MAX 129	 /**<	max length of url 		*/
-#define SAT_BEARER_LIST_MAX_COUNT 50	 /**<	max count of bearer list 		*/
+#define SAT_BEARER_LIST_MAX_COUNT 5	 /**<	max count of bearer list 		*/
 #define SAT_PROVISIONING_REF_MAX_COUNT 10	/**<	max count of sat provisioning reference	*/
 #define SAT_PROVISIONING_FILE_PATH_LEN_MAX 50	 /**<	max length of provisioning file path 	*/
 #define SAT_BEARER_PARAMS_LEN_MAX 10	 /**<	max length of bearer parameters 		*/

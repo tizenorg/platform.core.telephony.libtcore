@@ -72,9 +72,9 @@ void tcore_user_request_free(UserRequest *ur)
 	if (!ur)
 		return;
 
-	if ( ur->ref > 0 ) {
+	if (ur->ref > 0) {
 		ur->ref--;
-		return ;
+		return;
 	}
 
 	if (ur->free_hook)
@@ -107,16 +107,15 @@ UserRequest *tcore_user_request_ref(UserRequest *ur)
 void tcore_user_request_unref(UserRequest *ur)
 {
 	if (!ur)
-		return ;
+		return;
 
-	if ( ur->ref > 0 )
+	if (ur->ref > 0)
 		ur->ref--;
 	else
-		tcore_user_request_free( ur );
+		tcore_user_request_free(ur);
 
-	return ;
+	return;
 }
-
 
 TReturn tcore_user_request_set_free_hook(UserRequest *ur,
 		UserRequestFreeHook free_hook)
@@ -176,6 +175,7 @@ TReturn tcore_user_request_set_user_info(UserRequest *ur,
 	if (ur->ui.appname) {
 		dbg("free old appname (%s)", ur->ui.appname);
 		free(ur->ui.appname);
+		ur->ui.appname = NULL;
 	}
 
 	if (ui->appname) {
@@ -263,17 +263,17 @@ TReturn tcore_user_request_set_metainfo(UserRequest *ur,
 	if (!ur)
 		return TCORE_RETURN_EINVAL;
 
-	ur->metainfo_len = metainfo_len;
-
 	if (metainfo_len > 0 && metainfo != NULL) {
 		ur->metainfo = calloc(metainfo_len, 1);
 		if (!ur->metainfo)
 			return TCORE_RETURN_ENOMEM;
 
+		ur->metainfo_len = metainfo_len;
 		memcpy(ur->metainfo, metainfo, metainfo_len);
 	}
 	else {
 		ur->metainfo = NULL;
+		ur->metainfo_len = 0;
 	}
 
 	return TCORE_RETURN_SUCCESS;

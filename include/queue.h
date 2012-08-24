@@ -89,6 +89,8 @@ TcorePending* tcore_queue_ref_pending_by_id(TcoreQueue *queue, unsigned int id);
 TcorePending* tcore_queue_ref_next_pending(TcoreQueue *queue);
 unsigned int  tcore_queue_get_length(TcoreQueue *queue);
 TcoreHal*     tcore_queue_ref_hal(TcoreQueue *queue);
+TReturn       tcore_queue_cancel_pending_by_command(TcoreQueue *queue, enum tcore_request_command command);
+TcorePending* tcore_queue_search_by_command(TcoreQueue *queue, enum tcore_request_command command, gboolean flag_sent);
 
 __END_DECLS
 

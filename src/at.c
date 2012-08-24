@@ -158,7 +158,7 @@ static void _emit_pending_response(TcoreAT *at)
 	}
 
 	tcore_pending_emit_response_callback(p, sizeof(TcoreATResponse *), at->resp);
-	tcore_user_request_free(tcore_pending_ref_user_request(p));
+	tcore_user_request_unref(tcore_pending_ref_user_request(p));
 	tcore_pending_free(p);
 
 	_response_free(at->resp);
@@ -651,6 +651,25 @@ gboolean tcore_at_process(TcoreAT *at, unsigned int data_len, const char *data)
 							}
 							else {
 								_emit_unsolicited_message(at, pos);
+							}
+						}
+						else {
+							_response_add(at->resp, pos);
+						}
+						break;
+
+					case TCORE_AT_PDU:
+						if (at->req->prefix) {
+							if (g_str_has_prefix(pos, at->req->prefix)) {
+								_response_add(at->resp, pos);
+							}
+							else {
+								if (at->resp->lines != NULL) {
+									_response_add(at->resp, pos);
+								}
+								else {
+									_emit_unsolicited_message(at, pos);
+								}
 							}
 						}
 						else {

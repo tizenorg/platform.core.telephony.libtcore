@@ -280,6 +280,7 @@ TReturn tcore_util_netif_set(const char *name, const char *ipaddr,
 		return TCORE_RETURN_FAILURE;
 	}
 
+	memset(&sai, 0, sizeof(struct sockaddr_in));
 	sai.sin_family = AF_INET;
 	sai.sin_port = 0;
 	memset(&ifr, 0, sizeof(struct ifreq));
@@ -520,7 +521,8 @@ unsigned char *tcore_util_pack_gsm7bit(const unsigned char *src, unsigned int sr
 		return NULL;
 
 	for (pos = 0, i = 0; i < src_len; pos++, i++) {
-		if ( pos >= outlen ) {
+		if (pos >= outlen) {
+			free(dest);
 			return NULL;
 		}
 

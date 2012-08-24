@@ -359,7 +359,7 @@ struct telephony_sms_CbMsg {
 
 	enum telephony_sms_CbMsgType	cbMsgType;							/**< Cell Broadcast  message type */
 	unsigned short 					length; 								/**<Size of array szMsgData (which is actual TPDU message) */
-	char 							msgData[SMS_CB_PAGE_SIZE_MAX + 1]; /**<Cell broadcast message data[Refer 3GPP TS 23.041 9.4.1]*/
+	char 							msgData[SMS_CB_SIZE_MAX + 1]; /**<Cell broadcast message data[Refer 3GPP TS 23.041 9.4.1]*/
 };
 
 /**

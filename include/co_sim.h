@@ -63,9 +63,9 @@ void*                tcore_sim_ref_userdata(CoreObject *o);
 
 gboolean             tcore_sim_decode_iccid(struct tel_sim_iccid *p_out, unsigned char *p_in, int in_length);
 gboolean             tcore_sim_decode_lp(struct tel_sim_language *p_out, unsigned char *p_in, int in_length);
-gboolean             tcore_sim_encode_lp(char *p_out, int out_length, struct tel_sim_language *p_in);
+char*             tcore_sim_encode_lp(int *out_length, struct tel_sim_language *p_in);
 gboolean             tcore_sim_decode_li(enum tel_sim_file_id file_id, struct tel_sim_language *p_out, unsigned char *p_in, int in_length);
-gboolean             tcore_sim_encode_li(char *p_out, int out_length, struct tel_sim_language *p_in);
+char*             tcore_sim_encode_li(int *out_length, struct tel_sim_language *p_in);
 gboolean             tcore_sim_decode_imsi(struct tel_sim_imsi *p_out, unsigned char *p_in, int in_length);
 gboolean             tcore_sim_decode_sst(struct tel_sim_sst *p_sst, unsigned char *p_in, int in_length);
 gboolean             tcore_sim_decode_spn(struct tel_sim_spn *p_spn, unsigned char *p_in, int in_length);

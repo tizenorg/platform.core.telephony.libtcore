@@ -11,7 +11,8 @@ enum tcore_at_command_type {
     TCORE_AT_NO_RESULT,   /* no intermediate response expected */
     TCORE_AT_NUMERIC,     /* a single intermediate response starting with a 0-9 */
     TCORE_AT_SINGLELINE,  /* a single intermediate response starting with a prefix */
-    TCORE_AT_MULTILINE    /* multiple line intermediate response starting with a prefix */
+    TCORE_AT_MULTILINE,   /* multiple line intermediate response starting with a prefix */
+    TCORE_AT_PDU
 };
 
 enum ATCMEError{

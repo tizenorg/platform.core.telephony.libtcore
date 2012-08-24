@@ -323,7 +323,7 @@ TReturn tcore_hal_dispatch_response_data(TcoreHal *hal, int id,
 		}
 
 		tcore_pending_emit_response_callback(p, data_len, data);
-		tcore_user_request_free(tcore_pending_ref_user_request(p));
+		tcore_user_request_unref(tcore_pending_ref_user_request(p));
 		tcore_pending_free(p);
 
 		/* Send next request in queue */

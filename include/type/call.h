@@ -449,11 +449,11 @@ struct treq_call_sound_set_recording {
 	gboolean state;
 };
 
-#define MAX_SOUND_EQ_PARAMETER_SIZE 13
+#define MAX_SOUND_EQ_PARAMETER_SIZE 6
 struct treq_call_sound_set_equalization {
 	gboolean mode;
 	enum telephony_call_sound_direction direction;
-	char parameter[ MAX_SOUND_EQ_PARAMETER_SIZE ];
+	unsigned short parameter[ MAX_SOUND_EQ_PARAMETER_SIZE ];
 };
 
 struct treq_call_sound_set_noise_reduction {

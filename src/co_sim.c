@@ -580,19 +580,24 @@ gboolean tcore_sim_decode_lp(struct tel_sim_language *p_out, unsigned char *p_in
 /**
  * This function is used to encode EFLP (2G)
  */
-gboolean tcore_sim_encode_lp(char *p_out, int out_length, struct tel_sim_language *p_in)
+char* tcore_sim_encode_lp( int *out_length, struct tel_sim_language *p_in)
 {
-	int i;
+    int i = 0;
+    char *tmp_out = NULL;
 
-	if (p_in->language_count > out_length)
-		return FALSE;
+    if ( out_length == NULL || p_in == NULL ){
+        dbg("out_length or p_in is null");
+        return NULL;
+    }
 
-	memset((void*) p_out, 0xff, out_length);
+    tmp_out = (char*)malloc(p_in->language_count);
+    memset((void*) tmp_out, 0xff, p_in->language_count);
 
-	for (i = 0; i < p_in->language_count; i++)
-		p_out[i] = p_in->language[i];
+    for (i = 0; i < p_in->language_count; i++)
+        tmp_out[i] = p_in->language[i];
 
-	return TRUE;
+    *out_length = i;
+    return tmp_out;
 }
 
 /**
@@ -713,24 +718,29 @@ gboolean tcore_sim_decode_li(enum tel_sim_file_id file_id, struct tel_sim_langua
 /**
  * This function is used to encode EFLI (3G)
  */
-gboolean tcore_sim_encode_li(char *p_out, int out_length, struct tel_sim_language *p_in)
+char* tcore_sim_encode_li( int *out_length, struct tel_sim_language *p_in)
 {
 	int i = 0;
+    char *tmp_out = NULL;
 	char *LanguageCode[] = { "de", "en", "it", "fr", "es", "nl", "sv", "da", "pt", "fi", "no", "el",
 													"tr", "hu", "pl", "ko", "zh", "ru", "ja" };
 
-	if (p_in->language_count > out_length)
-		return FALSE;
+    if ( out_length == NULL || p_in == NULL ){
+        dbg("out_length or p_in is null");
+        return NULL;
+    }
 
-	memset((void*) p_out, 0xFF, out_length);
+    tmp_out = (char*)malloc((p_in->language_count) *2);
+    memset((void*) tmp_out, 0xff, (p_in->language_count)*2);
 
 	for (i = 0; i < p_in->language_count; i++) {
 		if (p_in->language[i] < SIM_LANG_UNSPECIFIED) {
-			strncpy((char *) &p_out[i * 2], LanguageCode[p_in->language[i]], 2);
-			dbg( "sim_encode_li: p_out[%s]:[%x][%x]", p_out, p_out[i*2], p_out[(i*2)+1]);
+			strncpy((char *) &tmp_out[i * 2], LanguageCode[p_in->language[i]], 2);
+			dbg( "sim_encode_li: p_out[%s]:[%x][%x]", tmp_out, tmp_out[i*2], tmp_out[(i*2)+1]);
 		}
 	}
-	return TRUE;
+	*out_length = i*2;
+	return tmp_out;
 }
 
 gboolean tcore_sim_decode_imsi(struct tel_sim_imsi *p_out, unsigned char *p_in, int in_length)
@@ -2149,8 +2159,8 @@ gboolean tcore_sim_decode_opl(struct tel_sim_opl *p_opl, unsigned char *p_in, in
 
 gboolean tcore_sim_decode_pnn(struct tel_sim_pnn *p_pnn, unsigned char* p_in, int in_length)
 {
-	int f_name_length = 0, s_name_length = 0;
-	int i, cvt_leng = 0;
+	int f_name_len = 0, s_name_len = 0;
+	int cvt_leng = 0, s_name_base = 0;
 
 	if (_is_empty(p_in, in_length) == TRUE) {
 		memset(p_pnn, 0x00, sizeof(struct tel_sim_pnn));
@@ -2160,12 +2170,8 @@ gboolean tcore_sim_decode_pnn(struct tel_sim_pnn *p_pnn, unsigned char* p_in, in
 	/*Full name for network IEI(Information Element Identifier),0x43*/
 	if (p_in[0] == 0x43) {
 		dbg( " Full name of network IEI exist");
-		/*Assigning the variable 'f_name_length' with the Full name network length*/
-		f_name_length = p_in[1];
-
-		/* current telephony supports 40 bytes network name string */
-		if (f_name_length > SIM_NW_FULL_NAME_LEN_MAX)
-			f_name_length = SIM_NW_FULL_NAME_LEN_MAX;
+		//f_name_part includes information byte.
+		f_name_len =  (int)p_in[1] - 1;
 
 		/* 3rd byte information element(according to TS 24.008 for Network Name)
 		 8 :ext1
@@ -2181,38 +2187,54 @@ gboolean tcore_sim_decode_pnn(struct tel_sim_pnn *p_pnn, unsigned char* p_in, in
 		 */
 		if ((p_in[2] & 0x01110000) >> 4 == 0) {
 			dbg( "DCS:GSM7");
-			//f_name_length includes information byte.
-			_unpack_7bit28bit(p_in + 3, f_name_length - 1,
-					(unsigned char *) (p_pnn->full_name));
-		}
-		else if ((p_in[2] & 0x01110000) >> 4 == 1) {
+			// In case of GSM7, 35byte packing data will be converted 40 bytes unpacking string.
+			if (f_name_len > (SIM_NW_FULL_NAME_LEN_MAX * 7) / 8)
+				f_name_len = (SIM_NW_FULL_NAME_LEN_MAX * 7) / 8;
+
+			_unpack_7bit28bit(p_in + 3, f_name_len, (unsigned char *) (p_pnn->full_name));
+		} else if ((p_in[2] & 0x01110000) >> 4 == 1) {
 			dbg( "DCS:UCS2");
-			_ucs2_to_utf8(f_name_length, p_in + 3, (int*) &cvt_leng,
-					(unsigned char *) (p_pnn->full_name));
-		}
-		else {
+			/* current telephony supports 40 bytes network name string */
+			if (f_name_len > SIM_NW_FULL_NAME_LEN_MAX)
+				f_name_len = SIM_NW_FULL_NAME_LEN_MAX;
+
+			_ucs2_to_utf8(f_name_len, p_in + 3, (int*) &cvt_leng, (unsigned char *) (p_pnn->full_name));
+		} else {
 			dbg( "DCS:unknown");
 			return FALSE;
 		}
 		dbg( " Full name of network contents[%s]", p_pnn->full_name);
 
+		s_name_base = (int)p_in[1] +2;
+		dbg( " short name base byte [0x%02x]", s_name_base);
+
 		/*Short Name for network IEI(Information Element Identifier), 0x45*/
-		if (p_in[f_name_length + 2] == 0x45) {
+		if (p_in[s_name_base] == 0x45) {
 			dbg( " Short name of network IEI exist");
-			/*Assigning the variable 's_name_length' with the short name network length*/
-			s_name_length = p_in[f_name_length + 3];
+			//s_name_part includes information byte.
+			s_name_len = p_in[s_name_base +1] -1;
 
-			if (s_name_length > SIM_NW_FULL_NAME_LEN_MAX)
-				s_name_length = SIM_NW_FULL_NAME_LEN_MAX;
+			if ((p_in[s_name_base + 2] & 0x01110000) >> 4 == 0) {
+				dbg( "DCS:GSM7");
+				// In case of GSM7, 35byte packing data will be converted 40 bytes unpacking string.
+				if (s_name_len > (SIM_NW_FULL_NAME_LEN_MAX * 7) / 8)
+					s_name_len = (SIM_NW_FULL_NAME_LEN_MAX * 7) / 8;
 
-			for (i = 0; i < s_name_length; i++)
-				p_pnn->short_name[i] =	p_in[f_name_length + 4 + i];
+				_unpack_7bit28bit(p_in + s_name_base + 3, s_name_len, (unsigned char *) (p_pnn->short_name));
+			} else if ((p_in[s_name_base +2] & 0x01110000) >> 4 == 1) {
+				dbg( "DCS:UCS2");
+				if (s_name_len > SIM_NW_FULL_NAME_LEN_MAX)
+					s_name_len = SIM_NW_FULL_NAME_LEN_MAX;
 
+				_ucs2_to_utf8(s_name_len, p_in + s_name_base+ 3, (int*) &cvt_leng, (unsigned char *) (p_pnn->short_name));
+			} else {
+				dbg( "DCS:unknown");
+				return FALSE;
+			}
 			dbg( " Short name of network contents[%s]", p_pnn->short_name);
 		}
 		return TRUE;
 	}
-
 	return FALSE;
 }
 
