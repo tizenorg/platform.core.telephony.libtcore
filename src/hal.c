@@ -34,6 +34,8 @@
 #include "plugin.h"
 #include "user_request.h"
 #include "server.h"
+#include "mux.h"
+
 
 //#define IDLE_SEND_PRIORITY G_PRIORITY_DEFAULT
 #define IDLE_SEND_PRIORITY G_PRIORITY_HIGH
@@ -219,6 +221,16 @@ enum tcore_hal_mode tcore_hal_get_mode(TcoreHal *hal)
 	return hal->mode;
 }
 
+TReturn tcore_hal_set_mode(TcoreHal *hal, enum tcore_hal_mode mode)
+{
+	if (!hal)
+		return TCORE_RETURN_EINVAL;
+	
+	hal->mode = mode;
+
+	return TCORE_RETURN_SUCCESS;
+}
+
 TReturn tcore_hal_link_user_data(TcoreHal *hal, void *user_data)
 {
 	if (!hal)
@@ -316,16 +328,24 @@ TReturn tcore_hal_dispatch_response_data(TcoreHal *hal, int id,
 		}
 	}
 	else {
-		p = tcore_queue_pop_by_id(hal->queue, id);
-		if (!p) {
-			dbg("unknown pending (id=0x%x)", id);
-			return TCORE_RETURN_PENDING_WRONG_ID;
+		if(hal->mode == TCORE_HAL_MODE_CUSTOM) {
+			dbg("TCORE_HAL_MODE_CUSTOM");
+			p = tcore_queue_pop_by_id(hal->queue, id);
+			if (!p) {
+				dbg("unknown pending (id=0x%x)", id);
+				return TCORE_RETURN_PENDING_WRONG_ID;
+			}
+
+			tcore_pending_emit_response_callback(p, data_len, data);
+			tcore_user_request_free(tcore_pending_ref_user_request(p));
+			tcore_pending_free(p);
 		}
-
-		tcore_pending_emit_response_callback(p, data_len, data);
-		tcore_user_request_unref(tcore_pending_ref_user_request(p));
-		tcore_pending_free(p);
-
+		else if(hal->mode == TCORE_HAL_MODE_TRANSPARENT) {
+			dbg("TCORE_HAL_MODE_TRANSPARENT");
+			
+			/* Invoke CMUX receive API for decoding */
+			tcore_cmux_rcv_from_hal((unsigned char *)data, data_len);
+		}
 		/* Send next request in queue */
 		g_idle_add_full(IDLE_SEND_PRIORITY, _hal_idle_send, hal, NULL );
 	}

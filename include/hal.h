@@ -36,7 +36,8 @@ enum tcore_hal_recv_data_type {
 enum tcore_hal_mode {
 	TCORE_HAL_MODE_UNKNOWN,
 	TCORE_HAL_MODE_AT,
-	TCORE_HAL_MODE_CUSTOM
+	TCORE_HAL_MODE_CUSTOM,
+    TCORE_HAL_MODE_TRANSPARENT
 };
 
 struct tcore_hal_operations {
@@ -54,6 +55,7 @@ char*        tcore_hal_get_name(TcoreHal *hal);
 
 TcoreAT*     tcore_hal_get_at(TcoreHal *hal);
 enum tcore_hal_mode tcore_hal_get_mode(TcoreHal *hal);
+TReturn 	tcore_hal_set_mode(TcoreHal *hal, enum tcore_hal_mode mode);
 
 TReturn      tcore_hal_set_power(TcoreHal *hal, gboolean flag);
 

@@ -48,6 +48,7 @@ SET(SRCS
 		src/co_sms.c
 		src/co_phonebook.c
 		src/co_gps.c
+		src/mux.c
 )
 
 
