@@ -29,27 +29,29 @@ enum telephony_network_select_mode {
 	NETWORK_SELECT_MODE_GSM_AUTOMATIC = 0x02,
 	NETWORK_SELECT_MODE_GSM_MANUAL = 0x03,
 	NETWORK_SELECT_MODE_CDMA = 0x04,
+	NETWORK_SELECT_MODE_LTE_AUTO = 0x05,
+	NETWORK_SELECT_MODE_LTE_MANUAL = 0x06
 };
 
 enum telephony_network_plmn_status {
 	NETWORK_PLMN_UNKNOWN,
 	NETWORK_PLMN_AVAILABLE,
 	NETWORK_PLMN_CURRENT,
-	NETWORK_PLMN_FORBIDDEN,
+	NETWORK_PLMN_FORBIDDEN
 };
 
 enum telephony_network_service_domain {
 	NETWORK_SERVICE_DOMAIN_COMBINED = 0x01,
 	NETWORK_SERVICE_DOMAIN_CS,
 	NETWORK_SERVICE_DOMAIN_PS,
-	NETWORK_SERVICE_DOMAIN_AUTOMATIC,
+	NETWORK_SERVICE_DOMAIN_AUTOMATIC
 };
 
 enum telephony_network_service_domain_status {
 	NETWORK_SERVICE_DOMAIN_STATUS_NO = 0x0,
 	NETWORK_SERVICE_DOMAIN_STATUS_EMERGENCY,
 	NETWORK_SERVICE_DOMAIN_STATUS_FULL,
-	NETWORK_SERVICE_DOMAIN_STATUS_SEARCH,
+	NETWORK_SERVICE_DOMAIN_STATUS_SEARCH
 };
 
 enum telephony_network_service_type {
@@ -61,7 +63,8 @@ enum telephony_network_service_type {
 	NETWORK_SERVICE_TYPE_2_5G,
 	NETWORK_SERVICE_TYPE_2_5G_EDGE,
 	NETWORK_SERVICE_TYPE_3G,
-	NETWORK_SERVICE_TYPE_HSDPA
+	NETWORK_SERVICE_TYPE_HSDPA,
+	NETWORK_SERVICE_TYPE_LTE
 };
 
 enum telephony_network_access_technology {
@@ -86,7 +89,7 @@ enum telephony_network_access_technology {
 
 enum telephony_network_band_mode {
 	NETWORK_BAND_MODE_PREFERRED = 0x01,
-	NETWORK_BAND_MODE_ONLY = 0x02,
+	NETWORK_BAND_MODE_ONLY = 0x02
 };
 
 enum telephony_network_band {
@@ -101,7 +104,9 @@ enum telephony_network_band {
 	NETWORK_BAND_TYPE_WCDMA2100,
 	NETWORK_BAND_TYPE_GSM900,
 	NETWORK_BAND_TYPE_GSM1800,
-	NETWORK_BAND_TYPE_GSM_850_1900
+	NETWORK_BAND_TYPE_GSM_850_1900,
+	NETWORK_BAND_TYPE_LTE_BAND_4,
+	NETWORK_BAND_TYPE_LTE_BAND_17
 };
 
 enum telephony_network_preferred_plmn_operation {
@@ -121,7 +126,7 @@ enum telephony_network_icon_info_type {
 	NETWORK_ICON_INFO_RSSI = 0x01,
 	NETWORK_ICON_INFO_BATTERY = 0x02,
 	NETWORK_ICON_INFO_HDR_RSSI = 0x04,
-	NETWORK_ICON_INFO_ALL = 0xFF,
+	NETWORK_ICON_INFO_ALL = 0xFF
 };
 
 enum telephony_network_mode {
@@ -129,7 +134,7 @@ enum telephony_network_mode {
 	NETWORK_MODE_GSM = 0x01,
 	NETWORK_MODE_WCDMA = 0x02,
 	NETWORK_MODE_CDMA = 0x04,
-	NETWORK_MODE_LTE = 0x08,
+	NETWORK_MODE_LTE = 0x08
 };
 
 struct treq_network_search { /* no data */
