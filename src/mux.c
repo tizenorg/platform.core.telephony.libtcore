@@ -1,18 +1,20 @@
-/**
- * Copyright (c) 2000 - 2012 Samsung Electronics Co., Ltd All Rights Reserved
+/*
+ * libtcore
  *
+ * Copyright (c) 2012 Samsung Electronics Co., Ltd. All rights reserved.
  * Contact: Arijit Sen <arijit.sen@samsung.com>
  *
- * PROPRIETARY/CONFIDENTIAL
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * This software is the confidential and proprietary information of SAMSUNG ELECTRONICS ("Confidential Information").
- * You shall not disclose such Confidential Information and shall
- * use it only in accordance with the terms of the license agreement you entered into with SAMSUNG ELECTRONICS.
- * SAMSUNG make no representations or warranties about the suitability
- * of the software, either express or implied, including but not
- * limited to the implied warranties of merchantability, fitness for a particular purpose, or non-infringement.
- * SAMSUNG shall not be liable for any damages suffered by licensee as
- * a result of using, modifying or distributing this software or its derivatives.
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 #include <stdio.h>
@@ -31,41 +33,37 @@
 #include "mux.h"
 #include "core_object.h"
 
-/*For enabling MUX we need to set g_cmux_enable*/
-int g_cmux_enable = 1;
-
 /* Maximum Core objects per Logical HAL (indirectly per Channel) */
-#define CMUX_MAX_CORE_OBJECTS		3
+#define MAX_CMUX_CORE_OBJECTS		3
 
-#define MAX_CMUX_BUFFER_SIZE		1024
-#define MAX_CHANNEL_SUPPORTED		8
+/* Max CMUX Buffer size */
+#define MAX_CMUX_BUFFER_SIZE		2000
 
+/* Max muber of CMUX Channels */
+#define MAX_CMUX_CHANNELS_SUPPORTED	8
 
-#define SABM  0x2F   
-#define UA      0x63    
-#define DM      0x0F    
-#define DISC   0x43   
-#define UIH     0xEF    
-#define UI       0x03    
-
-
+/* CMUX Commands */
+#define CMUX_COMMAND_SABM		0x2F
+#define CMUX_COMMAND_UA			0x63
+#define CMUX_COMMAND_DM			0x0F
+#define CMUX_COMMAND_DISC			0x43
+#define CMUX_COMMAND_UIH			0xEF
+#define CMUX_COMMAND_UI			0x03
 
 /* MUX CONTROL COMMANDS 
   * We are supporting only MSC command for phase 1
   */
-#define  MSC	0xE3  	//Modem Status Command
-#define  CLD  0xC3      //Multiplexer close down
-
-/*                  
-#define  PN	        	//parameter negotiation
-#define  PSC      		//Power Saving Control
-#define TEST     		//Test Command
-#define  NSC   		//Non Supported Command Response
-#define  RPN     		//Remote Port Negotiation Command
-#define  RLS     		//Remote Line Status Command
-#define  SNC   		//Service Negotiation Command  */
-
-
+#define  CMUX_COMMAND_MSC			0xE3	//Modem Status Command
+#define  CMUX_COMMAND_CLD			0xC3	//Multiplexer close down
+#if 0	/* Support in Phase 2 */
+#define CMUX_COMMAND_PN	        	//Parameter Negotiation
+#define CMUX_COMMAND_PSC      		//Power Saving Control
+#define CMUX_COMMAND_TEST     		//Test Command
+#define CMUX_COMMAND_NSC   		//Non Supported Command Response
+#define CMUX_COMMAND_RPN     		//Remote Port Negotiation Command
+#define CMUX_COMMAND_RLS     		//Remote Line Status Command
+#define CMUX_COMMAND_SNC   		//Service Negotiation Command
+#endif	/* Support in Phase 2 */
 
 /* CMUX Channels [0-7] -
   * Channel 0 - Control Channel for CMUX
@@ -88,6 +86,7 @@ typedef enum CMUX_Channels {
 	CMUX_CHANNEL_7
 } CMUX_Channels;
 
+/* MUX Channel States */
 typedef enum MuxChannelState {
 	MUX_CHANNEL_CLOSED,
 	MUX_CHANNEL_SABM_SEND_WAITING_FOR_UA,
@@ -103,26 +102,27 @@ typedef enum MuxChannelState {
 	
 } MuxChannelState;
 
+/* MUX State */
 typedef enum MuxState {
 	MUX_NOT_INITIALIZED,
 	MUX_INITIALIZED,
 	MUX_CLOSED
 } MuxState;
 
-#define FIND_LENGTH(buf, hlen, Tlen)  do{ \
+#define FIND_LENGTH(buf, header_length, total_length)  do{ \
 											if (*buf & 0x01) { \
-												Tlen = *buf++ >>1; \
-												hlen=6; \
+												total_length = *buf++ >>1; \
+												header_length=6; \
 												} \
 												else { \
-													Tlen = *(buf + 0x01) << 7; \
-													Tlen = Tlen | (*buf & 0x7E) >> 1; \
-													hlen = 7; \
+													total_length = *(buf + 0x01) << 7; \
+													total_length = total_length | (*buf & 0xFE) >> 1; \
+													header_length = 7; \
 													} \
 										} while(0)
 
 /*================= CRC TABLE=========================*/
-const unsigned char crctable[256] = { //reversed, 8-bit, poly=0x07
+const unsigned char crc_table[256] = { //reversed, 8-bit, poly=0x07
 	0x00, 0x91, 0xE3, 0x72, 0x07, 0x96, 0xE4, 0x75, 0x0E, 0x9F, 0xED, 0x7C, 0x09, 0x98, 0xEA, 0x7B,
 	0x1C, 0x8D, 0xFF, 0x6E, 0x1B, 0x8A, 0xF8, 0x69, 0x12, 0x83, 0xF1, 0x60, 0x15, 0x84, 0xF6, 0x67,
 	0x38, 0xA9, 0xDB, 0x4A, 0x3F, 0xAE, 0xDC, 0x4D, 0x36, 0xA7, 0xD5, 0x44, 0x31, 0xA0, 0xD2, 0x43,
@@ -142,39 +142,33 @@ const unsigned char crctable[256] = { //reversed, 8-bit, poly=0x07
 };
 /*================= CRC TABLE=========================*/
 
+/* CMUX Channel */
 typedef struct cmux_channel {   
 	GSList *co; 
 	TcoreHal *hal;
 	
 	MuxChannelState state; 
-	CMUX_Channels ChannelId;
-	int  FrameType;
-	unsigned char  ExtBit;
-	unsigned char  CRBit;
-	unsigned char  pollFinalBit;
-
-#if 0
-	int  Len;
-
-	/*Information field*/
-	unsigned char *InfoField;
-
-#endif
-
+	CMUX_Channels channel_id;
+	int  frame_type;
+	unsigned char  ext_bit;
+	unsigned char  cr_bit;
+	unsigned char  poll_final_bit;
 } CHANNEL;
 
+/* CMUX callback prototype */
 typedef gboolean (*mux_cb_func)(CHANNEL *channel_ptr);
 
+/* CMUX structure */
 typedef struct cmux {
 	MuxState state;
 
-	CHANNEL *channelInfo[MAX_CHANNEL_SUPPORTED];
-	int isWaiting;
-	int pMsgLen;
-	int curMBufLen;
+	CHANNEL *channel_info[MAX_CMUX_CHANNELS_SUPPORTED];
+	int is_waiting;
+	int msg_len;
+	int cur_main_buf_len;
 
 	/* Plugin */
-	TcorePlugin *p;
+	TcorePlugin *plugin;
 	
 	/* Physical HAL */
 	TcoreHal *phy_hal;
@@ -185,32 +179,27 @@ typedef struct cmux {
 	mux_cb_func  cb_func;
 
 	/* Resolve Crash issue*/
-	int  Len;
+	int  info_field_len;
 	/*Information field*/
-	unsigned char *InfoField;
+	unsigned char *info_field;
 
-	unsigned char *muxTempBuffer;
-	unsigned char *muxMainBuffer;
+	unsigned char *mux_temp_buffer;
+	unsigned char *mux_main_buffer;
 } MUX;
 
 /* Global pointer MUX Object pointer */
-MUX *MuxObjPtr = NULL;
-
-/* Global buffers for CMUX processing */
-//unsigned char Mux_buffer[MAX_CMUX_BUFFER_SIZE];
-//unsigned char muxTempBuffer[MAX_CMUX_BUFFER_SIZE];
-//unsigned char muxMainBuffer[MAX_CMUX_BUFFER_SIZE];
+MUX *g_mux_obj_ptr = NULL;
 
 /* CMUX mode of operation */
-int MUX_MODE = 0;	/* BASIC mode */
+int g_mux_mode = 0;	/* BASIC mode */
 
 struct cmux_channel_object {
 	char *channel_id_name;
-	char *Cobject_name[CMUX_MAX_CORE_OBJECTS];
+	char *core_object_name[MAX_CMUX_CORE_OBJECTS];
 };
 
 /* Core Object names need to be verified, define a MACRO globally */
-struct cmux_channel_object cmux_channel_Cobject[] = {
+struct cmux_channel_object cmux_channel_core_object[] = {
 	{"channel_0",	{"control", 		NULL, 		NULL}},   
 	{"channel_1",	{"call",			NULL, 		NULL}},
 	{"channel_2",	{"sim",			NULL, 		NULL}},
@@ -223,35 +212,36 @@ struct cmux_channel_object cmux_channel_Cobject[] = {
 
 /* All the local functions declared below */
 static unsigned char calc_crc(unsigned char *header , int length);
-static int rcv_crc_check(unsigned char *data , unsigned char len,unsigned char RcvFCS);
+static int rcv_crc_check(unsigned char *data, unsigned char len,unsigned char rcv_FCS);
 
 MUX *tcore_cmux_new(void);
-static void tcore_cmux_free();
+static void tcore_cmux_free(void);
 
 void tcore_cmux_link_core_object_hal(CMUX_Channels channel_id, TcorePlugin *plugin);
 static gboolean tcore_cmux_recv_mux_data(CHANNEL* channel_ptr);
 static void tcore_cmux_process_rcv_frame( unsigned char *data, int len);
-static void tcore_cmux_process_channel_data(CHANNEL *ChannelInfoPtr);
-static void tcore_cmux_control_channel_handle();
-static void tcore_cmux_flush_channel_data();
+static void tcore_cmux_process_channel_data(CHANNEL *channel_info_ptr);
+static void tcore_cmux_control_channel_handle(void);
+static void tcore_cmux_flush_channel_data(void);
 
-void tcore_cmux_channel_init(CMUX_Channels channel_id);
-int tcore_cmux_close_channel(int channelID);
+static void tcore_cmux_channel_init(CMUX_Channels channel_id);
+static void tcore_cmux_close_channel(int channel_id);
 	
 static unsigned char *tcore_encode_cmux_frame(unsigned char *data,
 													int length,
 													int channel_id,
-													int FrameType,
-													unsigned char EABit,
-													unsigned char CRBit,
-													unsigned char PFBit,
+													int frame_type,
+													unsigned char EA_bit,
+													unsigned char CR_bit,
+													unsigned char PF_bit,
 													int *out_data_len);
+
+static TReturn tcore_cmux_send_data(int data_len, unsigned char *data);
 
 static TReturn tcore_cmux_hal_power(TcoreHal *h, gboolean flag)
 {
-	TcorePlugin *p = 0;
-	struct custom_data *user_data = 0;
-//	gboolean ret = 0;
+	TcorePlugin *p = NULL;
+	struct custom_data *user_data = NULL;
 	dbg("Entry");
 
 	p = tcore_hal_ref_plugin(h);
@@ -276,7 +266,7 @@ static TReturn tcore_cmux_hal_send(TcoreHal *h, unsigned int data_len, void *dat
 {
 	unsigned char *send_data= NULL;
 	char *channel_name = NULL;
-	int channel_id = MAX_CHANNEL_SUPPORTED;
+	int channel_id = MAX_CMUX_CHANNELS_SUPPORTED;
 	int len = 0;
 	int i = 0;
 
@@ -293,9 +283,9 @@ static TReturn tcore_cmux_hal_send(TcoreHal *h, unsigned int data_len, void *dat
 	channel_name = tcore_hal_get_name(h);
 	dbg("HAL name: %s", channel_name)
 	if(channel_name) {
-		while(i < MAX_CHANNEL_SUPPORTED) {
-			dbg("HAL name of Channels: %s",  cmux_channel_Cobject[i].channel_id_name);
-			if (0 == strcmp((char *) cmux_channel_Cobject[i].channel_id_name, (char *)channel_name)) {
+		while(i < MAX_CMUX_CHANNELS_SUPPORTED) {
+			dbg("HAL name of Channels: %s",  cmux_channel_core_object[i].channel_id_name);
+			if (0 == strcmp((char *)cmux_channel_core_object[i].channel_id_name, (char *)channel_name)) {
 				channel_id = i;
 				dbg("Found Channel ID: %d", channel_id);
 
@@ -311,21 +301,21 @@ static TReturn tcore_cmux_hal_send(TcoreHal *h, unsigned int data_len, void *dat
 		return TCORE_RETURN_FAILURE;
 	}
 
-	if(channel_id > MAX_CHANNEL_SUPPORTED) {
+	if(channel_id > MAX_CMUX_CHANNELS_SUPPORTED) {
 		err("Failed to find Channel ID");
 		return TCORE_RETURN_FAILURE;
 	}
 	
 	/* Muxing operation and Frame creation */
 	/* Encoding frame */
-	send_data = tcore_encode_cmux_frame(data, data_len, channel_id, UIH, 1, 1, 0, &len);
-	if(NULL == send_data) {
+	send_data = tcore_encode_cmux_frame(data, data_len, channel_id, CMUX_COMMAND_UIH, 1, 1, 0, &len);
+	if(0 == len) {
 		err("Failed to encode");
 		return TCORE_RETURN_FAILURE;
 	}
 	
-	/* Directly send to Physical HAL */
-	ret = tcore_hal_send_data(MuxObjPtr->phy_hal, len, send_data);
+	/* Send CMUX data */
+	ret = tcore_cmux_send_data(len, send_data);
 	
 	dbg("Exit");
 	return TCORE_RETURN_SUCCESS;
@@ -338,6 +328,23 @@ static struct tcore_hal_operations mux_hops =
 	.send = tcore_cmux_hal_send,
 };
 
+static TReturn tcore_cmux_send_data(int data_len, unsigned char *data)
+{
+	TReturn ret = TCORE_RETURN_SUCCESS;
+	dbg("Entry");
+
+	/* Directly send to Physical HAL */
+	ret = tcore_hal_send_data(g_mux_obj_ptr->phy_hal, data_len, (void *)data);
+	if(TCORE_RETURN_SUCCESS != ret) {
+		err("Failed to send CMUX data");
+	}
+	else{
+		dbg("Successfully sent CMUX data");
+	}
+
+	dbg("Exit");
+	return ret;
+}
 static gboolean tcore_cmux_recv_mux_data(CHANNEL *channel_ptr)
 {
 	TcoreHal *hal = NULL;
@@ -347,7 +354,7 @@ static gboolean tcore_cmux_recv_mux_data(CHANNEL *channel_ptr)
 	hal = channel_ptr->hal;
 	
 	dbg("Dispatching to logical HAL - hal: %x", hal);
-	tcore_hal_dispatch_response_data(hal, 0, MuxObjPtr->Len, MuxObjPtr->InfoField);
+	tcore_hal_dispatch_response_data(hal, 0, g_mux_obj_ptr->info_field_len, g_mux_obj_ptr->info_field);
 
 	dbg("Exit");
 	return TRUE;
@@ -364,21 +371,21 @@ void tcore_cmux_link_core_object_hal(CMUX_Channels channel_id, TcorePlugin *plug
 		dbg("Normal channel [%d]", channel_id);
 		
 		/* Creating Logical HAL for Core Object - Mode - 'AT mode' */
-		hal = tcore_hal_new(plugin, cmux_channel_Cobject[channel_id].channel_id_name, &mux_hops, TCORE_HAL_MODE_AT);
+		hal = tcore_hal_new(plugin, cmux_channel_core_object[channel_id].channel_id_name, &mux_hops, TCORE_HAL_MODE_AT);
 		dbg("hal: %p", hal);
 		
 		/* Update Logical HAL of CMUX Channel */
-		MuxObjPtr->channelInfo[channel_id]->hal = hal;
+		g_mux_obj_ptr->channel_info[channel_id]->hal = hal;
 		
 		index = 0;
-		while (NULL != cmux_channel_Cobject[channel_id].Cobject_name[index]) {
+		while (NULL != cmux_channel_core_object[channel_id].core_object_name[index]) {
 			/* Retrieving Core Object */
-			dbg("Core Object: '%s'", cmux_channel_Cobject[channel_id].Cobject_name[index]);
-			co = tcore_plugin_ref_core_object(plugin, cmux_channel_Cobject[channel_id].Cobject_name[index]);
+			dbg("Core Object: '%s'", cmux_channel_core_object[channel_id].core_object_name[index]);
+			co = tcore_plugin_ref_core_object(plugin, cmux_channel_core_object[channel_id].core_object_name[index]);
 			dbg("co: %p", co);
 
-			if (0 == strcmp((const char *)cmux_channel_Cobject[channel_id].Cobject_name[index], "modem")) {
-				MuxObjPtr->modem_co = co;
+			if (0 == strcmp((const char *)cmux_channel_core_object[channel_id].core_object_name[index], "modem")) {
+				g_mux_obj_ptr->modem_co = co;
 				dbg("'modem' Core object reference is stored");
 			}
 
@@ -386,8 +393,9 @@ void tcore_cmux_link_core_object_hal(CMUX_Channels channel_id, TcorePlugin *plug
 			tcore_object_set_hal(co, hal);
 
 			/* Update Core Object list of CMUX Channel */
-			MuxObjPtr->channelInfo[channel_id]->co = g_slist_append(MuxObjPtr->channelInfo[channel_id]->co, co);
+			g_mux_obj_ptr->channel_info[channel_id]->co = g_slist_append(g_mux_obj_ptr->channel_info[channel_id]->co, co);
 
+			/* Next Core Object of the channel */
 			index++;
 		};
 	}
@@ -396,11 +404,11 @@ void tcore_cmux_link_core_object_hal(CMUX_Channels channel_id, TcorePlugin *plug
 		dbg("Control channel");
 		
 		/* Creating Logical HAL for Core Object - Mode - 'AT mode' */
-		hal = tcore_hal_new(plugin, cmux_channel_Cobject[channel_id].channel_id_name, &mux_hops, TCORE_HAL_MODE_AT);
+		hal = tcore_hal_new(plugin, cmux_channel_core_object[channel_id].channel_id_name, &mux_hops, TCORE_HAL_MODE_AT);
 		dbg("hal: %p", hal);
 		
 		/* Update Logical HAL of CMUX Channel */
-		MuxObjPtr->channelInfo[channel_id]->hal = hal;
+		g_mux_obj_ptr->channel_info[channel_id]->hal = hal;
 	}
 
 	/* Set Logical HAL Power State to TRUE */
@@ -411,121 +419,115 @@ void tcore_cmux_link_core_object_hal(CMUX_Channels channel_id, TcorePlugin *plug
 	return;
 }
 
-/************************************************************
-
-Here we initialize the MUX
-
-************************************************************/
 MUX *tcore_cmux_new(void)
 {
-	MUX *p = NULL;
+	MUX *mux = NULL;
 	int i = 0;
 	dbg("Entry");
 	
-	p = (MUX*)calloc(sizeof(MUX), 1);
-	if (!p) {
+	/* Allocating memory for mux */
+	mux = (MUX*)calloc(sizeof(MUX), 1);
+	if (!mux) {
 		err("Failed to allocate memory");
 		return NULL;
 	}
 
-	p->InfoField = (unsigned char *)calloc(MAX_CMUX_BUFFER_SIZE, 1);	
-	if (!p->InfoField) {
+	/* Allocating memory for info_field */
+	mux->info_field = (unsigned char *)calloc(MAX_CMUX_BUFFER_SIZE, 1);	
+	if (!mux->info_field) {
 		err("Failed to allocate memory for info field");
 		goto ERROR;
 	}
 	
-	p->muxTempBuffer = (unsigned char *)calloc(MAX_CMUX_BUFFER_SIZE, 1);	
-	if (!p->InfoField) {
+	/* Allocating memory for mux_temp_buffer */
+	mux->mux_temp_buffer = (unsigned char *)calloc(MAX_CMUX_BUFFER_SIZE, 1);	
+	if (!mux->mux_temp_buffer) {
 		err("Failed to allocate memory for info field");
 		goto ERROR;
 	}
 	
-	p->muxMainBuffer = (unsigned char *)calloc(MAX_CMUX_BUFFER_SIZE, 1);
-	if (!p->InfoField) {
+	/* Allocating memory for mux_main_buffer */
+	mux->mux_main_buffer = (unsigned char *)calloc(MAX_CMUX_BUFFER_SIZE, 1);
+	if (!mux->mux_main_buffer) {
 		err("Failedto allocate memory for info field");
 		goto ERROR;
 	}
 	
-	p->state = MUX_NOT_INITIALIZED;
+	/* MUX State initialize to MUX_NOT_INITIALIZED */
+	mux->state = MUX_NOT_INITIALIZED;
 
-	for(i = 0 ; i < MAX_CHANNEL_SUPPORTED ; i++) {
-		p->channelInfo[i] = (CHANNEL*)calloc(sizeof(CHANNEL) , 1);
+	/* Allocating memory for channel_info */
+	for(i = 0 ; i < MAX_CMUX_CHANNELS_SUPPORTED ; i++) {
+		mux->channel_info[i] = (CHANNEL*)calloc(sizeof(CHANNEL), 1);
 		/* Check for Memory allocation failure */
-		if(!p->channelInfo[i]) {
-			err("Failed to allocate memory for info field");
+		if(!mux->channel_info[i]) {
+			err("Failed to allocate memory for channel_info of channel: %d", i);
 			goto ERROR;
 		}
 	}
 
 	dbg("Exit");
-	return p;
+	return mux;
 
 ERROR:
 	/* Free allocated memory */
-	if(p) {
-		if(p->InfoField) {
-			free(p->InfoField);
+	if(mux) {
+		if(mux->info_field) {
+			free(mux->info_field);
 		}
 		
-		if(p->muxTempBuffer) {
-			free(p->muxTempBuffer);
+		if(mux->mux_temp_buffer) {
+			free(mux->mux_temp_buffer);
 		}
 		
-		if(p->muxMainBuffer) {
-			free(p->muxMainBuffer);
+		if(mux->mux_main_buffer) {
+			free(mux->mux_main_buffer);
 		}
 
-		for(i = 0; i < MAX_CHANNEL_SUPPORTED ; i++) {
-			if(p->channelInfo[i]) {
-				free(p->channelInfo[i]);
+		for(i = 0; i < MAX_CMUX_CHANNELS_SUPPORTED ; i++) {
+			if(mux->channel_info[i]) {
+				free(mux->channel_info[i]);
 			}
 		}
 
-		free(p);
+		free(mux);
 	}
 
 	err("Exit");
 	return NULL;
 }
 
-
-
-/************************************************************
-This function is used while encoding .
-There is seperate function for decoding CRC
-Frame Checking Sequence Field
-************************************************************/
 static unsigned char calc_crc (unsigned char *header , int length)
 {
 	unsigned char FCS=0xFF;	/*Init*/
+	unsigned char crc = 0x00;
+	dbg("Entry");
 	
-	/*len is the number of bytes in the message, p points to message*/
+	/* 'length' is the number of bytes in the message, 'header' points to message */
 	while (length--) {
-		FCS = crctable[FCS ^ *header++];
+		FCS = crc_table[FCS ^ *header++];
 	}
 	
 	/*Ones complement*/
-	return (0xFF-FCS);
+	crc = (0xFF-FCS);
+
+	dbg("Exit - crc: 0x%02x", crc)
+	return crc;
 }
 
-/************************************************************
-Function name : tcore_encode_cmux_frame
-
-
-************************************************************/
 static unsigned char *tcore_encode_cmux_frame(unsigned char *data,
 												int length,
 												int channel_id,
-												int FrameType,
-												unsigned char EABit,
-												unsigned char CRBit,
-												unsigned char PFBit,
+												int frame_type,
+												unsigned char EA_bit,
+												unsigned char CR_bit,
+												unsigned char PF_bit,
 												int *out_data_len)
 {
-	int tLength=0, frameLen=0;
+	int frame_length = 0;
+	int total_frame_length = 0;
 	int crc_len =0;
 	dbg("Entry");
-
 
 	/* Flush channel data */
 	tcore_cmux_flush_channel_data();
@@ -534,55 +536,56 @@ static unsigned char *tcore_encode_cmux_frame(unsigned char *data,
 		err("Length - %d  exceeds the limit", length);
 		return NULL;
 		}
-	//flag Octet
-	MuxObjPtr->InfoField[tLength++] = (char)0xF9;
 
-	if(0x00 == MUX_MODE) {		/* BASIC */
+	/* Flag Octet */
+	g_mux_obj_ptr->info_field[frame_length++] = (char)0xF9;
+
+	/* Mode of Operation */
+	if(0x00 == g_mux_mode) {				/* BASIC */
 		/* EA: Extension Bit
 		* C/R: Command Response
 		*/
-		MuxObjPtr->InfoField[tLength] = MuxObjPtr->InfoField[tLength] | ((EABit & 0x01) | ((CRBit << 1) & 0x02)); 
+		g_mux_obj_ptr->info_field[frame_length] = g_mux_obj_ptr->info_field[frame_length] | ((EA_bit & 0x01) | ((CR_bit << 1) & 0x02)); 
 
 		/* DLCI: Data Link Connection Identifier */
 		/* Check if the channel is within range */
-		if(channel_id < MAX_CHANNEL_SUPPORTED && channel_id >=0) {
+		if(channel_id < MAX_CMUX_CHANNELS_SUPPORTED && channel_id >=0) {
 			dbg("Channel ID: %d", channel_id);
-			MuxObjPtr->InfoField[tLength] = MuxObjPtr->InfoField[tLength]|((unsigned char) channel_id << 2);
+			g_mux_obj_ptr->info_field[frame_length] = g_mux_obj_ptr->info_field[frame_length]|((unsigned char) channel_id << 2);
 		}
 		else {
 			err("Channel is out of range[0-8]");
 			return NULL;
 		}
-		tLength++;
+		frame_length++;
 
 		/* Control Field
 		  * The content of the control field defines the type of frame.
-		  * ***************************************************************
+		  * ****************************************************************
 		  * Frame Type										0 1 2 3  4   5 6 7
 		  * SABM (Set Asynchronous Balanced Mode)				1 1 1 1 P/F 1 0 0
 		  * UA (Unnumbered Acknowledgement)					1 1 0 0 P/F 1 1 0
 		  * DM (Disconnected Mode)								1 1 1 1 P/F 0 0 0
 		  * DISC (Disconnect)									1 1 0 0 P/F 0 1 0
 		  * UIH (Unnumbered Information with Header check)			1 1 1 1 P/F 1 1 1
-		  ****************************************************************/
-		if(PFBit) {
-			MuxObjPtr->InfoField[tLength++] = FrameType |0x10;
+		  *****************************************************************/
+		if(PF_bit) {
+			g_mux_obj_ptr->info_field[frame_length++] = frame_type |0x10;
 		}
 		else {
-			MuxObjPtr->InfoField[tLength++] = FrameType;
+			g_mux_obj_ptr->info_field[frame_length++] = frame_type;
 		}
 
 		/* 5.2.1.5 Length Indicator */
 		if (length < 128) {
-			//length =(char)length <<1|0x01;
-			MuxObjPtr->InfoField[tLength++] =(char)length <<1|0x01;
+			g_mux_obj_ptr->info_field[frame_length++] = (char)length <<1|0x01;
 			
 			/* CRC calculatable length */
 			crc_len = 3;
 		}
 		else {
-			MuxObjPtr->InfoField[tLength++] = (char)(length << 1);  //Need to change
-			MuxObjPtr->InfoField[tLength++] = (char)(length >> 7);  //Need to change 
+			g_mux_obj_ptr->info_field[frame_length++] = (char)(length << 1);  //Need to change
+			g_mux_obj_ptr->info_field[frame_length++] = (char)(length >> 7);  //Need to change 
 
 			/* CRC calculatable length */
 			crc_len = 4;
@@ -596,113 +599,113 @@ static unsigned char *tcore_encode_cmux_frame(unsigned char *data,
 		/* 5.2.1.4 Information Field*/
 		if(length >0) {
 			dbg("MEMCPY :length= %d", length);
-			memcpy((MuxObjPtr->InfoField + tLength),data, length);
+			memcpy((g_mux_obj_ptr->info_field + frame_length),data, length);
 			dbg("MEMCPY :DONE");
-			tLength += length;
+			frame_length += length;
 		}
 		else {
 			dbg("info field length is zero");
 		}
 
 		/*5.2.1.6 Frame Checking Sequence Field (FCS)*/
-		MuxObjPtr->InfoField[tLength++] = calc_crc(MuxObjPtr->InfoField+1, crc_len);
+		g_mux_obj_ptr->info_field[frame_length++] = calc_crc(g_mux_obj_ptr->info_field+1, crc_len);
 
 		/*Flag Octet*/
-		MuxObjPtr->InfoField[tLength++] = 0xF9;
+		g_mux_obj_ptr->info_field[frame_length++] = 0xF9;
 
-		frameLen = tLength;
+		total_frame_length = frame_length;
 	}
-	else if (0x01 == MUX_MODE) {			/* TBD MUX_MODE_ADVANCE */
+	else if (0x01 == g_mux_mode) {			/* TBD MUX_MODE_ADVANCE */
 		dbg("For PHASE 2 !!");
 	}
 
-	*out_data_len = frameLen;
+	*out_data_len = total_frame_length;
 	dbg("*out_data_len: %d", *out_data_len);
 
-	dbg("Exit frameLen: %d", frameLen);
-	return MuxObjPtr->InfoField;
+	dbg("Exit total_frame_length: %d", total_frame_length);
+	return g_mux_obj_ptr->info_field;
 }
 
-
-static int rcv_crc_check(unsigned char *data , unsigned char len,unsigned char RcvFCS)
+static int rcv_crc_check(unsigned char *data, unsigned char len, unsigned char rcv_FCS)
 {
 	unsigned char FCS = 0xFF;
+	dbg("Entry");
 
-	/* 'len' is the number of bytes in the message, 'p' points to message */
+	/* 'len' is the number of bytes in the message, 'data' points to message */
 	while (len--) {
-		//input =(char) *data++;
-		FCS = crctable[FCS ^ *data++];
+		FCS = crc_table[FCS ^ *data++];
 	}
 	
 	/*Ones complement*/
-	FCS = crctable[FCS ^ RcvFCS];
+	FCS = crc_table[FCS ^ rcv_FCS];
 	
 	/* 0xCF is the reversed order of 11110011 */
 	if (0xCF == FCS) {		/* FCS is OK */
+		dbg("Exit");
 		return 1;
 	}
 	else {				/* FCS is NOT OK */
+		err("Exit");
 		return 0;
 	}
 }
 
-/************************************************************
-Function name : tcore_cmux_flush_channel_data
-
-
-************************************************************/
-static void tcore_cmux_flush_channel_data()
+static void tcore_cmux_flush_channel_data(void)
 {
 	dbg("Entry");
 
-	MuxObjPtr->Len =0x0;
-	memset(MuxObjPtr->InfoField, 0x0, MAX_CMUX_BUFFER_SIZE);
+	g_mux_obj_ptr->info_field_len =0x0;
+	memset(g_mux_obj_ptr->info_field, 0x0, MAX_CMUX_BUFFER_SIZE);
 	
 	dbg("Exit");
 	return;
 }
 
-/************************************************************
-Function name : mux_control_chnl_handle
-
-
-************************************************************/
-static void tcore_cmux_control_channel_handle()
+static void tcore_cmux_control_channel_handle(void)
 {
-	unsigned char Cmdtype;
-	int MsgLen =0;
-	unsigned char *PtrMsgStart =NULL;
+	unsigned char cmd_type;
+	int msg_len = 0;
+	unsigned char *msg_start_ptr =NULL;
 	dbg("Entry");
 	
 	/* 5.4.6.1 Message format
 	  * All messages sent between the multiplexers conform to the following type, length, value format:
 	  * Type Length Value 1 Value2  \85
 	  */
-	if (MuxObjPtr->Len > 0) {   
-		PtrMsgStart = MuxObjPtr->InfoField ;
-		Cmdtype = MuxObjPtr->InfoField[0];
+	if (g_mux_obj_ptr->info_field_len > 0) {   
+		msg_start_ptr = g_mux_obj_ptr->info_field;
+		cmd_type = g_mux_obj_ptr->info_field[0];
+		
 		/* The EA bit is an extension bit. The EA bit is set to 1 in the last octet of the sequence; 
 		  * in other octets EA is set to 0.
 		  * 
 		  * Search for the last octet
 		  */
-		while( (*PtrMsgStart++ & 0x01)) {	//TBD
-			MsgLen ++;
+		while( (*msg_start_ptr++ & 0x01)) {	//TBD
+			msg_len ++;
 		}
 		
-		if((Cmdtype & 0x02) == 0x02) {	//This is a command Request
-			//Modem Status Command
-			if(Cmdtype == MSC ) 	{     
-				dbg("Modem Status Command");
-			}
-			else if(Cmdtype == CLD) {	//Modem Status Command
-				tcore_cmux_close();
-			}
-#if 0		/* We will be supporting the commands in Phase 2 */
-			else if(Cmdtype == PN) //Modem Status Command
+		if((cmd_type & 0x02) == 0x02) {	//This is a command Request
+			switch(cmd_type)
 			{
+				case CMUX_COMMAND_MSC:
+				{
+				dbg("Modem Status Command");
+					break;
 			}
-#endif		/* We will be supporting the commands in Phase 2 */
+				case CMUX_COMMAND_CLD:
+				{
+					dbg("Multiplexer close down");
+				tcore_cmux_close();
+					break;
+			}
+				default:
+			{
+					/* We will be supporting these commands in Phase 2 */
+					dbg("Default");
+					break;
+			}
+			}
 		}
 	}
 	else {
@@ -713,66 +716,57 @@ static void tcore_cmux_control_channel_handle()
 	return;
 }
 
-/************************************************************
-Function name : tcore_cmux_process_channel_data
-
-Process the channel data
-************************************************************/
-static void tcore_cmux_process_channel_data(CHANNEL *ChannelInfoPtr)
+static void tcore_cmux_process_channel_data(CHANNEL *channel_info_ptr)
 {
-	int frameType;
-	int ChannelId;
+	int frame_type;
+	int channel_id;
 	int len;
-	int ret;
 	unsigned char * send_data=NULL;
 	static int count = 0;
+
+	int ret;
 	dbg("Entry");
 
-	ChannelId = ChannelInfoPtr->ChannelId;
-	dbg("Channel ID: %d", ChannelId);
+	channel_id = channel_info_ptr->channel_id;
+	dbg("Channel ID: %d", channel_id);
 	
-	ChannelInfoPtr = MuxObjPtr->channelInfo[ChannelId];
+	frame_type = channel_info_ptr->frame_type & 0xEF;
+	dbg("frame_type: 0x%x", frame_type);
 
-	frameType = ChannelInfoPtr->FrameType & 0xEF;
-	dbg("frameType: 0x%x", frameType);
-	
-	switch(frameType)
+	switch(frame_type)
 	{
-		case UI:
-		case UIH:
+		case CMUX_COMMAND_UI:
+		case CMUX_COMMAND_UIH:
 		{
-			dbg("Received UIH Frame");
-			if(0 == ChannelId) {
-				/*this is control info*/
+			dbg("Received UI/UIH Frame");
+			if(0 == channel_id) {			/* This is control info */
 				dbg("Control information");
 				tcore_cmux_control_channel_handle();
 			}
 			else {
+				dbg("Normal information");
 				//put in the logical HAL queue
 				//this goes to the Cobject
 
-				//ChannelInfoPtr->Len = ChannelInfoPtr->Len;
-				//memcpy(ChannelInfoPtr->InfoField, ChannelInfoPtr->InfoField, ChannelInfoPtr->Len);
-				
-				tcore_cmux_recv_mux_data(ChannelInfoPtr);
+				tcore_cmux_recv_mux_data(channel_info_ptr);
 			}
 			break;
 		}
-		case UA:
+		case CMUX_COMMAND_UA:
 		{
 			dbg("Received UA Frame");
-			dbg("ChannelInfoPtr->state: %d", ChannelInfoPtr->state);
-			if(MUX_CHANNEL_SABM_SEND_WAITING_FOR_UA == ChannelInfoPtr->state) {
-				ChannelInfoPtr->state = MUX_CHANNEL_ESTABLISHED;
+			dbg("channel_info_ptr->state: %d", channel_info_ptr->state);
+			if(MUX_CHANNEL_SABM_SEND_WAITING_FOR_UA == channel_info_ptr->state) {
+				channel_info_ptr->state = MUX_CHANNEL_ESTABLISHED;
 
 				count++;
 				dbg("Count: %d", count);
-				if(MAX_CHANNEL_SUPPORTED == count) {
+				if(MAX_CMUX_CHANNELS_SUPPORTED == count) {
 					/* Indicate to CoreObject */
 					CoreObject *co = NULL;
 
 					/* 'modem' Core Object */
-					co = MuxObjPtr->modem_co;
+					co = g_mux_obj_ptr->modem_co;
 					if(NULL == co) {
 						err("'modem' Core object is not present");
 						return;
@@ -782,14 +776,16 @@ static void tcore_cmux_process_channel_data(CHANNEL *ChannelInfoPtr)
 					dbg("Emit Core object callback");
 					tcore_object_emit_callback(co, "CMUX-UP", NULL);
 					dbg("Emitted Core object callback");
+
+					/* Reset 'count' */
 					count = 0;
 				}
 			}
-			else if(MUX_CHANNEL_DISC_SEND_WAITING_FOR_UA == ChannelInfoPtr->state) {
-				ChannelInfoPtr->state = MUX_CHANNEL_CLOSED;
+			else if(MUX_CHANNEL_DISC_SEND_WAITING_FOR_UA == channel_info_ptr->state) {
+				channel_info_ptr->state = MUX_CHANNEL_CLOSED;
 
-				if(0 == ChannelId) {
-					MuxObjPtr->state = MUX_CLOSED;
+				if(0 == channel_id) {
+					g_mux_obj_ptr->state = MUX_CLOSED;
 					tcore_cmux_close();
 				}
 			}
@@ -798,143 +794,169 @@ static void tcore_cmux_process_channel_data(CHANNEL *ChannelInfoPtr)
 			}
 			break;
 		}
-		case DM:
+		case CMUX_COMMAND_DM:
 		{
 			/* 5.4.1 DLC Establishment : If the responding station is not ready or unwilling
 			  * to establish the particular DLC it will reply with a DM frame with the
 			  * F-bit set to 1.
 			  */
 			dbg("Received DM Frame");
-			if((MUX_CHANNEL_ESTABLISHED == ChannelInfoPtr->state)
-				|| (MUX_CHANNEL_SABM_SEND_WAITING_FOR_UA == ChannelInfoPtr->state)) {
-					ChannelInfoPtr->state = MUX_CHANNEL_CLOSED;
+			if((MUX_CHANNEL_ESTABLISHED == channel_info_ptr->state)
+				|| (MUX_CHANNEL_SABM_SEND_WAITING_FOR_UA == channel_info_ptr->state)) {
+				/* Channel State set to Close */
+				channel_info_ptr->state = MUX_CHANNEL_CLOSED;
 			}
+
+			/* Flush the Channel data */
 			tcore_cmux_flush_channel_data();
 
 			break;
 		}
-		case DISC:
+		case CMUX_COMMAND_DISC:
 		{
 			dbg("Received DISC Frame");
-			if(0 == ChannelInfoPtr->pollFinalBit) {
-				/* In the case where a SABM or DISC command with the P bit set to 0 is received then 
-				  * the received frame shall be discarded.
+			if(0 == channel_info_ptr->poll_final_bit) {
+				/* In the case where a CMUX_COMMAND_SABM or CMUX_COMMAND_DISC command with
+				  * the P bit set to 0 is received then the received frame shall be discarded.
 				  */
+
+				/* Flush the Channel data */
 				tcore_cmux_flush_channel_data();
 			}
 			else {
-					if(MUX_CHANNEL_CLOSED == ChannelInfoPtr->state) {
-					//If a DISC command is received while in disconnected mode a DM response should be sent
+				if(MUX_CHANNEL_CLOSED == channel_info_ptr->state) {
+					/* If a CMUX_COMMAND_DISC command is received while in disconnected mode
+					  * a CMUX_COMMAND_DM response should be sent
+					  */
+
 					/* Encoding frame */
-					send_data = tcore_encode_cmux_frame(NULL, 0, ChannelId, DM, 1, 1, 1, &len);
-			
+					send_data = tcore_encode_cmux_frame(NULL, 0, channel_id, CMUX_COMMAND_DM, 1, 1, 1, &len);
 					}
 					else {   //send Unnumbered Acknowledgement
-					send_data =	tcore_encode_cmux_frame(NULL,0, ChannelId,  UA, 1, 1, 1,&len);
+					send_data = tcore_encode_cmux_frame(NULL, 0, channel_id, CMUX_COMMAND_UA, 1, 1, 1, &len);
 					}
 
 					if(0 == len) {
 					err("Failed to encode");
 					return;
 						}
-					/* Directly send to Physical HAL */
-					ret = tcore_hal_send_data(MuxObjPtr->phy_hal,len, send_data);
 					
-					/*5.3.4 Disconnect (DISC) command: DISC command sent at DLCI 0 have the same 
-					meaning as the Multiplexer Close Down command */
+				/* Send CMUX data */
+				ret = tcore_cmux_send_data(len, send_data);
+				
+				/* Flush the Channel data */
 					tcore_cmux_flush_channel_data();        
-					if(0 == ChannelId) {
-						MuxObjPtr->state =MUX_CLOSED;
+
+				/* 5.3.4 Disconnect (DISC) command: CMUX_COMMAND_DISC command sent at DLCI 0
+				  * have the same meaning as the Multiplexer Close Down command
+				  */
+				if(0 == channel_id) {
+					g_mux_obj_ptr->state = MUX_CLOSED;
+
+					/* Close CMUX */
 						tcore_cmux_close();
 					}
 			}
 			break;
 		}	
-		case SABM:
+		case CMUX_COMMAND_SABM:
 		{
 			dbg("Received SABM Frame");
-			if(0 == ChannelInfoPtr->pollFinalBit) {
-				/*In the case where a SABM or DISC command with the P bit set to 0 is received then 
-				the received frame shall be discarded. */
-				//flush_rcv_data();
+			if(0 == channel_info_ptr->poll_final_bit) {
+				/* In the case where a CMUX_COMMAND_SABM or CMUX_COMMAND_DISC command with
+				  * the P bit set to 0 is received then the received frame shall be discarded.
+				  */
+
+				/* Flush the Channel data */
 				tcore_cmux_flush_channel_data();
 			}
 			else {
-				send_data = tcore_encode_cmux_frame(NULL,0, ChannelId,  UA, 1, 1, 1,&len); 
-				/* Directly send to Physical HAL */
-					ret = tcore_hal_send_data(MuxObjPtr->phy_hal, len,send_data);
+				/* Encoding frame */
+				send_data = tcore_encode_cmux_frame(NULL, 0, channel_id,  CMUX_COMMAND_UA, 1, 1, 1, &len); 
+				if(0 != len) {
+					/* Send CMUX data */
+					ret = tcore_cmux_send_data(len,send_data);
+				}
+				else {
+					err("Failed to encode");
+				}
 
-				if(ChannelInfoPtr->state != MUX_CHANNEL_ESTABLISHED) {
-					ChannelInfoPtr->state = MUX_CHANNEL_ESTABLISHED;
+				if(channel_info_ptr->state != MUX_CHANNEL_ESTABLISHED) {
+					/* Channel State set to Established */
+					channel_info_ptr->state = MUX_CHANNEL_ESTABLISHED;
 				}
 			} 
 			break;
 		}
 	}
 
+	dbg("Exit");
 	return ;
 }
 
-/**********************************************
-
-Function name :tcore_cmux_rcv_from_hal
-
-This should be a callback from Physical HAL.
-DATA Received from CP side.
-
-***********************************************/
 static void tcore_cmux_process_rcv_frame( unsigned char *data, int len)
 {
-	unsigned char *PtrFrameProcess =data;
-	unsigned char *PtrBufStart = data;
+	unsigned char *frame_process_ptr = data;
+	unsigned char *buf_start_ptr = data;
 
 	CHANNEL *ch =NULL;
-	unsigned char ChannelId;
-	int hlen;
+	unsigned char channel_id;
+	int header_length;
 	dbg("Entry");
 
 	tcore_cmux_flush_channel_data();
 
+#if 1
+	//testing
+	dbg("len: %d ", len);
+	{
+		int i=0;
+		for(i = 0; i < len ; i++) {
+			dbg("%02x", data[i]);
+		}
+	}
+#endif
+
 	/* Get the Channel ID : 1st byte will be flag (F9)..Flag checking is already done.*/
-	if((ChannelId = ((*++PtrFrameProcess  >> 2)& 0x3F)) < MAX_CHANNEL_SUPPORTED) {	 //max channel is 8
+	channel_id = (*++frame_process_ptr  >> 2) & 0x3F;
 
-		ch = MuxObjPtr->channelInfo[ChannelId];
+	if(channel_id < MAX_CMUX_CHANNELS_SUPPORTED) {			//max channel is 8
+		ch = g_mux_obj_ptr->channel_info[channel_id];
 
-		ch->ChannelId = ChannelId;
+		ch->channel_id = channel_id;
 
 		//get the EA bit
-		ch->ExtBit = *PtrFrameProcess  & 0x01;
+		ch->ext_bit = *frame_process_ptr & 0x01;
 
 		//get the CR bit
-		ch->CRBit = (*PtrFrameProcess ++ >> 1) & 0x01;
+		ch->cr_bit = (*frame_process_ptr++ >> 1) & 0x01;
 
 		//get the Frame Type
-		ch->FrameType = *PtrFrameProcess  ++;
+		ch->frame_type = *frame_process_ptr++;
 
 		//get the poll/Final bit
-		ch->pollFinalBit = (ch->FrameType & 0x10)>> 4;
+		ch->poll_final_bit = (ch->frame_type & 0x10) >> 4;
 
 		//get the length . TBD
-		if(*PtrFrameProcess  & 0x01) {			//if len <127
-			MuxObjPtr->Len = *PtrFrameProcess ++ >> 1;
-			hlen = 3;
+		if(*frame_process_ptr  & 0x01) {						//if, len < 127
+			g_mux_obj_ptr->info_field_len = *frame_process_ptr++ >> 1;
+			header_length = 3;
 		}
 		else {
-			MuxObjPtr->Len = *(PtrFrameProcess +1) << 7;
-			MuxObjPtr->Len = MuxObjPtr->Len | ((* PtrFrameProcess ++ & 0xFE) >> 1);
-			hlen = 4;
-			PtrFrameProcess++;
+			g_mux_obj_ptr->info_field_len = *(frame_process_ptr + 1) << 7;
+			g_mux_obj_ptr->info_field_len = g_mux_obj_ptr->info_field_len | ((*frame_process_ptr++ & 0xFE) >> 1);
+			header_length = 4;
+			frame_process_ptr++;
 		}
+		dbg("info_field_len: %d", g_mux_obj_ptr->info_field_len);
 		
 		/* Copy received information field */
-		dbg("MEMCPY :length= %d", MuxObjPtr->Len);
-		memcpy(MuxObjPtr->InfoField, PtrFrameProcess, MuxObjPtr->Len);
-		dbg("MEMCPY :Done");
-		PtrFrameProcess = PtrFrameProcess + MuxObjPtr->Len;
+		memcpy(g_mux_obj_ptr->info_field, frame_process_ptr, g_mux_obj_ptr->info_field_len);
+
+		frame_process_ptr = frame_process_ptr + g_mux_obj_ptr->info_field_len;
 
 		//CRC check of the header
-		if (rcv_crc_check(PtrBufStart+1, hlen, *PtrFrameProcess)) {
-
+		if (rcv_crc_check(buf_start_ptr+1, header_length, *frame_process_ptr)) {
 			dbg("Calling tcore_cmux_process_channel_data");
 			tcore_cmux_process_channel_data(ch);
 		}
@@ -950,50 +972,30 @@ static void tcore_cmux_process_rcv_frame( unsigned char *data, int len)
 	return;
 }
 
-/**********************************************
-
-Function name :tcore_cmux_rcv_from_hal
-
-This should be a callback from Physical HAL.
-DATA Received from CP side.
-
-***********************************************/
 int tcore_cmux_rcv_from_hal(unsigned char *data, int len)
 {
 	unsigned char *buf =data;
-	int count =0, i =0;
-	int alen =0; //actual length
+	int count =0;
+	int i = 0;
+	int actual_len = 0; //actual length
 	
-	unsigned char *muxTempBuffer = MuxObjPtr->muxTempBuffer;
-	unsigned char *muxMainBuffer = MuxObjPtr->muxMainBuffer;
+	unsigned char *mux_temp_buffer = g_mux_obj_ptr->mux_temp_buffer;
+	unsigned char *mux_main_buffer = g_mux_obj_ptr->mux_main_buffer;
 
-	int Tlen = 0;			/* Total length 		  */
-	int hlen = 0;			/* Header length 		  */
-	int currentFlen = 0; 	/* Current Frame length    */	
-	int pLen = 0;  		/* pending length in array */ 
-	
+	int total_length = 0;				/* Total length */
+	int header_length = 0;			/* Header length */
+	int current_frame_length = 0;		/* Current Frame length */	
+	int pending_length = 0;			/* pending length in array */ 
 	dbg("Entry");
-
-#if 1
-	//testing
-	dbg("len: %d ", len);
-	{
-		int i=0;
-		for(i = 0; i < len ; i++) {
-			msg("%02x", data[i]);
-		}
-	}
-#endif
 
 	if (len > MAX_CMUX_BUFFER_SIZE){
 		err("len - %d is more than MAX limit !!" ,len);
 		return 0;
 		}
 		
-
 	if( (len > 0 ) && (data != NULL)) {
-		if(MuxObjPtr->isWaiting) {
-			//* Checking if Frame fully contains F9 or not. If only F9,then reject, esle process.
+		if(g_mux_obj_ptr->is_waiting) {
+			/* Checking if Frame fully contains F9 or not. If only F9, then reject, esle process */
 			while(*buf++ == 0xF9) {
 				count++;
 			}
@@ -1002,92 +1004,115 @@ int tcore_cmux_rcv_from_hal(unsigned char *data, int len)
 				err("Not a valid frame");
 				return 0;
 			}
-			dbg("MEMCPY :MuxObjPtr->curMBufLen: %d & len = %d", MuxObjPtr->curMBufLen,len);
-			memcpy((muxMainBuffer + MuxObjPtr->curMBufLen),data,len);
-			dbg("MEMCPY :DONE");
-			MuxObjPtr->curMBufLen = MuxObjPtr->curMBufLen + len;
 
-			if(MuxObjPtr->pMsgLen <= len) {
-				MuxObjPtr->isWaiting =0;
-				tcore_cmux_rcv_from_hal(muxMainBuffer,MuxObjPtr->curMBufLen);
+			dbg("cur_main_buf_len: %d len = %d", g_mux_obj_ptr->cur_main_buf_len, len);
+			memcpy((mux_main_buffer + g_mux_obj_ptr->cur_main_buf_len), data, len);
+
+			g_mux_obj_ptr->cur_main_buf_len = g_mux_obj_ptr->cur_main_buf_len + len;
+			dbg("cur_main_buf_len: %d", g_mux_obj_ptr->cur_main_buf_len);
+
+			if(g_mux_obj_ptr->msg_len <= len) {
+				g_mux_obj_ptr->is_waiting = 0;
+				tcore_cmux_rcv_from_hal(mux_main_buffer, g_mux_obj_ptr->cur_main_buf_len);
 			}
 			else {
-				MuxObjPtr->pMsgLen = MuxObjPtr->pMsgLen - len;
+				g_mux_obj_ptr->msg_len = g_mux_obj_ptr->msg_len - len;
 				dbg("Still waiting for the complete frame!!!");
 			}
 		}
 		else {
 			if(*buf ==0xF9) {	// start flag present
-				//remove extra flags
+				/* Remove extra flags */
 				while(*++buf == 0xF9) {
 					count++;
 				}
 
-				//check if received data has atleast three octets between flags
+				/* Check if received data has atleast three octets between flags */
 				for(i = 0; ( (i<3) && (*(buf+i)!=0xF9)); i++);
 
-				if((i<3) || (count == (len-1))) {	// In case all are F9 or three octets between falgs not found
+				if((i<3) || (count == (len-1))) {				// In case all are F9 or three octets between flags not found
 					err("Not a valid frame");
 					return 0;
 				}
 
-				alen = len - count;
-				memset(muxTempBuffer, 0x0, MAX_CMUX_BUFFER_SIZE);
-				dbg("MEMCPY :alen= %d", alen);
-				memcpy(muxTempBuffer, data + count, alen);
-				dbg("MEMCPY :DONE");
-				buf = muxTempBuffer + 3;
+				actual_len = len - count;
+				dbg("actual_length: %d", actual_len);
 
-				//find the info length field of the current frame
-				FIND_LENGTH(buf, hlen, Tlen);
+				/* Memset mux_temp_buffer */
+				memset(mux_temp_buffer, 0x0, MAX_CMUX_BUFFER_SIZE);
 
-				//calculate the current frame length including the headers
-				currentFlen = hlen +Tlen;
-				memset(muxMainBuffer, 0x0, MAX_CMUX_BUFFER_SIZE);
+				/* Copy data to mux_temp_buffer */				
+				memcpy(mux_temp_buffer, data + count, actual_len);
 
-				if(currentFlen==alen) {	//Only 1 frame is received and its a complete frame
-					if(muxTempBuffer[currentFlen-0x01] == 0xF9) {
-						dbg("MEMCPY :currentFlen= %d", currentFlen);
-						memcpy(muxMainBuffer,muxTempBuffer,currentFlen);
-						dbg("MEMCPY :DONE");
-						tcore_cmux_process_rcv_frame(muxMainBuffer ,currentFlen);
-						//initialze the main buffer
-						memset(muxMainBuffer, 0x0, MAX_CMUX_BUFFER_SIZE);
+				buf = mux_temp_buffer + 3;
+
+				/* Find the info length field of the current frame */
+				FIND_LENGTH(buf, header_length, total_length);
+
+				/* Calculate the current frame length including the headers */
+				current_frame_length = header_length + total_length;
+
+				/* Memset mux_main_buffer */
+				memset(mux_main_buffer, 0x0, MAX_CMUX_BUFFER_SIZE);
+
+				if(current_frame_length == actual_len) {				//Only 1 frame is received and its a complete frame
+					dbg("Single frame received");
+					if(mux_temp_buffer[current_frame_length-0x01] == 0xF9) {
+						dbg("current_frame_length: %d", current_frame_length);
+						
+						/* Copy received frame to mux_main_buffer */
+						memcpy(mux_main_buffer,mux_temp_buffer, current_frame_length);
+
+						/* Process the recieved frame */
+						tcore_cmux_process_rcv_frame(mux_main_buffer, current_frame_length);
+						
+						/* Initialize the main buffer */
+						memset(mux_main_buffer, 0x0, MAX_CMUX_BUFFER_SIZE);
 					}
 					else {
 						err("End flag missing!!!");
 						return 0;
 					}
 				}
-				else if(currentFlen < alen) {		//more than one frame
-					if(muxTempBuffer[currentFlen-0x01] == 0xF9) {
-						dbg("MEMCPY :currentFlen= %d", currentFlen);
-						memcpy(muxMainBuffer,muxTempBuffer,currentFlen);
-						dbg("MEMCPY :DONE");
-						tcore_cmux_process_rcv_frame(muxMainBuffer ,currentFlen);
+				else if(current_frame_length < actual_len) {			//more than one frame
+					dbg("Multiple frames received");
+					if(mux_temp_buffer[current_frame_length-0x01] == 0xF9) {
+						dbg("current_frame_length: %d", current_frame_length);
 
-						//initialze the main buffer
-						memset(muxMainBuffer, 0x0, MAX_CMUX_BUFFER_SIZE);
+						/* Copy received frame to mux_main_buffer */
+						memcpy(mux_main_buffer, mux_temp_buffer, current_frame_length);
 
-						muxMainBuffer[0]=0xF9;
-						pLen = alen - currentFlen;
-						dbg("MEMCPY :pLen= %d", pLen);
-						memcpy((muxMainBuffer + 0x01), (muxTempBuffer + currentFlen), pLen);
-						dbg("MEMCPY :DONE");
-						tcore_cmux_rcv_from_hal( muxMainBuffer,pLen + 0x01);
+						/* Process the recieved frame */
+						tcore_cmux_process_rcv_frame(mux_main_buffer ,current_frame_length);
+
+						/* Initialize the main buffer */
+						memset(mux_main_buffer, 0x0, MAX_CMUX_BUFFER_SIZE);
+						mux_main_buffer[0] = 0xF9;
+						
+						pending_length = actual_len - current_frame_length;
+						dbg("pending_length: %d", pending_length);
+
+						/* Copy the rest of the frames to mux_main_buffer */
+						memcpy((mux_main_buffer + 0x01), (mux_temp_buffer + current_frame_length), pending_length);
+
+						/* Receive pending frames */
+						tcore_cmux_rcv_from_hal(mux_main_buffer, pending_length + 0x01);
 					}
 					else {
 						err("End flag missing!!!");
 						return 0;
 					}
 				}
-				else if(currentFlen > alen) {//the frame is incomplete.Yet to receive the full frame
-					MuxObjPtr->isWaiting = 1;
-					dbg("MEMCPY :alen= %d", alen);
-					memcpy(muxMainBuffer, muxTempBuffer + count, alen);
-					dbg("MEMCPY :DONE");
-					MuxObjPtr->pMsgLen =  currentFlen - alen;
-					MuxObjPtr->curMBufLen = alen ;
+				else if(current_frame_length > actual_len) {			// frame is incomplete. Yet to receive the full frame
+					dbg("Incomplete frame received");
+					g_mux_obj_ptr->is_waiting = 1;					
+					dbg("actual_len: %d", actual_len);
+
+					/* Copy received frame to mux_main_buffer */
+					memcpy(mux_main_buffer, mux_temp_buffer + count, actual_len);
+					
+					g_mux_obj_ptr->msg_len =  current_frame_length - actual_len;
+					g_mux_obj_ptr->cur_main_buf_len = actual_len;
 				}
 			}
 			else {
@@ -1103,91 +1128,57 @@ int tcore_cmux_rcv_from_hal(unsigned char *data, int len)
 	return 1;
 }
 
-#if 1
-void tcore_cmux_channel_init(CMUX_Channels channel_id)
+static void tcore_cmux_channel_init(CMUX_Channels channel_id)
 {
 	CHANNEL *ch = NULL;
 	dbg("Entry");
 	
-	ch = MuxObjPtr->channelInfo[channel_id];
+	ch = g_mux_obj_ptr->channel_info[channel_id];
 	memset(ch, 0x0, sizeof(CHANNEL));
 	
-	ch->ChannelId = channel_id;
+	ch->channel_id = channel_id;
 	ch->state = MUX_CHANNEL_SABM_SEND_WAITING_FOR_UA;
 
 	ch->co = NULL;
 	ch->hal = NULL;
 
 	/* TODO - Check if required */
-    	ch->FrameType = SABM;
-	ch->ExtBit = 0x01;
-	ch->CRBit = 0x01;
-	ch->pollFinalBit = 0x01;
+    	ch->frame_type = CMUX_COMMAND_SABM;
+	ch->ext_bit = 0x01;
+	ch->cr_bit = 0x01;
+	ch->poll_final_bit = 0x01;
 
 	dbg("Channel ID %d initialized", channel_id);
 	
 	dbg("Exit");
 	return;
 }
-#else
-/*********************************************************
 
-OPEN CMUX CHANNEL
-*********************************************************/
-int open_cmux_channel(int channelID)
-{
-	CHANNEL *ch;
-	unsigned char *send_data;
-	int ret;
-	int len;
-	dbg("Entry");
-
-	ch = MuxObjPtr->channelInfo[channelID];
-
-	if(ch->state == MUX_CHANNEL_CLOSED) {
-		ch->FrameType = SABM;
-		ch->ExtBit = 0x01;
-		ch->CRBit = 0x01;
-
-		send_data = tcore_encode_cmux_frame(NULL, 0, channelID,  SABM, 0x01, 0x01, 0x01, &len); 
-		
-		/* Directly send to Physical HAL */
-		ret = tcore_hal_send_data(MuxObjPtr->phy_hal,len, send_data);
-	}
-	else {
-		//channel is already initialized
-		err("Channel is already initialized");
-	}
-
-	dbg("Exit");
-	return 1;
- }
-#endif
-
-/*********************************************************
-			CLOSE CMUX CHANNEL
-*********************************************************/
-int tcore_cmux_close_channel(int channelID)
+static void tcore_cmux_close_channel(int channel_id)
 {
 	CHANNEL *ch = NULL;
 	unsigned char *send_data = NULL;
-	int ret, len;
+	int ret, len =0;
 	dbg("Entry");
 
-	ch = MuxObjPtr->channelInfo[channelID];
+	ch = g_mux_obj_ptr->channel_info[channel_id];
 	
 	if(ch->state != MUX_CHANNEL_CLOSED) {
-		ch->FrameType = DISC;
-		ch->ExtBit = 0x01;
-		ch->CRBit = 0x01;
+		ch->frame_type = CMUX_COMMAND_DISC;
+		ch->ext_bit = 0x01;
+		ch->cr_bit = 0x01;
 		ch->state = MUX_CHANNEL_DISC_SEND_WAITING_FOR_UA;
 
 		/* Send DSC command */
-		send_data = tcore_encode_cmux_frame(NULL,0, channelID,  DISC, 0x01, 0x01, 0x01, &len); 
-		
-		/* Directly send to Physical HAL */
-		ret = tcore_hal_send_data(MuxObjPtr->phy_hal, len, send_data);
-
+		/* Encoding frame */
+		send_data = tcore_encode_cmux_frame(NULL,0, channel_id,  CMUX_COMMAND_DISC, 0x01, 0x01, 0x01, &len); 
+		if(0 != len) {
+			/* Send CMUX data */
+			ret = tcore_cmux_send_data(len, send_data);
+		}
+		else {
+			err("Failed to encode");
+		}
 	}
 	else {
 		/* Channel is already closed */
@@ -1195,30 +1186,28 @@ int tcore_cmux_close_channel(int channelID)
 	}
 
 	dbg("Exit");
-	return 1;
+	return;
 }
 
-static void tcore_cmux_free()
+static void tcore_cmux_free(void)
 {
 	int channel;
 	dbg("Entry");
 	
-	if(MuxObjPtr) {
-
+	if(g_mux_obj_ptr) {
 		/* Free Information Field */
-		if (MuxObjPtr->InfoField) 
-			free(MuxObjPtr->InfoField);
+		if (g_mux_obj_ptr->info_field) 
+			free(g_mux_obj_ptr->info_field);
 				
-		for (channel = 0 ; channel < MAX_CHANNEL_SUPPORTED ; channel++)
-		{
+		for (channel = 0 ; channel < MAX_CMUX_CHANNELS_SUPPORTED ; channel++) {
 			/* Free Channel Information */
-			if(MuxObjPtr->channelInfo[channel]) {
-				free(MuxObjPtr->channelInfo[channel]);
+			if(g_mux_obj_ptr->channel_info[channel]) {
+				free(g_mux_obj_ptr->channel_info[channel]);
 			}
 		}
 
 		/* Free MUX Object */
-		free(MuxObjPtr);
+		free(g_mux_obj_ptr);
 	}
 	else {
 		err("MUX Object doesn't exist");
@@ -1228,68 +1217,62 @@ static void tcore_cmux_free()
 	return;
 }
 
-void tcore_cmux_init(TcorePlugin *plugin, TcoreHal *h)
+TReturn tcore_cmux_init(TcorePlugin *plugin, TcoreHal *hal)
 {
-	TcoreHal *physical_hal = NULL;
 	unsigned char *data = NULL;
 	int data_len = 0;
 
 	int index;
+
+	TReturn ret = TCORE_RETURN_SUCCESS;
 	dbg("Entry");
 
-	physical_hal = (TcoreHal *)h;
-	dbg("Physical HAL: %x", physical_hal);
+	dbg("Physical HAL: %x", hal);
 
 	/* Creat new CMUX Object */
-	MuxObjPtr = tcore_cmux_new();
-	if(NULL == MuxObjPtr) {
+	g_mux_obj_ptr = tcore_cmux_new();
+	if(NULL == g_mux_obj_ptr) {
 		err("Failed to create MUX object");
-		return;
+
+		ret = TCORE_RETURN_FAILURE;
+		goto ERROR;
 	}
 
 	/* Save Plugin */
-	MuxObjPtr->p = plugin;
+	g_mux_obj_ptr->plugin = plugin;
 	
 	/* Save Physical HAL */
-	MuxObjPtr->phy_hal = physical_hal;
+	g_mux_obj_ptr->phy_hal = hal;
 
 	/* Setting Receive callback function for data received from Physical HAL */
-	MuxObjPtr->cb_func= tcore_cmux_recv_mux_data;
+	g_mux_obj_ptr->cb_func= tcore_cmux_recv_mux_data;
 	
       /* After MUX setup, AT parse functionality of PHY HAL should be disabled,
-        * here we change the mode of PHYSICAL HAL to Custom.
+        * here we change the mode of PHYSICAL HAL to Transparent.
         */
-	tcore_hal_set_mode(MuxObjPtr->phy_hal , TCORE_HAL_MODE_TRANSPARENT);
+	tcore_hal_set_mode(g_mux_obj_ptr->phy_hal, TCORE_HAL_MODE_TRANSPARENT);
 	dbg("Physical HAL mode changed to Transparent");
  
 	/* Initialize all the Channels */
 	/* Open all Channels */
-	for(index = 0 ; index < MAX_CHANNEL_SUPPORTED ; index++) {
+	for(index = 0 ; index < MAX_CMUX_CHANNELS_SUPPORTED ; index++) {
 
 		dbg("Initialize the Channel %d", index); 
 		tcore_cmux_channel_init((CMUX_Channels)index);
 		
 		dbg("Opening Channel %d", index);
 		/* Encode CMUX Frame */
-		data = tcore_encode_cmux_frame(NULL, 0, index, SABM, 0x01, 0x01, 0x01, &data_len);
-		if(NULL == data) {
+		data = tcore_encode_cmux_frame(NULL, 0, index, CMUX_COMMAND_SABM, 0x01, 0x01, 0x01, &data_len);
+		if(0 == data_len) {
 			err("Failed to encode");
-			return;
+
+			ret = TCORE_RETURN_FAILURE;
+			goto ERROR;
 		}
 		dbg("data_len: %d data: %s", data_len, data);
 
-#if 1
-		/* For Testing */
-		{
-			int i;
-			
-			for(i = 0; i < data_len ; i++) {
-				msg("%02x", data[i]);
-			}
-		}
-#endif
-		/* Send Frame to CP */
-		tcore_hal_send_data(physical_hal, data_len, data);
+		/* Send CMUX data */
+		tcore_cmux_send_data(data_len, data);
 		dbg("CMUX Control Request sent to CP");
 
 		/* Set Core object and HAL */
@@ -1297,15 +1280,17 @@ void tcore_cmux_init(TcorePlugin *plugin, TcoreHal *h)
 	}
 
 	dbg("Exit");
-	return;
+	return ret;
+
+ERROR:
+	/* Free the allocated CMUX memory */
+	tcore_cmux_free();
+
+	err("Exit");
+	return ret;
 }
 
-/*********************************************************
-
-MUX Close down
-
-*********************************************************/
-void tcore_cmux_close()
+void tcore_cmux_close(void)
 {
 	int channel = 0;
 	int index = 0;
@@ -1313,7 +1298,7 @@ void tcore_cmux_close()
 	GSList *co_list = NULL;
 	dbg("Entry");
 
-	for (channel = 0; channel < MAX_CHANNEL_SUPPORTED ; channel++) {
+	for (channel = 0 ; channel < MAX_CMUX_CHANNELS_SUPPORTED ; channel++) {
 		dbg("Channel ID: %d", channel);
 		index = 0;
 
@@ -1321,11 +1306,11 @@ void tcore_cmux_close()
 		tcore_cmux_close_channel(channel);
 
 		/* Revert Physical HAL as HAL of each Core Object associated to this Channel */
-		while (NULL != cmux_channel_Cobject[channel].Cobject_name[index]) {
+		while (NULL != cmux_channel_core_object[channel].core_object_name[index]) {
 			co = NULL;
 
 			/* Core Objects list */
-			co_list = MuxObjPtr->channelInfo[channel]->co;
+			co_list = g_mux_obj_ptr->channel_info[channel]->co;
 			dbg("Core Objects list : %p", co_list);
 			
 			/* Core Object list may contain multiple Core Objects.
@@ -1334,7 +1319,7 @@ void tcore_cmux_close()
 			  */
 			while(NULL != co_list) {
 				if(NULL != co_list->data) {
-					if(!strcmp((const char *)cmux_channel_Cobject[channel].Cobject_name[index], (const char *)tcore_object_ref_name((CoreObject *)co_list->data))) {
+					if(!strcmp((const char *)cmux_channel_core_object[channel].core_object_name[index], (const char *)tcore_object_ref_name((CoreObject *)co_list->data))) {
 						co = (CoreObject *)co_list->data;
 						dbg("Found the Core Object");
 						break;
@@ -1347,7 +1332,7 @@ void tcore_cmux_close()
 
 			/* Set the previous Physical HAL as HAL for Core Object */
 			if(NULL != co) {
-				tcore_object_set_hal(co, MuxObjPtr->phy_hal);
+				tcore_object_set_hal(co, g_mux_obj_ptr->phy_hal);
 			}
 			else {
 				/* Proceed to next Channel */
@@ -1360,11 +1345,11 @@ void tcore_cmux_close()
 		}
 		
 		/* Free Logical HAL for Channel */
-		tcore_hal_free(MuxObjPtr->channelInfo[channel]->hal);
+		tcore_hal_free(g_mux_obj_ptr->channel_info[channel]->hal);
 	}
 	
 	/* Change the mode of PHYSICAL HAL to Custom */
-	tcore_hal_set_mode(MuxObjPtr->phy_hal, TCORE_HAL_MODE_CUSTOM);
+	tcore_hal_set_mode(g_mux_obj_ptr->phy_hal, TCORE_HAL_MODE_CUSTOM);
 
 	/* Free all the allocated memory */
 	tcore_cmux_free();

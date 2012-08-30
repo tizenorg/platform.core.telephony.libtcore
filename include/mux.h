@@ -21,9 +21,9 @@
 #ifndef __MUX_H__
 #define __MUX_H__
 
-void tcore_cmux_init(TcorePlugin *plugin, TcoreHal *h);
+TReturn tcore_cmux_init(TcorePlugin *plugin, TcoreHal *hal);
 
-void tcore_cmux_close();
+void tcore_cmux_close(void);
 
 int tcore_cmux_rcv_from_hal(unsigned char *data, int len);
 #endif  /* __MUX_H__ */
