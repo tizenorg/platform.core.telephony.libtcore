@@ -56,6 +56,7 @@ struct private_object_data {
 
 	char *proxy;
 	char *mmsurl;
+	char *profile_name;
 	char devname[16];
 };
 
@@ -614,6 +615,44 @@ char *tcore_context_get_mmsurl(CoreObject *o)
 		return NULL;
 
 	return g_strdup(po->mmsurl);
+}
+
+TReturn tcore_context_set_profile_name(CoreObject *o, const char *profile_name)
+{
+	struct private_object_data *po = NULL;
+
+	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PS_CONTEXT, TCORE_RETURN_EINVAL);
+
+	po = tcore_object_ref_object(o);
+	if (!po)
+		return FALSE;
+
+	if (po->profile_name) {
+		free(po->profile_name);
+		po->profile_name = NULL;
+	}
+
+	if (profile_name) {
+		po->profile_name = g_strdup(profile_name);
+	}
+
+	return TCORE_RETURN_SUCCESS;
+}
+
+char *tcore_context_get_profile_name(CoreObject *o)
+{
+	struct private_object_data *po = NULL;
+
+	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PS_CONTEXT, NULL);
+
+	po = tcore_object_ref_object(o);
+	if (!po)
+		return NULL;
+
+	if (!po->profile_name)
+		return NULL;
+
+	return g_strdup(po->profile_name);
 }
 
 TReturn tcore_context_set_devinfo(CoreObject *o, struct tnoti_ps_pdp_ipconfiguration *devinfo)

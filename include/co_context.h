@@ -45,6 +45,10 @@ enum co_context_role {
 	CONTEXT_ROLE_UNKNOWN,
 	CONTEXT_ROLE_INTERNET,
 	CONTEXT_ROLE_MMS,
+	CONTEXT_ROLE_PREPAID_INTERNET,
+	CONTEXT_ROLE_PREPAID_MMS,
+	CONTEXT_ROLE_TETHERING,
+	CONTEXT_ROLE_USER_DEFINED,
 };
 
 enum co_context_d_comp {
@@ -103,6 +107,8 @@ TReturn                  tcore_context_set_proxy(CoreObject *o, const char *prox
 char*                    tcore_context_get_proxy(CoreObject *o);
 TReturn                  tcore_context_set_mmsurl(CoreObject *o, const char *mmsurl);
 char*                    tcore_context_get_mmsurl(CoreObject *o);
+TReturn                  tcore_context_set_profile_name(CoreObject *o, const char *profile_name);
+char*                    tcore_context_get_profile_name(CoreObject *o);
 
 TReturn                  tcore_context_set_devinfo(CoreObject *o, struct tnoti_ps_pdp_ipconfiguration *devinfo);
 TReturn                  tcore_context_reset_devinfo(CoreObject *o);

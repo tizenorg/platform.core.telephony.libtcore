@@ -1,7 +1,7 @@
 #sbs-git:slp/pkgs/l/libtcore
 Name: libtcore
 Summary: Telephony-core library
-Version: 0.1.57
+Version: 0.1.59
 Release:    1
 Group:      System/Libraries
 License:    Apache

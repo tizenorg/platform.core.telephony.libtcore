@@ -131,7 +131,9 @@ void tcore_pending_free(TcorePending *pending)
 
 	dbg("pending(0x%x) free, id=0x%x", (unsigned int)pending, pending->id);
 
-	if (tcore_hal_get_mode(pending->queue->hal) != TCORE_HAL_MODE_AT) {
+	if ((tcore_hal_get_mode(pending->queue->hal) != TCORE_HAL_MODE_AT) 
+		&& (tcore_hal_get_mode(pending->queue->hal) != TCORE_HAL_MODE_TRANSPARENT)) 
+	{
 		if (pending->data)
 			free(pending->data);
 	}
