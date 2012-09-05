@@ -267,6 +267,7 @@ TReturn tcore_ps_remove_context(CoreObject *o, CoreObject *ctx_o)
 	if (!po)
 		return TCORE_RETURN_EINVAL;
 
+	tcore_ps_clear_context_id(o, ctx_o);
 	po->context_list = g_slist_remove(po->context_list, ctx_o);
 
 	return TCORE_RETURN_SUCCESS;
