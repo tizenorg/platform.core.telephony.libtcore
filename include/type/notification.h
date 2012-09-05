@@ -121,6 +121,7 @@ enum tcore_notification_command {
 	TNOTI_SMS_MEMORY_STATUS,		/* This event is an unsolicited event indicating SIM memory status */
 	TNOTI_SMS_DEVICE_READY,		/* Device Ready indication */
 	TNOTI_SMS_IND_MAX,
+	TNOTI_SMS_ETWS_INCOM_MSG,		/* This is an unsolicited Incoming ETWS message*/
 
 	TNOTI_PHONEBOOK = TCORE_NOTIFICATION | TCORE_TYPE_PHONEBOOK,
 	TNOTI_PHONEBOOK_STATUS,

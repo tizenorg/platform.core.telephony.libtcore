@@ -68,6 +68,8 @@ __BEGIN_DECLS
 /* NetText */
 #define SMS_MSG_SIZE_MAX						918		/**< Maximum Message Size */
 #define SMS_CB_SIZE_MAX						93		/** Maximum CB Message Size */
+#define SMS_ETWS_SIZE_MAX					56		/** Maximum ETWS Message Size */
+
 #define SMS_ADDRESS_LEN_MAX					20		/* Nettext Address Length */
 #define SMS_SCADDRESS_LEN_MAX				18		/* SC Address Length */
 
@@ -217,6 +219,15 @@ enum telephony_sms_CbMsgType {
 	   SMS_CB_MSG_INVALID		/**< Invalid  CB message */
 };
 
+/**
+* @enum telephony_sms_etws_type
+* This enumeration defines the different ETWS message types.
+*/
+enum telephony_sms_etws_type {
+		SMS_ETWS_MSG_PRIMARY = 0,				/**< PRIMARY ETWS Message */
+		SMS_ETWS_MSG_SECONDARY_GSM,				/**< SECONDARY GSM ETWS Message */
+		SMS_ETWS_MSG_SECONDARY_UMTS				/**< SECONDARY UMTS ETWS Message */
+};
 
 /**
  * @enum telephony_sms_Response_t
@@ -297,6 +308,14 @@ enum telephony_sms_SetResponse {
 	SMS_SET_RSP_MAX				/**<   maximum limit*/
 };
 
+/**
+ * @enum telephony_sms_3gpp_type
+ * This defines the type of 3gpp
+ */
+enum telephony_sms_3gpp_type {
+	SMS_NETTYPE_3GPP = 0x01,						/**< 3gpp type */
+	SMS_NETTYPE_3GPP2,    /**< 3gpp2 type (CDMA) */
+};
 
 
 /**
@@ -362,15 +381,45 @@ struct telephony_sms_CbMsg {
 	char 							msgData[SMS_CB_SIZE_MAX + 1]; /**<Cell broadcast message data[Refer 3GPP TS 23.041 9.4.1]*/
 };
 
-/**
- * This structure defines the different parameters of  CB configuration
- */
+struct telephony_sms_etws_msg {
+
+	enum telephony_sms_etws_type	etwsMsgType;							/**< ETWS  message type */
+	unsigned short 					length; 								/**<Size of array msgData (which is actual TPDU message) */
+	char 							msgData[SMS_ETWS_SIZE_MAX + 1]; /**< ETWS message data[Refer 3GPP TS 23.041 9.4.1.3]*/
+};
+
+struct telephony_sms_cb_msg_info_3gpp {
+ unsigned short fromMsgId; /**< Starting point of the range of CBS message ID */
+ unsigned short toMsgId; /**< Ending point of the range of CBS message ID */
+ unsigned char selected; /**< 0x00 . Not selected. 0x01 . Selected */
+};
+
+struct telephony_sms_cb_msg_info_3gpp2 {
+ unsigned short cbCategory; /**< CB Service category */
+ unsigned short cbLanguage; /**< Language indicator value
+ 								. 0x00 . LANGUAGE_UNKNOWN .
+									Unknown or Unspecified
+								. 0x01 . LANGUAGE_ENGLISH . English
+								. 0x02 . LANGUAGE_FRENCH . French
+								. 0x03 . LANGUAGE_SPANISH . Spanish
+								. 0x04 . LANGUAGE_JAPANESE . Japanese
+								. 0x05 . LANGUAGE_KOREAN . Korean
+								. 0x06 . LANGUAGE_CHINESE . Chinese
+								. 0x07 . LANGUAGE_HEBREW . Hebrew*/
+ unsigned char selected; /**< 0x00 . Not selected. 0x01 . Selected */
+};
+
+union telephony_sms_cb_msg_info_u {
+	struct telephony_sms_cb_msg_info_3gpp net3gpp; /**< 3GPP Broadcast Configuration Information */
+	struct telephony_sms_cb_msg_info_3gpp2 net3gpp2; /**< 3GPP2 Broadcast Configuration Information, CDMA*/
+};
+
 struct telephony_sms_CbConfig {
-	int 				bCBEnabled;		/**< CB service state. If cb_enabled is true then cell broadcast service will be enabled and underlying modem will enable CB Channel to receiving CB messages. Otherwise CB service will be disabled, underlying modem will deactivate the CB channel. (enabled/disabled) */
-	unsigned char 	selectedId;		/**< CBMI Identifier selected (all or some)  */
-	unsigned char 	msgIdMaxCount;	/**< CB Channel List Max Count */
-	int 				msgIdCount;		/**< CB message ID count */
-	unsigned short	msgIDs[SMS_GSM_SMS_CBMI_LIST_SIZE_MAX]; /**< CB message ID information */
+	int net3gppType;  /**< Type of 3gpp, 0x01 . 3gpp. 0x02 . 3gpp2(CDMA) */
+	int cbEnabled; /**< CB service state. If cb_enabled is true then cell broadcast service will be enabled and underlying modem will enable CB Channel to receiving CB messages. Otherwise CB service will be disabled, underlying modem will deactivate the CB channel. (enabled/disabled) */
+	unsigned char msgIdMaxCount; /**< CB Channel List Max Count For Response */
+	int msgIdRangeCount; /**< Range of CB message ID count */
+	union telephony_sms_cb_msg_info_u msgIDs[SMS_GSM_SMS_CBMI_LIST_SIZE_MAX]; /**< Range of CB message ID information */
 };
 
 
@@ -807,11 +856,11 @@ struct treq_sms_get_cb_config {
 };
 
 struct treq_sms_set_cb_config {
-	int				bCBEnabled;									/* CB service state. If cb_enabled is true then cell broadcast service will be enabled and underlying modem will enable CB Channel to receiving CB messages. Otherwise CB service will be disabled, underlying modem will deactivate the CB channel. (enabled/disabled) */
-	unsigned char		selectedId;									/* CBMI Identifier selected (all or some)  */
-	unsigned char		msgIdMaxCount;								/* CB Channel List Max Count */
-	int				msgIdCount;									/* CB message ID count */
-	unsigned short	msgIDs[SMS_GSM_SMS_CBMI_LIST_SIZE_MAX];	/* CB message ID information */
+	int net3gppType;  /**< Type of 3gpp, 0x01 . 3gpp. 0x02 . 3gpp2(CDMA) */
+	int cbEnabled; /**< CB service state. If cb_enabled is true then cell broadcast service will be enabled and underlying modem will enable CB Channel to receiving CB messages. Otherwise CB service will be disabled, underlying modem will deactivate the CB channel. (enabled/disabled) */
+	unsigned char msgIdMaxCount; /**< CB Channel List Max Count For Response */
+	int msgIdRangeCount; /**< Range of CB message ID count */
+	union telephony_sms_cb_msg_info_u msgIDs[SMS_GSM_SMS_CBMI_LIST_SIZE_MAX]; /**< Range of CB message ID information */
 };
 
 struct treq_sms_set_mem_status {
@@ -945,6 +994,10 @@ struct tnoti_sms_cdma_msg {
 
 struct tnoti_sms_cellBroadcast_msg {
 	struct telephony_sms_CbMsg	cbMsg;
+};
+
+struct tnoti_sms_etws_msg {
+	struct telephony_sms_etws_msg	etwsMsg;
 };
 
 struct tnoti_sms_memory_status {
