@@ -22,8 +22,7 @@
 #define __MUX_H__
 
 TReturn tcore_cmux_init(TcorePlugin *plugin, TcoreHal *hal);
-
 void tcore_cmux_close(void);
+int tcore_cmux_rcv_from_hal(unsigned char *data, size_t length);
 
-int tcore_cmux_rcv_from_hal(unsigned char *data, int len);
 #endif  /* __MUX_H__ */
