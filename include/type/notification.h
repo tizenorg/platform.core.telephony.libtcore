@@ -115,9 +115,9 @@ enum tcore_notification_command {
 
 	TNOTI_SMS = TCORE_NOTIFICATION | TCORE_TYPE_SMS,
 	TNOTI_SMS_INCOM_MSG,			/* This is an unsolicited Incoming SMS Event*/
-	TNOTI_SMS_CB_INCOM_MSG,		/* This is an unsolicited Incoming cell broadcast message*/
+	TNOTI_SMS_CB_INCOM_MSG,		/* This is an unsolicited Incoming cell broadcast message */
 	TNOTI_SMS_INCOM_EX_MSG,		/* This is an extended unsolicited Incoming SMS Event*/
-	TNOTI_SMS_CB_INCOM_EX_MSG,	/* This is an extended unsolicited Incoming cell broadcast message*/
+	TNOTI_SMS_CB_INCOM_EX_MSG,	/* This is an extended unsolicited Incoming cell broadcast message */
 	TNOTI_SMS_MEMORY_STATUS,		/* This event is an unsolicited event indicating SIM memory status */
 	TNOTI_SMS_DEVICE_READY,		/* Device Ready indication */
 	TNOTI_SMS_IND_MAX,
