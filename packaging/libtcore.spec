@@ -44,6 +44,7 @@ rm -rf %{buildroot}
 %defattr(-,root,root,-)
 #%doc COPYING
 %{_libdir}/libtcore*
+#%{_bindir}/*
 
 %files devel
 %defattr(-,root,root,-)

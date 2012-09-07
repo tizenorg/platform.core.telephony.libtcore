@@ -856,11 +856,11 @@ struct treq_sms_get_cb_config {
 };
 
 struct treq_sms_set_cb_config {
-	int net3gppType;  /* < Type of 3gpp, 0x01 . 3gpp. 0x02 . 3gpp2 ( CDMA ) */
-	int cbEnabled; /* < CB service state. If cb_enabled is true then cell broadcast service will be enabled and underlying modem will enable CB Channel to receiving CB messages. Otherwise CB service will be disabled, underlying modem will deactivate the CB channel. ( enabled/disabled ) */
-	unsigned char msgIdMaxCount; /* < CB Channel List Max Count For Response */
-	int msgIdRangeCount; /* < Range of CB message ID count */
-	union telephony_sms_cb_msg_info_u msgIDs[SMS_GSM_SMS_CBMI_LIST_SIZE_MAX]; /* < Range of CB message ID information */
+	int net3gppType;  /**< Type of 3gpp, 0x01 . 3gpp. 0x02 . 3gpp2(CDMA) */
+	int cbEnabled; /**< CB service state. If cb_enabled is true then cell broadcast service will be enabled and underlying modem will enable CB Channel to receiving CB messages. Otherwise CB service will be disabled, underlying modem will deactivate the CB channel. (enabled/disabled) */
+	unsigned char msgIdMaxCount; /**< CB Channel List Max Count For Response */
+	int msgIdRangeCount; /**< Range of CB message ID count */
+	union telephony_sms_cb_msg_info_u msgIDs[SMS_GSM_SMS_CBMI_LIST_SIZE_MAX]; /**< Range of CB message ID information */
 };
 
 struct treq_sms_set_mem_status {

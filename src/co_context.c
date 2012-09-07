@@ -712,6 +712,7 @@ void tcore_context_cp_service_info(CoreObject *dest, CoreObject *src)
 	memcpy(&(d_po->dns_primary_v4), &(s_po->dns_primary_v4), sizeof(union tcore_ip4_type));
 	memcpy(&(d_po->dns_secondary_v4), &(s_po->dns_secondary_v4), sizeof(union tcore_ip4_type));
 	memcpy(&(d_po->gateway_v4), &(s_po->gateway_v4), sizeof(union tcore_ip4_type));
+	memcpy(d_po->devname, s_po->devname, sizeof(char) * 16);
 
 	return;
 }

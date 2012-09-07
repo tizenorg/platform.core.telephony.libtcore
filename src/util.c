@@ -653,7 +653,7 @@ GHashTable *tcore_util_marshal_deserialize_string(const gchar *serialized_string
 		return ht;
 	}
 
-	tuple = g_strsplit((gchar *) serialized_string, "/", 0);
+	tuple = g_strsplit((gchar *) serialized_string, " ", 0);
 
 	while (strlen(tuple[index]) > 3) {
 		int tmp = 0;
@@ -713,7 +713,7 @@ gchar *tcore_util_marshal_serialize(GHashTable *ht)
 		encoded_d = g_base64_encode((guchar *)tmp, (gsize)strlen(tmp));
 		g_free(tmp);
 
-		g_string_append_printf(gstring_tmp, "%s:%d:%s/", (gchar *)key,
+		g_string_append_printf(gstring_tmp, "%s:%d:%s ", (gchar *)key,
 				gtype, encoded_d);
 		g_free((gpointer)encoded_d);
 		g_value_unset(&gval);
