@@ -46,6 +46,7 @@ struct tcore_server_type {
 	GSList *communicators;
 	GSList *storages;
 	GSList *hals;
+	GSList *template_co;
 	GSList *hook_list_request;
 	GSList *hook_list_notification;
 	TcorePlugin *default_plugin;
@@ -368,6 +369,57 @@ TcoreHal *tcore_server_find_hal(Server *s, const char *name)
 		}
 
 		free(buf);
+	}
+
+	return NULL;
+}
+
+TReturn tcore_server_add_template_object(Server *s, CoreObject *template_co)
+{
+	GSList *list;
+	CoreObject *temp;
+
+	if (!s || !template_co)
+		return TCORE_RETURN_EINVAL;
+
+	for (list = s->template_co; list; list = list->next) {
+		temp = list->data;
+		if (!temp) {
+			continue;
+		}
+
+		if (tcore_object_get_type(temp) == tcore_object_get_type(template_co)) {
+			return TCORE_RETURN_EALREADY;
+		}
+	}
+
+	s->template_co = g_slist_insert(s->template_co, template_co, 0);
+
+	return TCORE_RETURN_SUCCESS;
+}
+
+GSList *tcore_server_ref_template_object(Server *s)
+{
+	if (!s)
+		return NULL;
+
+	return s->template_co;
+}
+
+CoreObject *tcore_server_find_template_object(Server *s, unsigned int type)
+{
+	GSList *list;
+	CoreObject *template_co;
+
+	for (list = s->template_co; list; list = list->next) {
+		template_co = list->data;
+		if (!template_co) {
+			continue;
+		}
+
+		if (type == tcore_object_get_type(template_co)) {
+			return template_co;
+		}
 	}
 
 	return NULL;

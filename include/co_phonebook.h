@@ -37,6 +37,9 @@ struct tcore_phonebook_operations {
 CoreObject* tcore_phonebook_new(TcorePlugin *p, const char *name, struct tcore_phonebook_operations *ops, TcoreHal *hal);
 void        tcore_phonebook_free(CoreObject *n);
 
+CoreObject *tcore_phonebook_clone(TcorePlugin *p, const char *name, TcoreHal *hal);
+void tcore_phonebook_override_ops(CoreObject *o, struct tcore_phonebook_operations *phonebook_ops);
+
 gboolean    tcore_phonebook_get_status(CoreObject *o);
 gboolean    tcore_phonebook_set_status(CoreObject *o, gboolean b_init);
 

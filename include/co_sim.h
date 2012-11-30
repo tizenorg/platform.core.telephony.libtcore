@@ -43,6 +43,9 @@ struct tcore_sim_operations {
 CoreObject*          tcore_sim_new(TcorePlugin *p, const char *name, struct tcore_sim_operations *ops, TcoreHal *hal);
 void                 tcore_sim_free(CoreObject *n);
 
+CoreObject *tcore_sim_clone(TcorePlugin *p, const char *name, TcoreHal *hal);
+void tcore_sim_override_ops(CoreObject *o, struct tcore_sim_operations *sim_ops);
+
 enum tel_sim_type    tcore_sim_get_type(CoreObject *o);
 gboolean             tcore_sim_set_type(CoreObject *o, enum tel_sim_type type);
 

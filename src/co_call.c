@@ -97,6 +97,201 @@ static void _clone_hook(CoreObject *src, CoreObject *dest)
 	tcore_object_link_object(dest, dest_po);
 }
 
+static void _clone_call_operations(struct private_object_data *po, struct tcore_call_operations *call_ops)
+{
+	if(call_ops->dial) {
+		po->ops->dial = call_ops->dial;
+	}
+	if(call_ops->answer) {
+		po->ops->answer = call_ops->answer;
+	}
+	if(call_ops->end) {
+		po->ops->end = call_ops->end;
+	}
+	if(call_ops->hold) {
+		po->ops->hold = call_ops->hold;
+	}
+	if(call_ops->active) {
+		po->ops->active = call_ops->active;
+	}
+	if(call_ops->swap) {
+		po->ops->swap = call_ops->swap;
+	}
+	if(call_ops->join) {
+		po->ops->join = call_ops->join;
+	}
+	if(call_ops->split) {
+		po->ops->split = call_ops->split;
+	}
+	if(call_ops->deflect) {
+		po->ops->deflect = call_ops->deflect;
+	}
+	if(call_ops->transfer) {
+		po->ops->transfer = call_ops->transfer;
+	}
+	if(call_ops->send_dtmf) {
+		po->ops->send_dtmf = call_ops->send_dtmf;
+	}
+	if(call_ops->set_sound_path) {
+		po->ops->set_sound_path = call_ops->set_sound_path;
+	}
+	if(call_ops->set_sound_volume_level) {
+		po->ops->set_sound_volume_level = call_ops->set_sound_volume_level;
+	}
+	if(call_ops->get_sound_volume_level) {
+		po->ops->get_sound_volume_level = call_ops->get_sound_volume_level;
+	}
+	if(call_ops->mute) {
+		po->ops->mute = call_ops->mute;
+	}
+	if(call_ops->unmute) {
+		po->ops->unmute = call_ops->unmute;
+	}
+	if(call_ops->get_mute_status) {
+		po->ops->get_mute_status = call_ops->get_mute_status;
+	}
+	if(call_ops->set_sound_recording) {
+		po->ops->set_sound_recording = call_ops->set_sound_recording;
+	}
+	if(call_ops->set_sound_equalization) {
+		po->ops->set_sound_equalization = call_ops->set_sound_equalization;
+	}
+	if(call_ops->set_sound_noise_reduction) {
+		po->ops->set_sound_noise_reduction = call_ops->set_sound_noise_reduction;
+	}
+	if(call_ops->set_active_line) {
+		po->ops->set_active_line = call_ops->set_active_line;
+	}
+	if(call_ops->get_active_line) {
+		po->ops->get_active_line = call_ops->get_active_line;
+	}
+	if(call_ops->activate_ccbs) {
+		po->ops->activate_ccbs = call_ops->activate_ccbs;
+	}
+
+	return;
+}
+
+static void _clone_call_control_operations(struct private_object_data *po, struct tcore_call_control_operations *control_ops)
+{
+	if(control_ops->answer_hold_and_accept) {
+		po->cops->answer_hold_and_accept = control_ops->answer_hold_and_accept;
+	}
+	if(control_ops->answer_replace) {
+		po->cops->answer_replace = control_ops->answer_replace;
+	}
+	if(control_ops->answer_reject) {
+		po->cops->answer_reject = control_ops->answer_reject;
+	}
+	if(control_ops->end_specific) {
+		po->cops->end_specific = control_ops->end_specific;
+	}
+	if(control_ops->end_all_active) {
+		po->cops->end_all_active = control_ops->end_all_active;
+	}
+	if(control_ops->end_all_held) {
+		po->cops->end_all_held = control_ops->end_all_held;
+	}
+	if(control_ops->active) {
+		po->cops->active = control_ops->active;
+	}
+	if(control_ops->hold) {
+		po->cops->hold = control_ops->hold;
+	}
+	if(control_ops->swap) {
+		po->cops->swap = control_ops->swap;
+	}
+	if(control_ops->join) {
+		po->cops->join = control_ops->join;
+	}
+	if(control_ops->split) {
+		po->cops->split = control_ops->split;
+	}
+	if(control_ops->transfer) {
+		po->cops->transfer = control_ops->transfer;
+	}
+	if(control_ops->deflect) {
+		po->cops->deflect = control_ops->deflect;
+	}
+
+	return;
+}
+
+static void _clone_call_info_operations(struct private_object_data *po, struct tcore_call_information_operations *info_ops)
+{
+	if(info_ops->mo_call_col) {
+		po->iops->mo_call_col = info_ops->mo_call_col;
+	}
+	if(info_ops->mo_call_waiting) {
+		po->iops->mo_call_waiting = info_ops->mo_call_waiting;
+	}
+	if(info_ops->mo_call_cug) {
+		po->iops->mo_call_cug = info_ops->mo_call_cug;
+	}
+	if(info_ops->mo_call_forwarded) {
+		po->iops->mo_call_forwarded = info_ops->mo_call_forwarded;
+	}
+	if(info_ops->mo_call_barred_incoming) {
+		po->iops->mo_call_barred_incoming = info_ops->mo_call_barred_incoming;
+	}
+	if(info_ops->mo_call_barred_outgoing) {
+		po->iops->mo_call_barred_outgoing = info_ops->mo_call_barred_outgoing;
+	}
+	if(info_ops->mo_call_deflected) {
+		po->iops->mo_call_deflected = info_ops->mo_call_deflected;
+	}
+	if(info_ops->mo_call_clir_suppression_reject) {
+		po->iops->mo_call_clir_suppression_reject = info_ops->mo_call_clir_suppression_reject;
+	}
+	if(info_ops->mo_call_cfu) {
+		po->iops->mo_call_cfu = info_ops->mo_call_cfu;
+	}
+	if(info_ops->mo_call_cfc) {
+		po->iops->mo_call_cfc = info_ops->mo_call_cfc;
+	}
+	if(info_ops->mt_call_cli) {
+		po->iops->mt_call_cli = info_ops->mt_call_cli;
+	}
+	if(info_ops->mt_call_cna) {
+		po->iops->mt_call_cna = info_ops->mt_call_cna;
+	}
+	if(info_ops->mt_call_forwarded_call) {
+		po->iops->mt_call_forwarded_call = info_ops->mt_call_forwarded_call;
+	}
+	if(info_ops->mt_call_cug_call) {
+		po->iops->mt_call_cug_call = info_ops->mt_call_cug_call;
+	}
+	if(info_ops->mt_call_deflected_call) {
+		po->iops->mt_call_deflected_call = info_ops->mt_call_deflected_call;
+	}
+	if(info_ops->mt_call_transfered) {
+		po->iops->mt_call_transfered = info_ops->mt_call_transfered;
+	}
+	if(info_ops->call_held) {
+		po->iops->call_held = info_ops->call_held;
+	}
+	if(info_ops->call_active) {
+		po->iops->call_active = info_ops->call_active;
+	}
+	if(info_ops->call_joined) {
+		po->iops->call_joined = info_ops->call_joined;
+	}
+	if(info_ops->call_released_on_hold) {
+		po->iops->call_released_on_hold = info_ops->call_released_on_hold;
+	}
+	if(info_ops->call_transfer_alert) {
+		po->iops->call_transfer_alert = info_ops->call_transfer_alert;
+	}
+	if(info_ops->call_transfered) {
+		po->iops->call_transfered = info_ops->call_transfered;
+	}
+	if(info_ops->call_cf_check_message) {
+		po->iops->call_cf_check_message = info_ops->call_cf_check_message;
+	}
+
+	return;
+}
+
 static TReturn _dispatcher(CoreObject *o, UserRequest *ur)
 {
 	enum tcore_request_command command;
@@ -1099,6 +1294,35 @@ void tcore_call_information_set_operations(CoreObject *o, struct tcore_call_info
 	po->iops = ops;
 }
 
+void tcore_call_override_ops(CoreObject *o,
+										struct tcore_call_operations *call_ops,
+										struct tcore_call_control_operations *control_ops,
+										struct tcore_call_information_operations *info_ops)
+{
+	struct private_object_data *po = NULL;
+
+	CORE_OBJECT_CHECK(o, CORE_OBJECT_TYPE_CALL);
+	
+	po = (struct private_object_data *)tcore_object_ref_object(o);
+	if (!po) {
+		return;
+	}
+
+	if(call_ops) {
+		_clone_call_operations(po, call_ops);
+	}
+
+	if(control_ops) {
+		_clone_call_control_operations(po, control_ops);
+	}
+
+	if(info_ops) {
+		_clone_call_info_operations(po, info_ops);
+	}
+
+	return;
+}
+
 CoreObject *tcore_call_new(TcorePlugin *p, const char *name, struct tcore_call_operations *ops, TcoreHal *hal)
 {
 	CoreObject *o = NULL;
@@ -1125,6 +1349,22 @@ CoreObject *tcore_call_new(TcorePlugin *p, const char *name, struct tcore_call_o
 	tcore_object_set_clone_hook(o, _clone_hook);
 	tcore_object_set_dispatcher(o, _dispatcher);
 
+	return o;
+}
+
+CoreObject *tcore_call_clone(TcorePlugin *p, const char *name, TcoreHal *hal)
+{
+	CoreObject *o = NULL;
+
+	if (!p)
+		return NULL;
+
+	o = tcore_object_clone_template_object(p, name, CORE_OBJECT_TYPE_CALL);
+	if (!o)
+		return NULL;
+
+	tcore_object_set_hal(o, hal);
+	
 	return o;
 }
 

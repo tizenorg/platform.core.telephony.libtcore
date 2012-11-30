@@ -34,6 +34,9 @@ struct tcore_gps_operations {
 CoreObject*  tcore_gps_new(TcorePlugin *p, const char *name, struct tcore_gps_operations *ops, TcoreHal *hal);
 void         tcore_gps_free(CoreObject *o);
 
+CoreObject *tcore_gps_clone(TcorePlugin *p, const char *name, TcoreHal *hal);
+void tcore_gps_override_ops(CoreObject *o, struct tcore_gps_operations *gps_ops);
+
 __END_DECLS
 
 #endif

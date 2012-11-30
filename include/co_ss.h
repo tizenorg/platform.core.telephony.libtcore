@@ -179,6 +179,9 @@ struct tcore_ss_operations {
 CoreObject* tcore_ss_new(TcorePlugin *p, const char *name, struct tcore_ss_operations *ops, TcoreHal *hal);
 void        tcore_ss_free(CoreObject *o);
 
+CoreObject *tcore_ss_clone(TcorePlugin *p, const char *name, TcoreHal *hal);
+void tcore_ss_override_ops(CoreObject *o, struct tcore_ss_operations *ss_ops);
+
 struct ussd_session*	tcore_ss_ussd_create_session( CoreObject *o, enum tcore_ss_ussd_type type, void *data, int data_len );
 void					tcore_ss_ussd_destroy_session( struct ussd_session *ussd_s );
 struct ussd_session*	tcore_ss_ussd_get_session( CoreObject *o );

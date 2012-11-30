@@ -143,7 +143,15 @@ void             tcore_at_tok_free(GSList *tokens);
 char*            tcore_at_tok_extract(const char *src);
 char*            tcore_at_tok_nth(GSList *tokens, unsigned int token_index);
 
-
+TReturn tcore_prepare_and_send_at_request(CoreObject *co,
+												const char *at_cmd,
+												const char *at_cmd_prefix,
+												enum tcore_at_command_type at_cmd_type,
+												UserRequest *ur,
+												TcorePendingResponseCallback resp_cb,
+												void *resp_cb_data,
+												TcorePendingSendCallback send_cb,
+												void *send_cb_data);
 __END_DECLS
 
 #endif

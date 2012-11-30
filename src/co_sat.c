@@ -120,6 +120,18 @@ struct private_object_data {
 
 gboolean b_comprehensive = FALSE;
 
+static void _clone_sat_operations(struct private_object_data *po, struct tcore_sat_operations *sat_ops)
+{
+	if(sat_ops->envelope) {
+		po->ops->envelope = sat_ops->envelope;
+	}
+	if(sat_ops->terminal_response) {
+		po->ops->terminal_response = sat_ops->terminal_response;
+	}
+
+	return;
+}
+
 static TReturn _dispatcher(CoreObject *o, UserRequest *ur)
 {
 	enum tcore_request_command command;
@@ -6854,6 +6866,24 @@ int tcore_sat_encode_terminal_response(const struct treq_sat_terminal_rsp_data *
 	return tr_len;
 }
 
+void tcore_sat_override_ops(CoreObject *o, struct tcore_sat_operations *sat_ops)
+{
+	struct private_object_data *po = NULL;
+
+	CORE_OBJECT_CHECK(o, CORE_OBJECT_TYPE_SAT);
+	
+	po = (struct private_object_data *)tcore_object_ref_object(o);
+	if (!po) {
+		return;
+	}
+
+	if(sat_ops) {
+		_clone_sat_operations(po, sat_ops);
+	}
+
+	return;
+}
+
 CoreObject *tcore_sat_new(TcorePlugin *p, const char *name,
 		struct tcore_sat_operations *ops, TcoreHal *hal)
 {
@@ -6881,6 +6911,22 @@ CoreObject *tcore_sat_new(TcorePlugin *p, const char *name,
 	tcore_object_set_free_hook(o, _free_hook);
 	tcore_object_set_dispatcher(o, _dispatcher);
 
+	return o;
+}
+
+CoreObject *tcore_sat_clone(TcorePlugin *p, const char *name, TcoreHal *hal)
+{
+	CoreObject *o = NULL;
+
+	if (!p)
+		return NULL;
+
+	o = tcore_object_clone_template_object(p, name, CORE_OBJECT_TYPE_SAT);
+	if (!o)
+		return NULL;
+
+	tcore_object_set_hal(o, hal);
+	
 	return o;
 }
 

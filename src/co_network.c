@@ -51,6 +51,63 @@ struct private_object_data {
 	GSList *network_operator_info_table[1000];
 };
 
+static void _clone_network_operations(struct private_object_data *po, struct tcore_network_operations *network_ops)
+{
+	if(network_ops->search) {
+		po->ops->search = network_ops->search;
+	}
+	if(network_ops->set_plmn_selection_mode) {
+		po->ops->set_plmn_selection_mode = network_ops->set_plmn_selection_mode;
+	}
+	if(network_ops->get_plmn_selection_mode) {
+		po->ops->get_plmn_selection_mode = network_ops->get_plmn_selection_mode;
+	}
+	if(network_ops->set_service_domain) {
+		po->ops->set_service_domain = network_ops->set_service_domain;
+	}
+	if(network_ops->get_service_domain) {
+		po->ops->get_service_domain = network_ops->get_service_domain;
+	}
+	if(network_ops->set_band) {
+		po->ops->set_band = network_ops->set_band;
+	}
+	if(network_ops->get_band) {
+		po->ops->get_band = network_ops->get_band;
+	}
+	if(network_ops->set_preferred_plmn) {
+		po->ops->set_preferred_plmn = network_ops->set_preferred_plmn;
+	}
+	if(network_ops->get_preferred_plmn) {
+		po->ops->get_preferred_plmn = network_ops->get_preferred_plmn;
+	}
+	if(network_ops->set_order) {
+		po->ops->set_order = network_ops->set_order;
+	}
+	if(network_ops->get_order) {
+		po->ops->get_order = network_ops->get_order;
+	}
+	if(network_ops->set_power_on_attach) {
+		po->ops->set_power_on_attach = network_ops->set_power_on_attach;
+	}
+	if(network_ops->get_power_on_attach) {
+		po->ops->get_power_on_attach = network_ops->get_power_on_attach;
+	}
+	if(network_ops->set_cancel_manual_search) {
+		po->ops->set_cancel_manual_search = network_ops->set_cancel_manual_search;
+	}
+	if(network_ops->get_serving_network) {
+		po->ops->get_serving_network = network_ops->get_serving_network;
+	}
+	if(network_ops->set_mode) {
+		po->ops->set_mode = network_ops->set_mode;
+	}
+	if(network_ops->get_mode) {
+		po->ops->get_mode = network_ops->get_mode;
+	}
+
+	return;
+}
+
 static TReturn _dispatcher(CoreObject *co, UserRequest *ur)
 {
 	enum tcore_request_command command;
@@ -237,6 +294,24 @@ static void _clone_hook(CoreObject *src, CoreObject *dest)
 	tcore_object_link_object(dest, dest_po);
 }
 
+void tcore_network_override_ops(CoreObject *o, struct tcore_network_operations *network_ops)
+{
+	struct private_object_data *po = NULL;
+
+	CORE_OBJECT_CHECK(o, CORE_OBJECT_TYPE_NETWORK);
+	
+	po = (struct private_object_data *)tcore_object_ref_object(o);
+	if (!po) {
+		return;
+	}
+
+	if(network_ops) {
+		_clone_network_operations(po, network_ops);
+	}
+
+	return;
+}
+
 CoreObject *tcore_network_new(TcorePlugin *plugin, const char *name,
 		struct tcore_network_operations *ops, TcoreHal *hal)
 {
@@ -264,6 +339,22 @@ CoreObject *tcore_network_new(TcorePlugin *plugin, const char *name,
 	tcore_object_set_clone_hook(o, _clone_hook);
 	tcore_object_set_dispatcher(o, _dispatcher);
 
+	return o;
+}
+
+CoreObject *tcore_network_clone(TcorePlugin *p, const char *name, TcoreHal *hal)
+{
+	CoreObject *o = NULL;
+
+	if (!p)
+		return NULL;
+
+	o = tcore_object_clone_template_object(p, name, CORE_OBJECT_TYPE_NETWORK);
+	if (!o)
+		return NULL;
+
+	tcore_object_set_hal(o, hal);
+	
 	return o;
 }
 

@@ -75,6 +75,8 @@ enum co_context_auth {
 CoreObject*              tcore_context_new(TcorePlugin *p, const char *name, TcoreHal *hal);
 void                     tcore_context_free(CoreObject *o);
 
+CoreObject *tcore_context_clone(TcorePlugin *p, const char *name, TcoreHal *hal);
+
 TReturn                  tcore_context_set_state(CoreObject *o, enum co_context_state state);
 enum co_context_state    tcore_context_get_state(CoreObject *o);
 TReturn                  tcore_context_set_id(CoreObject *o, unsigned int id);

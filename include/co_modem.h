@@ -38,9 +38,11 @@ struct tcore_modem_operations {
 	TReturn (*get_flight_mode)(CoreObject *o, UserRequest *ur);
 };
 
-
 CoreObject*      tcore_modem_new(TcorePlugin *p, const char *name, struct tcore_modem_operations *ops, TcoreHal *hal);
 void             tcore_modem_free(CoreObject *o);
+
+CoreObject *tcore_modem_clone(TcorePlugin *p, const char *name, TcoreHal *hal);
+void tcore_modem_override_ops(CoreObject *o, struct tcore_modem_operations *modem_ops);
 
 TReturn          tcore_modem_set_flight_mode_state(CoreObject *o, gboolean flag);
 gboolean         tcore_modem_get_flight_mode_state(CoreObject *o);

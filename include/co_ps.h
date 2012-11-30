@@ -38,6 +38,9 @@ struct tcore_ps_operations {
 CoreObject*  tcore_ps_new(TcorePlugin *p, const char *name, struct tcore_ps_operations *ops, TcoreHal *hal);
 void         tcore_ps_free(CoreObject *o);
 
+CoreObject *tcore_ps_clone(TcorePlugin *p, const char *name, TcoreHal *hal);
+void tcore_ps_override_ops(CoreObject *o, struct tcore_ps_operations *ps_ops);
+
 TReturn      tcore_ps_add_context(CoreObject *o, CoreObject *ctx_o);
 TReturn      tcore_ps_remove_context(CoreObject *o, CoreObject *ctx_o);
 CoreObject*  tcore_ps_ref_context_by_role(CoreObject *o, enum co_context_role role);

@@ -73,10 +73,12 @@ struct tcore_network_operations {
 	TReturn (*get_neighboring_cell_info)(CoreObject *o, UserRequest *ur);
 };
 
-
 CoreObject* tcore_network_new(TcorePlugin *plugin, const char *name,
                 struct tcore_network_operations *ops, TcoreHal *hal);
 void        tcore_network_free(CoreObject *co);
+
+CoreObject *tcore_network_clone(TcorePlugin *p, const char *name, TcoreHal *hal);
+void tcore_network_override_ops(CoreObject *o, struct tcore_network_operations *network_ops);
 
 TReturn     tcore_network_set_plmn(CoreObject *co, const char *plmn);
 char*       tcore_network_get_plmn(CoreObject *co);

@@ -102,6 +102,22 @@ CoreObject *tcore_context_new(TcorePlugin *p, const char *name, TcoreHal *hal)
 	return o;
 }
 
+CoreObject *tcore_context_clone(TcorePlugin *p, const char *name, TcoreHal *hal)
+{
+	CoreObject *o = NULL;
+
+	if (!p)
+		return NULL;
+
+	o = tcore_object_clone_template_object(p, name, CORE_OBJECT_TYPE_PS_CONTEXT);
+	if (!o)
+		return NULL;
+
+	tcore_object_set_hal(o, hal);
+	
+	return o;
+}
+
 void tcore_context_free(CoreObject *o)
 {
 	struct private_object_data *po = NULL;

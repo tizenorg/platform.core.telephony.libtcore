@@ -30,6 +30,7 @@
 #include "queue.h"
 #include "user_request.h"
 #include "at.h"
+#include "core_object.h"
 
 #define NUM_ELEMS(x) (sizeof(x)/sizeof(x[0]))
 #define MODE_HEX 	0
@@ -971,4 +972,50 @@ gboolean tcore_at_add_hook(TcoreHal *hal, void *hook_func)
 	}
 	dbg("AT is NULL !!!");
 	return FALSE;
+}
+
+TReturn tcore_prepare_and_send_at_request(CoreObject *co,
+												const char *at_cmd,
+												const char *at_cmd_prefix,
+												enum tcore_at_command_type at_cmd_type,
+												UserRequest *ur,
+												TcorePendingResponseCallback resp_cb,
+												void *resp_cb_data,
+												TcorePendingSendCallback send_cb,
+												void *send_cb_data)
+{
+	TcorePending *pending = NULL;
+	TcoreATRequest *req = NULL;
+	TcoreHal *hal = NULL;
+	TReturn ret = TCORE_RETURN_FAILURE;
+
+	hal = tcore_object_get_hal(co);
+	if (!hal) {
+		dbg("HAL is NULL");
+		return ret;
+	}
+
+	/* Create Pending Request */
+	pending = tcore_pending_new(co, 0);
+	if (!pending) {
+		dbg("Pending is NULL");
+		return ret;
+	}
+
+	/* Create AT-Command Request */
+	req = tcore_at_request_new(at_cmd, at_cmd_prefix, at_cmd_type);
+	if (!req) {
+		dbg("Request is NULL");
+		tcore_pending_free(pending);
+		return ret;
+	}
+	dbg("AT Command: %s, Prefix(if any):%s, AT-Command length: %d", req->cmd, req->prefix, strlen(req->cmd));
+
+	tcore_pending_set_request_data(pending, 0, req);
+	tcore_pending_set_response_callback(pending, resp_cb, resp_cb_data);
+	tcore_pending_set_send_callback(pending, send_cb, send_cb_data);
+	tcore_pending_link_user_request(pending, ur);
+
+	ret = tcore_hal_send_request(hal, pending);
+	return ret;
 }

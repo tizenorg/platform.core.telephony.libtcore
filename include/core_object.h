@@ -58,6 +58,7 @@ TReturn          tcore_object_set_free_hook(CoreObject *co, CoreObjectFreeHook f
 TReturn          tcore_object_set_clone_hook(CoreObject *co, CoreObjectCloneHook clone_hook);
 
 CoreObject*      tcore_object_clone(CoreObject *src, TcorePlugin *new_parent, const char *new_name);
+CoreObject *tcore_object_clone_template_object(TcorePlugin *p, const char *co_name, unsigned int co_type);
 
 TReturn          tcore_object_set_name(CoreObject *co, const char *name);
 const char*      tcore_object_ref_name(CoreObject *co);

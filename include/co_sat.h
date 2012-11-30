@@ -88,4 +88,7 @@ int tcore_sat_encode_terminal_response(const struct treq_sat_terminal_rsp_data *
 CoreObject* tcore_sat_new(TcorePlugin *p, const char *name, struct tcore_sat_operations *ops, TcoreHal *hal);
 void        tcore_sat_free(CoreObject *n);
 
+CoreObject *tcore_sat_clone(TcorePlugin *p, const char *name, TcoreHal *hal);
+void tcore_sat_override_ops(CoreObject *o, struct tcore_sat_operations *sat_ops);
+
 #endif

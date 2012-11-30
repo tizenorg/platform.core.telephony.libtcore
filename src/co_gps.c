@@ -53,6 +53,15 @@ static void _clone_hook(CoreObject *src, CoreObject *dest)
 	tcore_object_link_object(dest, dest_po);
 }
 
+static void _clone_gps_operations(struct private_object_data *po, struct tcore_gps_operations *gps_ops)
+{
+	if(gps_ops->confirm_measure_pos) {
+		po->ops->confirm_measure_pos = gps_ops->confirm_measure_pos;
+	}
+
+	return;
+}
+
 static TReturn _dispatcher(CoreObject *o, UserRequest *ur)
 {
 	enum tcore_request_command command;
@@ -90,6 +99,24 @@ static TReturn _dispatcher(CoreObject *o, UserRequest *ur)
 	return TCORE_RETURN_SUCCESS;
 }
 
+void tcore_gps_override_ops(CoreObject *o, struct tcore_gps_operations *gps_ops)
+{
+	struct private_object_data *po = NULL;
+
+	CORE_OBJECT_CHECK(o, CORE_OBJECT_TYPE_GPS);
+	
+	po = (struct private_object_data *)tcore_object_ref_object(o);
+	if (!po) {
+		return;
+	}
+
+	if(gps_ops) {
+		_clone_gps_operations(po, gps_ops);
+	}
+
+	return;
+}
+
 CoreObject *tcore_gps_new(TcorePlugin *p, const char *name,
 		struct tcore_gps_operations *ops, TcoreHal *hal)
 {
@@ -116,6 +143,22 @@ CoreObject *tcore_gps_new(TcorePlugin *p, const char *name,
 	tcore_object_set_dispatcher(o, _dispatcher);
 	tcore_object_set_clone_hook(o, _clone_hook);
 
+	return o;
+}
+
+CoreObject *tcore_gps_clone(TcorePlugin *p, const char *name, TcoreHal *hal)
+{
+	CoreObject *o = NULL;
+
+	if (!p)
+		return NULL;
+
+	o = tcore_object_clone_template_object(p, name, CORE_OBJECT_TYPE_GPS);
+	if (!o)
+		return NULL;
+
+	tcore_object_set_hal(o, hal);
+	
 	return o;
 }
 

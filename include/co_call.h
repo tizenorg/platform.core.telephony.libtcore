@@ -153,6 +153,11 @@ struct tcore_call_control_operations {
 CoreObject*				tcore_call_new(TcorePlugin *p, const char *name, struct tcore_call_operations *ops, TcoreHal *hal);
 void					tcore_call_free( CoreObject *o);
 
+CoreObject *tcore_call_clone(TcorePlugin *p, const char *name, TcoreHal *hal);
+void tcore_call_override_ops(CoreObject *o,
+										struct tcore_call_operations *call_ops,
+										struct tcore_call_control_operations *control_ops,
+										struct tcore_call_information_operations *info_ops);
 
 // Call Object API
 CallObject*				tcore_call_object_new( CoreObject *o, int id );

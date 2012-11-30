@@ -129,6 +129,66 @@ int _tcore_util_sms_encode_smsParameters(const struct telephony_sms_Params *inco
 
 }
 
+static void _clone_sms_operations(struct private_object_data *po, struct tcore_sms_operations *sms_ops)
+{
+	if(sms_ops->send_umts_msg) {
+		po->ops->send_umts_msg = sms_ops->send_umts_msg;
+	}
+	if(sms_ops->read_msg) {
+		po->ops->read_msg = sms_ops->read_msg;
+	}
+	if(sms_ops->save_msg) {
+		po->ops->save_msg = sms_ops->save_msg;
+	}
+	if(sms_ops->delete_msg) {
+		po->ops->delete_msg = sms_ops->delete_msg;
+	}
+	if(sms_ops->get_storedMsgCnt) {
+		po->ops->get_storedMsgCnt = sms_ops->get_storedMsgCnt;
+	}
+	if(sms_ops->get_sca) {
+		po->ops->get_sca = sms_ops->get_sca;
+	}
+	if(sms_ops->set_sca) {
+		po->ops->set_sca = sms_ops->set_sca;
+	}
+	if(sms_ops->get_cb_config) {
+		po->ops->get_cb_config = sms_ops->get_cb_config;
+	}
+	if(sms_ops->set_cb_config) {
+		po->ops->set_cb_config = sms_ops->set_cb_config;
+	}
+	if(sms_ops->set_mem_status) {
+		po->ops->set_mem_status = sms_ops->set_mem_status;
+	}
+	if(sms_ops->get_pref_brearer) {
+		po->ops->get_pref_brearer = sms_ops->get_pref_brearer;
+	}
+	if(sms_ops->set_pref_brearer) {
+		po->ops->set_pref_brearer = sms_ops->set_pref_brearer;
+	}
+	if(sms_ops->set_delivery_report) {
+		po->ops->set_delivery_report = sms_ops->set_delivery_report;
+	}
+	if(sms_ops->set_msg_status) {
+		po->ops->set_msg_status = sms_ops->set_msg_status;
+	}
+	if(sms_ops->get_sms_params) {
+		po->ops->get_sms_params = sms_ops->get_sms_params;
+	}
+	if(sms_ops->set_sms_params) {
+		po->ops->set_sms_params = sms_ops->set_sms_params;
+	}
+	if(sms_ops->get_paramcnt) {
+		po->ops->get_paramcnt = sms_ops->get_paramcnt;
+	}
+	if(sms_ops->send_cdma_msg) {
+		po->ops->send_cdma_msg = sms_ops->send_cdma_msg;
+	}
+
+	return;
+}
+
 static TReturn _dispatcher(CoreObject *o, UserRequest *ur)
 {
 	enum tcore_request_command command;
@@ -398,6 +458,24 @@ gboolean tcore_sms_set_ready_status(CoreObject *o, int status)
 	return TRUE;
 }
 
+void tcore_sms_override_ops(CoreObject *o, struct tcore_sms_operations *sms_ops)
+{
+	struct private_object_data *po = NULL;
+
+	CORE_OBJECT_CHECK(o, CORE_OBJECT_TYPE_SMS);
+	
+	po = (struct private_object_data *)tcore_object_ref_object(o);
+	if (!po) {
+		return;
+	}
+
+	if(sms_ops) {
+		_clone_sms_operations(po, sms_ops);
+	}
+
+	return;
+}
+
 CoreObject *tcore_sms_new(TcorePlugin *p, const char *name,
 		struct tcore_sms_operations *ops, TcoreHal *hal)
 {
@@ -425,6 +503,22 @@ CoreObject *tcore_sms_new(TcorePlugin *p, const char *name,
 	tcore_object_set_clone_hook(o, _clone_hook);
 	tcore_object_set_dispatcher(o, _dispatcher);
 
+	return o;
+}
+
+CoreObject *tcore_sms_clone(TcorePlugin *p, const char *name, TcoreHal *hal)
+{
+	CoreObject *o = NULL;
+
+	if (!p)
+		return NULL;
+
+	o = tcore_object_clone_template_object(p, name, CORE_OBJECT_TYPE_SMS);
+	if (!o)
+		return NULL;
+
+	tcore_object_set_hal(o, hal);
+	
 	return o;
 }
 

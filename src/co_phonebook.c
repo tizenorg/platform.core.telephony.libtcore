@@ -38,6 +38,30 @@ struct private_object_data {
 	enum tel_phonebook_type selected;
 };
 
+static void _clone_phonebook_operations(struct private_object_data *po, struct tcore_phonebook_operations *phonebook_ops)
+{
+	if(phonebook_ops->get_count) {
+		po->ops->get_count = phonebook_ops->get_count;
+	}
+	if(phonebook_ops->get_info) {
+		po->ops->get_info = phonebook_ops->get_info;
+	}
+	if(phonebook_ops->get_usim_info) {
+		po->ops->get_usim_info = phonebook_ops->get_usim_info;
+	}
+	if(phonebook_ops->read_record) {
+		po->ops->read_record = phonebook_ops->read_record;
+	}
+	if(phonebook_ops->update_record) {
+		po->ops->update_record = phonebook_ops->update_record;
+	}
+	if(phonebook_ops->delete_record) {
+		po->ops->delete_record = phonebook_ops->delete_record;
+	}
+
+	return;
+}
+
 static TReturn _dispatcher(CoreObject *o, UserRequest *ur)
 {
 	enum tcore_request_command command;
@@ -187,6 +211,24 @@ gboolean tcore_phonebook_set_selected_type(CoreObject *o, enum tel_phonebook_typ
 	return TRUE;
 }
 
+void tcore_phonebook_override_ops(CoreObject *o, struct tcore_phonebook_operations *phonebook_ops)
+{
+	struct private_object_data *po = NULL;
+
+	CORE_OBJECT_CHECK(o, CORE_OBJECT_TYPE_PHONEBOOK);
+	
+	po = (struct private_object_data *)tcore_object_ref_object(o);
+	if (!po) {
+		return;
+	}
+
+	if(phonebook_ops) {
+		_clone_phonebook_operations(po, phonebook_ops);
+	}
+
+	return;
+}
+
 CoreObject *tcore_phonebook_new(TcorePlugin *p, const char *name,
 		struct tcore_phonebook_operations *ops, TcoreHal *hal)
 {
@@ -215,6 +257,22 @@ CoreObject *tcore_phonebook_new(TcorePlugin *p, const char *name,
 	tcore_object_set_clone_hook(o, _clone_hook);
 	tcore_object_set_dispatcher(o, _dispatcher);
 
+	return o;
+}
+
+CoreObject *tcore_phonebook_clone(TcorePlugin *p, const char *name, TcoreHal *hal)
+{
+	CoreObject *o = NULL;
+
+	if (!p)
+		return NULL;
+
+	o = tcore_object_clone_template_object(p, name, CORE_OBJECT_TYPE_PHONEBOOK);
+	if (!o)
+		return NULL;
+
+	tcore_object_set_hal(o, hal);
+	
 	return o;
 }
 

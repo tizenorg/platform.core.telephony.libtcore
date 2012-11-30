@@ -46,6 +46,18 @@ struct private_object_data {
 	GSList *context_list;
 };
 
+static void _clone_ps_operations(struct private_object_data *po, struct tcore_ps_operations *ps_ops)
+{
+	if(ps_ops->activate_context) {
+		po->ops->activate_context = ps_ops->activate_context;
+	}
+	if(ps_ops->deactivate_context) {
+		po->ops->deactivate_context = ps_ops->deactivate_context;
+	}
+
+	return;
+}
+
 static TReturn _dispatcher(CoreObject *o, UserRequest *ur)
 {
 	enum tcore_request_command command;
@@ -195,6 +207,24 @@ static gboolean _ps_is_duplicated_apn(CoreObject *o, CoreObject *ps_context)
 	return FALSE;
 }
 
+void tcore_ps_override_ops(CoreObject *o, struct tcore_ps_operations *ps_ops)
+{
+	struct private_object_data *po = NULL;
+
+	CORE_OBJECT_CHECK(o, CORE_OBJECT_TYPE_PS);
+	
+	po = (struct private_object_data *)tcore_object_ref_object(o);
+	if (!po) {
+		return;
+	}
+
+	if(ps_ops) {
+		_clone_ps_operations(po, ps_ops);
+	}
+
+	return;
+}
+
 CoreObject *tcore_ps_new(TcorePlugin *p, const char *name,
 		struct tcore_ps_operations *ops, TcoreHal *hal)
 {
@@ -222,6 +252,22 @@ CoreObject *tcore_ps_new(TcorePlugin *p, const char *name,
 	tcore_object_set_clone_hook(o, _clone_hook);
 	tcore_object_set_dispatcher(o, _dispatcher);
 
+	return o;
+}
+
+CoreObject *tcore_ps_clone(TcorePlugin *p, const char *name, TcoreHal *hal)
+{
+	CoreObject *o = NULL;
+
+	if (!p)
+		return NULL;
+
+	o = tcore_object_clone_template_object(p, name, CORE_OBJECT_TYPE_PS);
+	if (!o)
+		return NULL;
+
+	tcore_object_set_hal(o, hal);
+	
 	return o;
 }
 

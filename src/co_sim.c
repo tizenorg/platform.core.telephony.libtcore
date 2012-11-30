@@ -43,6 +43,47 @@ struct private_object_data {
 	void *userdata; /**< free use data*/
 };
 
+static void _clone_sim_operations(struct private_object_data *po, struct tcore_sim_operations *sim_ops)
+{
+	if(sim_ops->verify_pins) {
+		po->ops->verify_pins = sim_ops->verify_pins;
+	}
+	if(sim_ops->verify_puks) {
+		po->ops->verify_puks = sim_ops->verify_puks;
+	}
+	if(sim_ops->change_pins) {
+		po->ops->change_pins = sim_ops->change_pins;
+	}
+	if(sim_ops->get_facility_status) {
+		po->ops->get_facility_status = sim_ops->get_facility_status;
+	}
+	if(sim_ops->enable_facility) {
+		po->ops->enable_facility = sim_ops->enable_facility;
+	}
+	if(sim_ops->disable_facility) {
+		po->ops->disable_facility = sim_ops->disable_facility;
+	}
+	if(sim_ops->get_lock_info) {
+		po->ops->get_lock_info = sim_ops->get_lock_info;
+	}
+	if(sim_ops->read_file) {
+		po->ops->read_file = sim_ops->read_file;
+	}
+	if(sim_ops->update_file) {
+		po->ops->update_file = sim_ops->update_file;
+	}
+	if(sim_ops->transmit_apdu) {
+		po->ops->transmit_apdu = sim_ops->transmit_apdu;
+	}
+	if(sim_ops->get_atr) {
+		po->ops->get_atr = sim_ops->get_atr;
+	}
+	if(sim_ops->req_authentication) {
+		po->ops->req_authentication = sim_ops->req_authentication;
+	}
+
+	return;
+}
 
 static TReturn _dispatcher(CoreObject *o, UserRequest *ur)
 {
@@ -2477,6 +2518,24 @@ static void tcore_sim_initialize_context(CoreObject *o)
 	po->sim_status = SIM_STATUS_UNKNOWN;
 }
 
+void tcore_sim_override_ops(CoreObject *o, struct tcore_sim_operations *sim_ops)
+{
+	struct private_object_data *po = NULL;
+
+	CORE_OBJECT_CHECK(o, CORE_OBJECT_TYPE_SIM);
+	
+	po = (struct private_object_data *)tcore_object_ref_object(o);
+	if (!po) {
+		return;
+	}
+
+	if(sim_ops) {
+		_clone_sim_operations(po, sim_ops);
+	}
+
+	return;
+}
+
 CoreObject *tcore_sim_new(TcorePlugin *p, const char *name,
 		struct tcore_sim_operations *ops, TcoreHal *hal)
 {
@@ -2506,6 +2565,22 @@ CoreObject *tcore_sim_new(TcorePlugin *p, const char *name,
 
 	tcore_sim_initialize_context(o);
 
+	return o;
+}
+
+CoreObject *tcore_sim_clone(TcorePlugin *p, const char *name, TcoreHal *hal)
+{
+	CoreObject *o = NULL;
+
+	if (!p)
+		return NULL;
+
+	o = tcore_object_clone_template_object(p, name, CORE_OBJECT_TYPE_SIM);
+	if (!o)
+		return NULL;
+
+	tcore_object_set_hal(o, hal);
+	
 	return o;
 }
 

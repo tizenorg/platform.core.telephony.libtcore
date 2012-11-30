@@ -25,6 +25,7 @@
 #include <glib.h>
 
 #include "tcore.h"
+#include "server.h"
 #include "plugin.h"
 #include "core_object.h"
 #include "hal.h"
@@ -189,6 +190,23 @@ CoreObject *tcore_object_clone(CoreObject *src, TcorePlugin *new_parent, const c
 		src->clone_hook(src, dest);
 
 	return dest;
+}
+
+CoreObject *tcore_object_clone_template_object(TcorePlugin *p, const char *co_name, unsigned int co_type)
+{
+	CoreObject *co = NULL;
+	CoreObject *template_co = NULL;
+
+	template_co = tcore_server_find_template_object(tcore_plugin_ref_server(p), co_type);
+	if(!template_co) {
+		return NULL;
+	}
+	co = tcore_object_clone(template_co, p, co_name);
+	if(!co) {
+		return NULL;
+	}
+
+	return co;
 }
 
 const char *tcore_object_ref_name(CoreObject *co)

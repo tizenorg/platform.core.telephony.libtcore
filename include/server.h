@@ -51,6 +51,10 @@ TReturn       tcore_server_add_hal(Server *s, TcoreHal *hal);
 GSList*       tcore_server_ref_hals(Server *s);
 TcoreHal*     tcore_server_find_hal(Server *s, const char *name);
 
+TReturn tcore_server_add_template_object(Server *s, CoreObject *template_co);
+GSList *tcore_server_ref_template_object(Server *s);
+CoreObject *tcore_server_find_template_object(Server *s, unsigned int type);
+
 TReturn       tcore_server_link_udev(Server *s, TcoreUdev *udev);
 TcoreUdev*    tcore_server_ref_udev(Server *s);
 
