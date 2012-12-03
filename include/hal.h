@@ -96,7 +96,6 @@ TReturn      tcore_hal_setup_netif(TcoreHal *hal, CoreObject *co,
 					void *user_data, unsigned int cid,
 					gboolean enable);
 
-
 __END_DECLS
 
 #endif

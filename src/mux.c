@@ -201,7 +201,6 @@ static void tcore_cmux_channel_init(CMUX_Channels channel_id);
 static void tcore_cmux_close_channel(int channel_id);
 static unsigned char* tcore_encode_cmux_frame(unsigned char *data, int length, int channel_id, int frame_type, unsigned char EA_bit, unsigned char CR_bit, unsigned char PF_bit, int *out_data_len);
 static TReturn tcore_cmux_send_data(int data_len, unsigned char *data);
-
 static TReturn tcore_cmux_hal_power(TcoreHal *h, gboolean flag)
 {
 	TcorePlugin *p = NULL;

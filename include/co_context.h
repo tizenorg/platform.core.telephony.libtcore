@@ -86,8 +86,6 @@ enum co_context_role     tcore_context_get_role(CoreObject *o);
 
 TReturn                  tcore_context_set_apn(CoreObject *o, const char *apn);
 char*                    tcore_context_get_apn(CoreObject *o);
-TReturn                  tcore_context_set_address(CoreObject *o, const char *addr);
-char*                    tcore_context_get_address(CoreObject *o);
 TReturn                  tcore_context_set_type(CoreObject *o, enum co_context_type type);
 enum co_context_type     tcore_context_get_type(CoreObject *o);
 TReturn                  tcore_context_set_data_compression(CoreObject *o, enum co_context_d_comp comp);
@@ -99,10 +97,6 @@ TReturn                  tcore_context_set_username(CoreObject *o, const char *u
 char*                    tcore_context_get_username(CoreObject *o);
 TReturn                  tcore_context_set_password(CoreObject *o, const char *password);
 char*                    tcore_context_get_password(CoreObject *o);
-TReturn                  tcore_context_set_dns1(CoreObject *o, const char *dns);
-char*                    tcore_context_get_dns1(CoreObject *o);
-TReturn                  tcore_context_set_dns2(CoreObject *o, const char *dns);
-char*                    tcore_context_get_dns2(CoreObject *o);
 TReturn                  tcore_context_set_auth(CoreObject *o, enum co_context_auth auth);
 enum co_context_auth     tcore_context_get_auth(CoreObject *o);
 TReturn                  tcore_context_set_proxy(CoreObject *o, const char *proxy);
@@ -116,10 +110,13 @@ TReturn                  tcore_context_set_devinfo(CoreObject *o, struct tnoti_p
 TReturn                  tcore_context_reset_devinfo(CoreObject *o);
 void                     tcore_context_cp_service_info(CoreObject *dest, CoreObject *src);
 
+TReturn                  tcore_context_set_ipv4_addr(CoreObject *o, const char *addr);
 char*                    tcore_context_get_ipv4_addr(CoreObject *o);
+TReturn                  tcore_context_set_ipv4_dns(CoreObject *o, const char *dns1, const char *dns2);
 char*                    tcore_context_get_ipv4_dns1(CoreObject *o);
 char*                    tcore_context_get_ipv4_dns2(CoreObject *o);
 char*                    tcore_context_get_ipv4_gw(CoreObject *o);
+TReturn                  tcore_context_set_ipv4_devname(CoreObject *o, const char *name);
 char*                    tcore_context_get_ipv4_devname(CoreObject *o);
 
 __END_DECLS
