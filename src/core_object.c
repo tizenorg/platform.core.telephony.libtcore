@@ -398,9 +398,45 @@ TReturn tcore_object_set_dispatcher(CoreObject *co,
 	return TCORE_RETURN_SUCCESS;
 }
 
+TReturn tcore_object_override_callback(CoreObject *co,
+		const char *event, CoreObjectCallback callback, void *user_data)
+{
+	struct callback_type *cb = NULL;
+	GSList *l = NULL;
+	TcoreAT *at = NULL;
+
+	if (!co || !event || !callback)
+		return TCORE_RETURN_EINVAL;
+
+	if (strlen(event) < 1)
+		return TCORE_RETURN_EINVAL;
+
+	if (co->hal) {
+		if (tcore_hal_get_mode(co->hal) == TCORE_HAL_MODE_AT)
+			at = tcore_hal_get_at(co->hal);
+	}
+
+	for (l = co->callbacks; l; l = l->next) {
+		cb = l->data;
+		if (!cb)
+			continue;
+
+		if (g_strcmp0(cb->event, event) != 0)
+			continue;
+
+		if (at)
+			_remove_at_callback(at, cb);
+
+		free(cb->event);
+		co->callbacks = g_slist_remove(co->callbacks, cb);
+		free(cb);
+	}
+
+	return tcore_object_add_callback(co, event, callback, user_data);
+}
+
 TReturn tcore_object_add_callback(CoreObject *co,
-		const char *event,
-		CoreObjectCallback callback, void *user_data)
+		const char *event, CoreObjectCallback callback, void *user_data)
 {
 	struct callback_type *cb = NULL;
 	TcoreAT *at = NULL;

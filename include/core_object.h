@@ -51,39 +51,40 @@ typedef void (*CoreObjectCloneHook)(CoreObject *src, CoreObject *dest);
 typedef gboolean (*CoreObjectCallback)(CoreObject *co, const void *event_info, void *user_data);
 typedef TReturn (*CoreObjectDispatcher)(CoreObject *co, UserRequest *ur);
 
-CoreObject*      tcore_object_new(TcorePlugin *plugin, const char *name, TcoreHal *hal);
-void             tcore_object_free(CoreObject *co);
+CoreObject *tcore_object_new(TcorePlugin *plugin, const char *name, TcoreHal *hal);
+void tcore_object_free(CoreObject *co);
 
-TReturn          tcore_object_set_free_hook(CoreObject *co, CoreObjectFreeHook free_hook);
-TReturn          tcore_object_set_clone_hook(CoreObject *co, CoreObjectCloneHook clone_hook);
+TReturn tcore_object_set_free_hook(CoreObject *co, CoreObjectFreeHook free_hook);
+TReturn tcore_object_set_clone_hook(CoreObject *co, CoreObjectCloneHook clone_hook);
 
-CoreObject*      tcore_object_clone(CoreObject *src, TcorePlugin *new_parent, const char *new_name);
+CoreObject *tcore_object_clone(CoreObject *src, TcorePlugin *new_parent, const char *new_name);
 CoreObject *tcore_object_clone_template_object(TcorePlugin *p, const char *co_name, unsigned int co_type);
 
-TReturn          tcore_object_set_name(CoreObject *co, const char *name);
-const char*      tcore_object_ref_name(CoreObject *co);
+TReturn tcore_object_set_name(CoreObject *co, const char *name);
+const char *tcore_object_ref_name(CoreObject *co);
 
-TReturn          tcore_object_set_plugin(CoreObject *co, TcorePlugin *plugin);
-TcorePlugin*     tcore_object_ref_plugin(CoreObject *co);
+TReturn tcore_object_set_plugin(CoreObject *co, TcorePlugin *plugin);
+TcorePlugin *tcore_object_ref_plugin(CoreObject *co);
 
-TReturn          tcore_object_link_object(CoreObject *co, void *object);
-void*            tcore_object_ref_object(CoreObject *co);
+TReturn tcore_object_link_object(CoreObject *co, void *object);
+void *tcore_object_ref_object(CoreObject *co);
 
-TReturn          tcore_object_set_type(CoreObject *co, unsigned int type);
-unsigned int     tcore_object_get_type(CoreObject *co);
+TReturn tcore_object_set_type(CoreObject *co, unsigned int type);
+unsigned int tcore_object_get_type(CoreObject *co);
 
-TReturn          tcore_object_set_hal(CoreObject *co, TcoreHal *hal);
-TcoreHal*        tcore_object_get_hal(CoreObject *co);
+TReturn tcore_object_set_hal(CoreObject *co, TcoreHal *hal);
+TcoreHal *tcore_object_get_hal(CoreObject *co);
 
-TReturn          tcore_object_link_user_data(CoreObject *co, void *user_data);
-void*            tcore_object_ref_user_data(CoreObject *co);
+TReturn tcore_object_link_user_data(CoreObject *co, void *user_data);
+void *tcore_object_ref_user_data(CoreObject *co);
 
-TReturn          tcore_object_set_dispatcher(CoreObject *co, CoreObjectDispatcher func);
-TReturn          tcore_object_dispatch_request(CoreObject *co, UserRequest *ur);
+TReturn tcore_object_set_dispatcher(CoreObject *co, CoreObjectDispatcher func);
+TReturn tcore_object_dispatch_request(CoreObject *co, UserRequest *ur);
 
-TReturn          tcore_object_add_callback(CoreObject *co, const char *event, CoreObjectCallback callback, void *user_data);
-TReturn          tcore_object_del_callback(CoreObject *co, const char *event, CoreObjectCallback callback);
-TReturn          tcore_object_emit_callback(CoreObject *co, const char *event, const void *event_info);
+TReturn tcore_object_add_callback(CoreObject *co, const char *event, CoreObjectCallback callback, void *user_data);
+TReturn tcore_object_del_callback(CoreObject *co, const char *event, CoreObjectCallback callback);
+TReturn tcore_object_override_callback(CoreObject *co, const char *event, CoreObjectCallback callback, void *user_data);
+TReturn tcore_object_emit_callback(CoreObject *co, const char *event, const void *event_info);
 
 __END_DECLS
 
