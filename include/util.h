@@ -50,8 +50,7 @@ enum tcore_dcs_type {
 	TCORE_DCS_TYPE_UNSPECIFIED = 0x0F,
 };
 
-TReturn     tcore_util_netif_up(const char *name);
-TReturn     tcore_util_netif_down(const char *name);
+TReturn     tcore_util_netif(const char *name, gboolean enabled);
 TReturn     tcore_util_netif_set(const char *name, const char *ipaddr,
                 const char *gateway, const char *netmask);
 

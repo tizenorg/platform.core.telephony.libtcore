@@ -878,7 +878,7 @@ static gboolean _tcore_util_marshal_convert_str_to_type(GValue *src,
 	return TRUE;
 }
 
-TReturn tcore_util_netif_up(const char *name)
+TReturn tcore_util_netif(const char *name, gboolean enabled)
 {
 	int ret;
 	int fd;
@@ -890,7 +890,11 @@ TReturn tcore_util_netif_up(const char *name)
 	if (strlen(name) > IFNAMSIZ)
 		return TCORE_RETURN_EINVAL;
 
-	fd = socket(AF_INET, SOCK_DGRAM, 0);
+	if (enabled == TRUE)
+		fd = socket(AF_INET, SOCK_DGRAM, 0);
+	else
+		fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
+
 	if (fd < 0) {
 		return TCORE_RETURN_FAILURE;
 	}
@@ -905,47 +909,10 @@ TReturn tcore_util_netif_up(const char *name)
 		return TCORE_RETURN_FAILURE;
 	}
 
-	ifr.ifr_flags |= IFF_UP | IFF_RUNNING;
-
-	ret = ioctl(fd, SIOCSIFFLAGS, &ifr);
-	if (ret < 0) {
-		close(fd);
-		return TCORE_RETURN_FAILURE;
-	}
-
-	close(fd);
-	return TCORE_RETURN_SUCCESS;
-}
-
-TReturn tcore_util_netif_down(const char *name)
-{
-	int ret;
-	int fd;
-	struct ifreq ifr;
-
-	if (!name)
-		return TCORE_RETURN_EINVAL;
-
-	if (strlen(name) > IFNAMSIZ)
-		return TCORE_RETURN_EINVAL;
-
-	fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_IP);
-	if (fd < 0) {
-		return TCORE_RETURN_FAILURE;
-	}
-
-	memset(&ifr, 0, sizeof(struct ifreq));
-	strncpy(ifr.ifr_name, name, IFNAMSIZ);
-	ifr.ifr_name[IFNAMSIZ - 1] = '\0';
-
-
-	ret = ioctl(fd, SIOCGIFFLAGS, &ifr);
-	if (ret < 0) {
-		close(fd);
-		return TCORE_RETURN_FAILURE;
-	}
-
-	ifr.ifr_flags &= ~(IFF_UP | IFF_RUNNING);
+	if (enabled == TRUE)
+		ifr.ifr_flags |= IFF_UP | IFF_RUNNING;
+	else
+		ifr.ifr_flags &= ~(IFF_UP | IFF_RUNNING);
 
 	ret = ioctl(fd, SIOCSIFFLAGS, &ifr);
 	if (ret < 0) {

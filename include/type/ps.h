@@ -24,39 +24,39 @@
 __BEGIN_DECLS
 
 enum telephony_ps_pdp_err {
-	PDP_FAILURE_CAUSE_NORMAL						= 0x00,			  // 0x00 : Normal Process ( no problem )
-	PDP_FAILURE_CAUSE_REL_BY_USER					= 0x01,			  // Call Released by User
-	PDP_FAILURE_CAUSE_REGULAR_DEACTIVATION			= 0x02,			  // Regular deactivation
-	PDP_FAILURE_CAUSE_LLC_SNDCP					= 0x03,			  // LLC SNDCP failure
-	PDP_FAILURE_CAUSE_INSUFFICIENT_RESOURCE		= 0x04,			  // Insufficient resources
-	PDP_FAILURE_CAUSE_UNKNOWN_APN					= 0x05,			  // Missing or unkown apn
-	PDP_FAILURE_CAUSE_UNKNOWN_PDP_ADDRESS			= 0x06,			  // Unknown pdp address or type
-	PDP_FAILURE_CAUSE_USER_AUTH_FAILED				= 0x07,			  // Unknown pdp address or type
-	PDP_FAILURE_CAUSE_ACT_REJ_GGSN					= 0x08,			  // Unknown pdp address or type
-	PDP_FAILURE_CAUSE_ACT_REJ_UNSPECIFIED			= 0x09,			  // Unknown pdp address or type
-	PDP_FAILURE_CAUSE_SVC_OPTION_NOT_SUPPORTED		= 0x0A,			  // Service option not supported
-	PDP_FAILURE_CAUSE_SVC_NOT_SUBSCRIBED			= 0x0B,			  // Requested service option not subscribed
-	PDP_FAILURE_CAUSE_SVC_OPT_OUT_ORDER			= 0x0C,			  // Service out of order
-    PDP_FAILURE_CAUSE_NSAPI_USED					= 0x0D,			  // NSAPI already used
-	PDP_FAILURE_CAUSE_QOS_NOT_ACCEPTED				= 0x0E,			  // QoS not accepted
-	PDP_FAILURE_CAUSE_NETWORK_FAILURE				= 0x0F,			  // Network Failure
-    PDP_FAILURE_CAUSE_REACT_REQUIRED				= 0x10,			  // Reactivation Required
-	PDP_FAILURE_CAUSE_FEATURE_NOT_SUPPORTED		= 0x11,			  // Feature not supported
-	PDP_FAILURE_CAUSE_TFT_FILTER_ERROR				= 0x12,			  // TFT or filter error
-	PDP_FAILURE_CAUSE_UNKOWN_PDP_CONTEXT			= 0x13,			  // Unkown PDP context
-	PDP_FAILURE_CAUSE_INVALID_MSG					= 0x14,			  // Invalied MSG
-	PDP_FAILURE_CAUSE_PROTOCOL_ERROR				= 0x15,			  // Protocol error
-	PDP_FAILURE_CAUSE_MOBILE_FAILURE_ERROR			= 0x16,			  // Mobile failure error
-	PDP_FAILURE_CAUSE_TIMEOUT_ERROR				= 0x17,			  // Timeout error
-	PDP_FAILURE_CAUSE_UNKNOWN_ERROR				= 0x18,			  // Unknown error
-	PDP_FAILURE_CAUSE_MAX,
+	PDP_FAILURE_CAUSE_NORMAL,
+	PDP_FAILURE_CAUSE_REL_BY_USER,
+	PDP_FAILURE_CAUSE_REGULAR_DEACTIVATION,
+	PDP_FAILURE_CAUSE_LLC_SNDCP,
+	PDP_FAILURE_CAUSE_INSUFFICIENT_RESOURCE,
+	PDP_FAILURE_CAUSE_UNKNOWN_APN,
+	PDP_FAILURE_CAUSE_UNKNOWN_PDP_ADDRESS,
+	PDP_FAILURE_CAUSE_USER_AUTH_FAILED,
+	PDP_FAILURE_CAUSE_ACT_REJ_GGSN,
+	PDP_FAILURE_CAUSE_ACT_REJ_UNSPECIFIED,
+	PDP_FAILURE_CAUSE_SVC_OPTION_NOT_SUPPORTED,
+	PDP_FAILURE_CAUSE_SVC_NOT_SUBSCRIBED,
+	PDP_FAILURE_CAUSE_SVC_OPT_OUT_ORDER,
+	PDP_FAILURE_CAUSE_NSAPI_USED,
+	PDP_FAILURE_CAUSE_QOS_NOT_ACCEPTED,
+	PDP_FAILURE_CAUSE_NETWORK_FAILURE,
+	PDP_FAILURE_CAUSE_REACT_REQUIRED,
+	PDP_FAILURE_CAUSE_FEATURE_NOT_SUPPORTED,
+	PDP_FAILURE_CAUSE_TFT_FILTER_ERROR,
+	PDP_FAILURE_CAUSE_UNKOWN_PDP_CONTEXT,
+	PDP_FAILURE_CAUSE_INVALID_MSG,
+	PDP_FAILURE_CAUSE_PROTOCOL_ERROR,
+	PDP_FAILURE_CAUSE_MOBILE_FAILURE_ERROR,
+	PDP_FAILURE_CAUSE_TIMEOUT_ERROR,
+	PDP_FAILURE_CAUSE_UNKNOWN_ERROR,
+	PDP_FAILURE_CAUSE_MAX
 };
 
 enum telephony_ps_protocol_status {
-	TELEPHONY_HSDPA_OFF = 0x00,
-	TELEPHONY_HSDPA_ON = 0x01,
-	TELEPHONY_HSUPA_ON = 0x02,
-	TELEPHONY_HSPA_ON = 0x03,
+	TELEPHONY_HSDPA_OFF,
+	TELEPHONY_HSDPA_ON,
+	TELEPHONY_HSUPA_ON,
+	TELEPHONY_HSPA_ON
 };
 
 enum telephony_ps_state {
@@ -64,7 +64,12 @@ enum telephony_ps_state {
 	TELEPHONY_PS_3G_OFF,
 	TELEPHONY_PS_ROAMING_OFF,
 	TELEPHONY_PS_FLIGHT_MODE,
-	TELEPHONY_PS_NO_SERVICE
+	TELEPHONY_PS_NO_SERVICE,
+};
+
+enum ps_data_call_status {
+	PS_DATA_CALL_NOT_CONNECTED,
+	PS_DATA_CALL_CONNECTED
 };
 
 struct treq_ps_pdp_activate {
@@ -87,7 +92,6 @@ struct tresp_ps_set_pdp_activate {
 	int result;
 };
 
-
 struct treq_ps_pdp_deactivate {
 	int context_id;
 	int secondary_context_id;
@@ -106,9 +110,8 @@ struct tresp_ps_set_pdp_deactivate {
 };
 
 struct tnoti_ps_call_status {
-	int context_id;
-	int state;
-	int result;
+	unsigned int context_id;
+	enum ps_data_call_status state;
 };
 
 struct tnoti_ps_pdp_ipconfiguration {
