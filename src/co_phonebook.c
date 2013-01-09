@@ -132,7 +132,7 @@ static void _clone_hook(CoreObject *src, CoreObject *dest)
 	if (!src || !dest)
 		return;
 
-	dest_po = calloc(sizeof(struct private_object_data), 1);
+	dest_po = calloc(1, sizeof(struct private_object_data));
 	if (!dest_po) {
 		tcore_object_link_object(dest, NULL);
 		return;
@@ -180,7 +180,7 @@ struct tel_phonebook_support_list* tcore_phonebook_get_support_list(CoreObject *
 	struct private_object_data *po = NULL;
 	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PHONEBOOK, NULL);
 	po = tcore_object_ref_object(o);
-	tmp = calloc(sizeof(struct tel_phonebook_support_list), 1);
+	tmp = calloc(1, sizeof(struct tel_phonebook_support_list));
 	memcpy(tmp, &po->support_list, sizeof(struct tel_phonebook_support_list));
 	return tmp;
 }
@@ -216,7 +216,7 @@ void tcore_phonebook_override_ops(CoreObject *o, struct tcore_phonebook_operatio
 	struct private_object_data *po = NULL;
 
 	CORE_OBJECT_CHECK(o, CORE_OBJECT_TYPE_PHONEBOOK);
-	
+
 	po = (struct private_object_data *)tcore_object_ref_object(o);
 	if (!po) {
 		return;
@@ -242,7 +242,7 @@ CoreObject *tcore_phonebook_new(TcorePlugin *p, const char *name,
 	if (!o)
 		return NULL;
 
-	po = calloc(sizeof(struct private_object_data), 1);
+	po = calloc(1, sizeof(struct private_object_data));
 	if (!po) {
 		tcore_object_free(o);
 		return NULL;
@@ -272,7 +272,7 @@ CoreObject *tcore_phonebook_clone(TcorePlugin *p, const char *name, TcoreHal *ha
 		return NULL;
 
 	tcore_object_set_hal(o, hal);
-	
+
 	return o;
 }
 

@@ -47,7 +47,7 @@ Storage *tcore_storage_new(TcorePlugin *plugin, const char *name,
 {
 	Storage *strg;
 
-	strg = calloc(sizeof(struct tcore_storage_type), 1);
+	strg = calloc(1, sizeof(struct tcore_storage_type));
 	if (!strg)
 		return NULL;
 

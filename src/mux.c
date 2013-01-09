@@ -387,7 +387,7 @@ MUX* tcore_cmux_new(void)
 	int i = 0;
 
 	/* Allocating memory for mux */
-	mux = (MUX *) calloc(sizeof(MUX), 1);
+	mux = (MUX *) calloc(1, sizeof(MUX));
 	if (!mux) {
 		err("Failed to allocate memory");
 		return NULL;
@@ -405,7 +405,7 @@ MUX* tcore_cmux_new(void)
 
 	/* Allocating memory for channel_info */
 	for (i = 0; i < MAX_CMUX_CHANNELS_SUPPORTED; i++) {
-		mux->channel_info[i] = (CHANNEL *) calloc(sizeof(CHANNEL), 1);
+		mux->channel_info[i] = (CHANNEL *) calloc(1, sizeof(CHANNEL));
 		/* Check for Memory allocation failure */
 		if (!mux->channel_info[i]) {
 			err("Failed to allocate memory for channel_info of channel: %d", i);

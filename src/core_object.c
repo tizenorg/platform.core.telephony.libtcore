@@ -59,7 +59,7 @@ static CoreObject *_object_new(TcorePlugin *plugin, const char *name, unsigned i
 {
 	CoreObject *co;
 
-	co = calloc(sizeof(struct tcore_object_type), 1);
+	co = calloc(1, sizeof(struct tcore_object_type));
 	if (!co)
 		return NULL;
 
@@ -447,7 +447,7 @@ TReturn tcore_object_add_callback(CoreObject *co,
 	if (strlen(event) < 1)
 		return TCORE_RETURN_EINVAL;
 
-	cb = calloc(sizeof(struct callback_type), 1);
+	cb = calloc(1, sizeof(struct callback_type));
 	if (!cb)
 		return TCORE_RETURN_ENOMEM;
 

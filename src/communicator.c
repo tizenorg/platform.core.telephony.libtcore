@@ -44,7 +44,7 @@ Communicator* tcore_communicator_new(TcorePlugin *plugin, const char *name,
 {
 	Communicator *comm;
 
-	comm = calloc(sizeof(struct tcore_communicator_type), 1);
+	comm = calloc(1, sizeof(struct tcore_communicator_type));
 	if (!comm)
 		return NULL;
 

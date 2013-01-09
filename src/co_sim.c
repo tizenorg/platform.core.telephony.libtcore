@@ -214,7 +214,7 @@ static void _clone_hook(CoreObject *src, CoreObject *dest)
 	if (!src || !dest)
 		return;
 
-	dest_po = calloc(sizeof(struct private_object_data), 1);
+	dest_po = calloc(1, sizeof(struct private_object_data));
 	if (!dest_po) {
 		tcore_object_link_object(dest, NULL);
 		return;
@@ -2415,7 +2415,7 @@ struct tel_sim_imsi* tcore_sim_get_imsi(CoreObject *o)
 		dbg("po access fail");
 		return NULL;
 	}
-	tmp_imsi =  calloc(sizeof(struct tel_sim_imsi), 1);
+	tmp_imsi =  calloc(1, sizeof(struct tel_sim_imsi));
 	memcpy(tmp_imsi, &po->imsi, sizeof(struct tel_sim_imsi));
 	return tmp_imsi;
 }
@@ -2441,7 +2441,7 @@ struct tel_sim_service_table* tcore_sim_get_service_table(CoreObject *o)
 		dbg("po access fail");
 		return NULL;
 	}
-	tmp_svct =  calloc(sizeof(struct tel_sim_service_table), 1);
+	tmp_svct =  calloc(1, sizeof(struct tel_sim_service_table));
 	memcpy(tmp_svct, &po->svct, sizeof(struct tel_sim_service_table));
 	return tmp_svct;
 }
@@ -2523,7 +2523,7 @@ void tcore_sim_override_ops(CoreObject *o, struct tcore_sim_operations *sim_ops)
 	struct private_object_data *po = NULL;
 
 	CORE_OBJECT_CHECK(o, CORE_OBJECT_TYPE_SIM);
-	
+
 	po = (struct private_object_data *)tcore_object_ref_object(o);
 	if (!po) {
 		return;
@@ -2549,7 +2549,7 @@ CoreObject *tcore_sim_new(TcorePlugin *p, const char *name,
 	if (!o)
 		return NULL;
 
-	po = calloc(sizeof(struct private_object_data), 1);
+	po = calloc(1, sizeof(struct private_object_data));
 	if (!po) {
 		tcore_object_free(o);
 		return NULL;
@@ -2580,7 +2580,7 @@ CoreObject *tcore_sim_clone(TcorePlugin *p, const char *name, TcoreHal *hal)
 		return NULL;
 
 	tcore_object_set_hal(o, hal);
-	
+
 	return o;
 }
 

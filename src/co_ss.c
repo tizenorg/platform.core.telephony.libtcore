@@ -210,7 +210,7 @@ static void _clone_hook(CoreObject *src, CoreObject *dest)
 	if (!src || !dest)
 		return;
 
-	dest_po = calloc(sizeof(struct private_object_data), 1);
+	dest_po = calloc(1, sizeof(struct private_object_data));
 	if (!dest_po) {
 		tcore_object_link_object(dest, NULL);
 		return;
@@ -359,7 +359,7 @@ void tcore_ss_override_ops(CoreObject *o, struct tcore_ss_operations *ss_ops)
 	struct private_object_data *po = NULL;
 
 	CORE_OBJECT_CHECK(o, CORE_OBJECT_TYPE_SS);
-	
+
 	po = (struct private_object_data *)tcore_object_ref_object(o);
 	if (!po) {
 		return;
@@ -385,7 +385,7 @@ CoreObject *tcore_ss_new(TcorePlugin *p, const char *name,
 	if (!o)
 		return NULL;
 
-	po = calloc(sizeof(struct private_object_data), 1);
+	po = calloc(1, sizeof(struct private_object_data));
 	if (!po) {
 		tcore_object_free(o);
 		return NULL;
@@ -416,7 +416,7 @@ CoreObject *tcore_ss_clone(TcorePlugin *p, const char *name, TcoreHal *hal)
 		return NULL;
 
 	tcore_object_set_hal(o, hal);
-	
+
 	return o;
 }
 

@@ -83,7 +83,7 @@ CoreObject *tcore_context_new(TcorePlugin *p, const char *name, TcoreHal *hal)
 	if (!o)
 		return NULL;
 
-	po = calloc(sizeof(struct private_object_data), 1);
+	po = calloc(1, sizeof(struct private_object_data));
 	if (!po) {
 		tcore_object_free(o);
 		return NULL;
@@ -114,7 +114,7 @@ CoreObject *tcore_context_clone(TcorePlugin *p, const char *name, TcoreHal *hal)
 		return NULL;
 
 	tcore_object_set_hal(o, hal);
-	
+
 	return o;
 }
 

@@ -134,7 +134,7 @@ static struct tcore_at_response* _response_new()
 {
 	struct tcore_at_response *resp;
 
-	resp = calloc(sizeof(struct tcore_at_response), 1);
+	resp = calloc(1, sizeof(struct tcore_at_response));
 	if (!resp)
 		return NULL;
 
@@ -326,7 +326,7 @@ TcoreAT* tcore_at_new(TcoreHal *hal)
 {
 	TcoreAT *at;
 
-	at = calloc(sizeof(struct tcore_at_type), 1);
+	at = calloc(1, sizeof(struct tcore_at_type));
 	if (!at)
 		return NULL;
 
@@ -413,7 +413,7 @@ TReturn tcore_at_add_notification(TcoreAT *at, const char *prefix,
 
 	noti = g_hash_table_lookup(at->unsolicited_table, prefix);
 	if (!noti) {
-		noti = calloc(sizeof(struct _notification), 1);
+		noti = calloc(1, sizeof(struct _notification));
 		if (!noti)
 			return TCORE_RETURN_ENOMEM;
 
@@ -426,7 +426,7 @@ TReturn tcore_at_add_notification(TcoreAT *at, const char *prefix,
 	if (noti->type_pdu != pdu)
 		return TCORE_RETURN_EINVAL;
 
-	item = calloc(sizeof(struct _notification_callback), 1);
+	item = calloc(1, sizeof(struct _notification_callback));
 	if (!item)
 		return TCORE_RETURN_ENOMEM;
 
@@ -548,7 +548,7 @@ TcoreATRequest* tcore_at_request_new(const char *cmd, const char *prefix, enum t
 	if (strlen(cmd) < 1)
 		return NULL;
 
-	req = calloc(sizeof(struct tcore_at_request), 1);
+	req = calloc(1, sizeof(struct tcore_at_request));
 	if (!req)
 		return NULL;
 

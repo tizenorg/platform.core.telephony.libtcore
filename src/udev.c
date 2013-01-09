@@ -85,7 +85,7 @@ TcoreUdev *tcore_udev_new(Server *s, const gchar **subsystems)
 {
 	TcoreUdev *udev;
 
-	udev = calloc(sizeof(struct tcore_udev_type), 1);
+	udev = calloc(1, sizeof(struct tcore_udev_type));
 	if (!udev)
 		return NULL;
 
@@ -152,7 +152,7 @@ TReturn tcore_udev_add_enumerator_callback(TcoreUdev *udev, TcoreUdevEnumerCallb
 	if (!udev || !func)
 		return TCORE_RETURN_FAILURE;
 
-	node = calloc(sizeof(struct udev_enumer_callback_type), 1);
+	node = calloc(1, sizeof(struct udev_enumer_callback_type));
 	if (!node)
 		return TCORE_RETURN_ENOMEM;
 
@@ -204,7 +204,7 @@ TReturn tcore_udev_add_callback(TcoreUdev *udev, const char *subsystem, const ch
 	if (!udev || !func)
 		return TCORE_RETURN_FAILURE;
 
-	node = calloc(sizeof(struct udev_callback_type), 1);
+	node = calloc(1, sizeof(struct udev_callback_type));
 	if (!node)
 		return TCORE_RETURN_ENOMEM;
 

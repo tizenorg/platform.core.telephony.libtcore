@@ -100,7 +100,7 @@ TcorePending *tcore_pending_new(CoreObject *co, unsigned int id)
 {
 	TcorePending *p;
 
-	p = calloc(sizeof(struct tcore_pending_type), 1);
+	p = calloc(1, sizeof(struct tcore_pending_type));
 	if (!p)
 		return NULL;
 
@@ -373,7 +373,7 @@ TcoreQueue *tcore_queue_new(TcoreHal *h)
 {
 	TcoreQueue *queue;
 
-	queue = calloc(sizeof(struct tcore_queue_type), 1);
+	queue = calloc(1, sizeof(struct tcore_queue_type));
 	if (!queue)
 		return FALSE;
 

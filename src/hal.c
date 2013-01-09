@@ -137,7 +137,7 @@ TcoreHal *tcore_hal_new(TcorePlugin *plugin, const char *name,
 	if (!name)
 		return NULL;
 
-	h = calloc(sizeof(struct tcore_hal_type), 1);
+	h = calloc(1, sizeof(struct tcore_hal_type));
 	if (!h)
 		return NULL;
 
@@ -364,7 +364,7 @@ TReturn tcore_hal_add_recv_callback(TcoreHal *hal, TcoreHalReceiveCallback func,
 	if (!hal)
 		return TCORE_RETURN_EINVAL;
 
-	item = calloc(sizeof(struct recv_callback_item_type), 1);
+	item = calloc(1, sizeof(struct recv_callback_item_type));
 	if (!item)
 		return TCORE_RETURN_ENOMEM;
 
@@ -431,7 +431,7 @@ TReturn tcore_hal_add_send_hook(TcoreHal *hal, TcoreHalSendHook func, void *user
 	if (!hal || !func)
 		return TCORE_RETURN_EINVAL;
 
-	hook = calloc(sizeof(struct hook_send_type), 1);
+	hook = calloc(1, sizeof(struct hook_send_type));
 	if (!hook)
 		return TCORE_RETURN_ENOMEM;
 

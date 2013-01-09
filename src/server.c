@@ -108,7 +108,7 @@ Server *tcore_server_new()
 {
 	Server *s;
 
-	s = calloc(sizeof(struct tcore_server_type), 1);
+	s = calloc(1, sizeof(struct tcore_server_type));
 	if (!s)
 		return NULL;
 
@@ -553,7 +553,7 @@ TReturn tcore_server_add_request_hook(Server *s,
 	if (!s || !func)
 		return TCORE_RETURN_EINVAL;
 
-	hook = calloc(sizeof(struct hook_request_type), 1);
+	hook = calloc(1, sizeof(struct hook_request_type));
 	if (!hook)
 		return TCORE_RETURN_ENOMEM;
 
@@ -599,7 +599,7 @@ TReturn tcore_server_add_notification_hook(Server *s,
 	if (!s || !func)
 		return TCORE_RETURN_EINVAL;
 
-	hook = calloc(sizeof(struct hook_notification_type), 1);
+	hook = calloc(1, sizeof(struct hook_notification_type));
 	if (!hook)
 		return TCORE_RETURN_ENOMEM;
 

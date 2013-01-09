@@ -52,7 +52,7 @@ TcorePlugin *tcore_plugin_new(Server *server,
 {
 	TcorePlugin *p;
 
-	p = calloc(sizeof(struct tcore_plugin_type), 1);
+	p = calloc(1, sizeof(struct tcore_plugin_type));
 	if (!p)
 		return NULL;
 

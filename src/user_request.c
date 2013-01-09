@@ -53,7 +53,7 @@ UserRequest *tcore_user_request_new(Communicator *comm, const char *modem_name)
 {
 	UserRequest *ur;
 
-	ur = calloc(sizeof(struct tcore_user_request_type), 1);
+	ur = calloc(1, sizeof(struct tcore_user_request_type));
 	if (!ur)
 		return NULL;
 
