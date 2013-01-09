@@ -50,7 +50,7 @@ struct tcore_sms_operations {
 	TReturn (*read_msg)(CoreObject *o, UserRequest *ur);
 	TReturn (*save_msg)(CoreObject *o, UserRequest *ur);
 	TReturn (*delete_msg)(CoreObject *o, UserRequest *ur);
-	TReturn (*get_storedMsgCnt)(CoreObject *o, UserRequest *ur);
+	TReturn (*get_stored_msg_cnt)(CoreObject *o, UserRequest *ur);
 	TReturn (*get_sca)(CoreObject *o, UserRequest *ur);
 	TReturn (*set_sca)(CoreObject *o, UserRequest *ur);
 	TReturn (*get_cb_config)(CoreObject *o, UserRequest *ur);

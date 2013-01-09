@@ -129,62 +129,62 @@ int _tcore_util_sms_encode_smsParameters(const struct telephony_sms_Params *inco
 
 }
 
-static void _clone_sms_operations(struct private_object_data *po, struct tcore_sms_operations *sms_ops)
+static void _clone_sms_operations(struct private_object_data *po,
+					struct tcore_sms_operations *sms_ops)
 {
-	if(sms_ops->send_umts_msg) {
+	if (sms_ops->send_umts_msg)
 		po->ops->send_umts_msg = sms_ops->send_umts_msg;
-	}
-	if(sms_ops->read_msg) {
+
+	if (sms_ops->read_msg)
 		po->ops->read_msg = sms_ops->read_msg;
-	}
-	if(sms_ops->save_msg) {
+
+	if (sms_ops->save_msg)
 		po->ops->save_msg = sms_ops->save_msg;
-	}
-	if(sms_ops->delete_msg) {
+
+	if (sms_ops->delete_msg)
 		po->ops->delete_msg = sms_ops->delete_msg;
-	}
-	if(sms_ops->get_storedMsgCnt) {
-		po->ops->get_storedMsgCnt = sms_ops->get_storedMsgCnt;
-	}
-	if(sms_ops->get_sca) {
+
+	if (sms_ops->get_stored_msg_cnt)
+		po->ops->get_stored_msg_cnt = sms_ops->get_stored_msg_cnt;
+
+	if (sms_ops->get_sca)
 		po->ops->get_sca = sms_ops->get_sca;
-	}
-	if(sms_ops->set_sca) {
+
+	if (sms_ops->set_sca)
 		po->ops->set_sca = sms_ops->set_sca;
-	}
-	if(sms_ops->get_cb_config) {
+
+	if (sms_ops->get_cb_config)
 		po->ops->get_cb_config = sms_ops->get_cb_config;
-	}
-	if(sms_ops->set_cb_config) {
+
+	if (sms_ops->set_cb_config)
 		po->ops->set_cb_config = sms_ops->set_cb_config;
-	}
-	if(sms_ops->set_mem_status) {
+
+	if (sms_ops->set_mem_status)
 		po->ops->set_mem_status = sms_ops->set_mem_status;
-	}
-	if(sms_ops->get_pref_brearer) {
+
+	if (sms_ops->get_pref_brearer)
 		po->ops->get_pref_brearer = sms_ops->get_pref_brearer;
-	}
-	if(sms_ops->set_pref_brearer) {
+
+	if (sms_ops->set_pref_brearer)
 		po->ops->set_pref_brearer = sms_ops->set_pref_brearer;
-	}
-	if(sms_ops->set_delivery_report) {
+
+	if (sms_ops->set_delivery_report)
 		po->ops->set_delivery_report = sms_ops->set_delivery_report;
-	}
-	if(sms_ops->set_msg_status) {
+
+	if (sms_ops->set_msg_status)
 		po->ops->set_msg_status = sms_ops->set_msg_status;
-	}
-	if(sms_ops->get_sms_params) {
+
+	if (sms_ops->get_sms_params)
 		po->ops->get_sms_params = sms_ops->get_sms_params;
-	}
-	if(sms_ops->set_sms_params) {
+
+	if (sms_ops->set_sms_params)
 		po->ops->set_sms_params = sms_ops->set_sms_params;
-	}
-	if(sms_ops->get_paramcnt) {
+
+	if (sms_ops->get_paramcnt)
 		po->ops->get_paramcnt = sms_ops->get_paramcnt;
-	}
-	if(sms_ops->send_cdma_msg) {
+
+	if (sms_ops->send_cdma_msg)
 		po->ops->send_cdma_msg = sms_ops->send_cdma_msg;
-	}
 
 	return;
 }
@@ -192,206 +192,214 @@ static void _clone_sms_operations(struct private_object_data *po, struct tcore_s
 static TReturn _dispatcher(CoreObject *o, UserRequest *ur)
 {
 	enum tcore_request_command command;
-	struct private_object_data *po = NULL;
+	struct private_object_data *po;
 	TReturn rtn = TCORE_RETURN_SUCCESS;
 
 	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_SMS, TCORE_RETURN_EINVAL);
 
 	po = tcore_object_ref_object(o);
-	if (!po || !po->ops) {
+	if (NULL == po || NULL == po->ops) {
 		dbg("[tcore_SMS] ERR: private_object is NULL or ops is NULL");
 		return TCORE_RETURN_ENOSYS;
 	}
 
 	if(po->b_readyStatus == FALSE) {
 		dbg("[tcore_SMS] DEVICE_NOT_READY");
-		return TCORE_RETURN_ENOSYS; /* TAPI_API_NETTEXT_DEVICE_NOT_READY */
+		return TCORE_RETURN_ENOSYS;
 	}
 
 	command = tcore_user_request_get_command(ur);
 	switch (command) {
-		case TREQ_SMS_SEND_UMTS_MSG:
-			if (!po->ops->send_umts_msg)
-			{
-				dbg("[tcore_SMS] ERR: po->ops->send_umts_msg is NULL");
-				return TCORE_RETURN_ENOSYS;
-			}
+	case TREQ_SMS_SEND_UMTS_MSG:
+		if (NULL == po->ops->send_umts_msg) {
+			dbg("[tcore_SMS] ERR: po->ops->send_umts_msg is NULL");
+			return TCORE_RETURN_ENOSYS;
+		}
 
-			rtn = po->ops->send_umts_msg(o, ur);
+		rtn = po->ops->send_umts_msg(o, ur);
 
-			break;
-		case TREQ_SMS_READ_MSG:
-			if (!po->ops->read_msg)
-			{
-				dbg("[tcore_SMS] ERR: po->ops->read_msg is NULL");
-				return TCORE_RETURN_ENOSYS;
-			}
+		break;
 
-			rtn = po->ops->read_msg(o, ur);
+	case TREQ_SMS_READ_MSG:
+		if (NULL == po->ops->read_msg) {
+			dbg("[tcore_SMS] ERR: po->ops->read_msg is NULL");
+			return TCORE_RETURN_ENOSYS;
+		}
 
-			break;
-		case TREQ_SMS_SAVE_MSG:
-			if (!po->ops->save_msg)
-			{
-				dbg("[tcore_SMS] ERR: po->ops->save_msg is NULL");
-				return TCORE_RETURN_ENOSYS;
-			}
+		rtn = po->ops->read_msg(o, ur);
 
-			rtn = po->ops->save_msg(o, ur);
+		break;
 
-			break;
-		case TREQ_SMS_DELETE_MSG:
-			if (!po->ops->delete_msg)
-			{
-				dbg("[tcore_SMS] ERR: po->ops->delete_msg is NULL");
-				return TCORE_RETURN_ENOSYS;
-			}
+	case TREQ_SMS_SAVE_MSG:
+		if (NULL == po->ops->save_msg) {
+			dbg("[tcore_SMS] ERR: po->ops->save_msg is NULL");
+			return TCORE_RETURN_ENOSYS;
+		}
 
-			rtn = po->ops->delete_msg(o, ur);
+		rtn = po->ops->save_msg(o, ur);
 
-			break;
-		case TREQ_SMS_GET_COUNT:
-			if (!po->ops->get_storedMsgCnt)
-			{
-				dbg("[tcore_SMS] ERR: po->ops->get_storedMsgCnt is NULL");
-				return TCORE_RETURN_ENOSYS;
-			}
+		break;
 
-			rtn = po->ops->get_storedMsgCnt(o, ur);
+	case TREQ_SMS_DELETE_MSG:
+		if (NULL == po->ops->delete_msg) {
+			dbg("[tcore_SMS] ERR: po->ops->delete_msg is NULL");
+			return TCORE_RETURN_ENOSYS;
+		}
 
-			break;
-		case TREQ_SMS_GET_SCA:
-			if (!po->ops->get_sca)
-			{
-				dbg("[tcore_SMS] ERR: po->ops->get_sca is NULL");
-				return TCORE_RETURN_ENOSYS;
-			}
+		rtn = po->ops->delete_msg(o, ur);
 
-			rtn = po->ops->get_sca(o, ur);
+		break;
 
-			break;
-		case TREQ_SMS_SET_SCA:
-			if (!po->ops->set_sca)
-			{
-				dbg("[tcore_SMS] ERR: po->ops->set_sca is NULL");
-				return TCORE_RETURN_ENOSYS;
-			}
+	case TREQ_SMS_GET_COUNT:
+		if (NULL == po->ops->get_stored_msg_cnt) {
+			dbg("[tcore_SMS] ERR: po->ops->get_stored_msg_cnt is"
+				"NULL");
+			return TCORE_RETURN_ENOSYS;
+		}
 
-			rtn = po->ops->set_sca(o, ur);
+		rtn = po->ops->get_stored_msg_cnt(o, ur);
 
-			break;
-		case TREQ_SMS_GET_CB_CONFIG:
-			if (!po->ops->get_cb_config)
-			{
-				dbg("[tcore_SMS] ERR: po->ops->get_cb_config is NULL");
-				return TCORE_RETURN_ENOSYS;
-			}
+		break;
 
-			rtn = po->ops->get_cb_config(o, ur);
+	case TREQ_SMS_GET_SCA:
+		if (NULL == po->ops->get_sca) {
+			dbg("[tcore_SMS] ERR: po->ops->get_sca is NULL");
+			return TCORE_RETURN_ENOSYS;
+		}
 
-			break;
-		case TREQ_SMS_SET_CB_CONFIG:
-			if (!po->ops->set_cb_config)
-			{
-				dbg("[tcore_SMS] ERR: po->ops->set_cb_config is NULL");
-				return TCORE_RETURN_ENOSYS;
-			}
+		rtn = po->ops->get_sca(o, ur);
 
-			rtn = po->ops->set_cb_config(o, ur);
+		break;
 
-			break;
-		case TREQ_SMS_SET_MEM_STATUS:
-			if (!po->ops->set_mem_status)
-			{
-				dbg("[tcore_SMS] ERR: po->ops->set_mem_status is NULL");
-				return TCORE_RETURN_ENOSYS;
-			}
+	case TREQ_SMS_SET_SCA:
+		if (NULL == po->ops->set_sca) {
+			dbg("[tcore_SMS] ERR: po->ops->set_sca is NULL");
+			return TCORE_RETURN_ENOSYS;
+		}
 
-			rtn = po->ops->set_mem_status(o, ur);
+		rtn = po->ops->set_sca(o, ur);
 
-			break;
-		case TREQ_SMS_GET_PREF_BEARER:
-			if (!po->ops->get_pref_brearer)
-			{
-				dbg("[tcore_SMS] ERR: po->ops->get_pref_brearer is NULL");
-				return TCORE_RETURN_ENOSYS;
-			}
+		break;
 
-			rtn = po->ops->get_pref_brearer(o, ur);
+	case TREQ_SMS_GET_CB_CONFIG:
+		if (NULL == po->ops->get_cb_config) {
+			dbg("[tcore_SMS] ERR: po->ops->get_cb_config is NULL");
+			return TCORE_RETURN_ENOSYS;
+		}
 
-			break;
-		case TREQ_SMS_SET_PREF_BEARER:
-			if (!po->ops->set_pref_brearer)
-			{
-				dbg("[tcore_SMS] ERR: po->ops->get_pref_brearer is NULL");
-				return TCORE_RETURN_ENOSYS;
-			}
+		rtn = po->ops->get_cb_config(o, ur);
 
-			rtn = po->ops->set_pref_brearer(o, ur);
+		break;
 
-			break;
-		case TREQ_SMS_SET_DELIVERY_REPORT:
-			if (!po->ops->set_delivery_report)
-			{
-				dbg("[tcore_SMS] ERR: po->ops->set_delivery_report is NULL");
-				return TCORE_RETURN_ENOSYS;
-			}
+	case TREQ_SMS_SET_CB_CONFIG:
+		if (NULL == po->ops->set_cb_config) {
+			dbg("[tcore_SMS] ERR: po->ops->set_cb_config is NULL");
+			return TCORE_RETURN_ENOSYS;
+		}
 
-			rtn = po->ops->set_delivery_report(o, ur);
+		rtn = po->ops->set_cb_config(o, ur);
 
-			break;
-		case TREQ_SMS_SET_MSG_STATUS:
-			if (!po->ops->set_msg_status)
-			{
-				dbg("[tcore_SMS] ERR: po->ops->set_msg_status is NULL");
-				return TCORE_RETURN_ENOSYS;
-			}
+		break;
 
-			rtn = po->ops->set_msg_status(o, ur);
+	case TREQ_SMS_SET_MEM_STATUS:
+		if (NULL == po->ops->set_mem_status) {
+			dbg("[tcore_SMS] ERR: po->ops->set_mem_status is"
+				" NULL");
+			return TCORE_RETURN_ENOSYS;
+		}
 
-			break;
-		case TREQ_SMS_GET_PARAMS:
-			if (!po->ops->get_sms_params)
-			{
-				dbg("[tcore_SMS] ERR: po->ops->get_sms_params is NULL");
-				return TCORE_RETURN_ENOSYS;
-			}
+		rtn = po->ops->set_mem_status(o, ur);
 
-			rtn = po->ops->get_sms_params(o, ur);
+		break;
 
-			break;
-		case TREQ_SMS_SET_PARAMS:
-			if (!po->ops->set_sms_params)
-			{
-				dbg("[tcore_SMS] ERR: po->ops->set_sms_params is NULL");
-				return TCORE_RETURN_ENOSYS;
-			}
+	case TREQ_SMS_GET_PREF_BEARER:
+		if (NULL == po->ops->get_pref_brearer) {
+			dbg("[tcore_SMS] ERR: po->ops->get_pref_brearer is"
+				" NULL");
+			return TCORE_RETURN_ENOSYS;
+		}
 
-			rtn = po->ops->set_sms_params(o, ur);
+		rtn = po->ops->get_pref_brearer(o, ur);
 
-			break;
-		case TREQ_SMS_GET_PARAMCNT:
-			if (!po->ops->get_paramcnt)
-			{
-				dbg("[tcore_SMS] ERR: po->ops->get_paramcnt is NULL");
-				return TCORE_RETURN_ENOSYS;
-			}
+		break;
 
-			rtn = po->ops->get_paramcnt(o, ur);
+	case TREQ_SMS_SET_PREF_BEARER:
+		if (NULL == po->ops->set_pref_brearer) {
+			dbg("[tcore_SMS] ERR: po->ops->get_pref_brearer is"
+				" NULL");
+			return TCORE_RETURN_ENOSYS;
+		}
 
-			break;
-		case TREQ_SMS_SEND_CDMA_MSG:
-			if (!po->ops->send_cdma_msg)
-			{
-				dbg("[tcore_SMS] ERR: po->ops->send_cdma_msg is NULL");
-				return TCORE_RETURN_ENOSYS;
-			}
+		rtn = po->ops->set_pref_brearer(o, ur);
 
-			rtn = po->ops->send_cdma_msg(o, ur);
+		break;
 
-			break;
-		default:
-			break;
+	case TREQ_SMS_SET_DELIVERY_REPORT:
+		if (!po->ops->set_delivery_report) {
+			dbg("[tcore_SMS] ERR: po->ops->set_delivery_report is"
+				" NULL");
+			return TCORE_RETURN_ENOSYS;
+		}
+
+		rtn = po->ops->set_delivery_report(o, ur);
+
+		break;
+
+	case TREQ_SMS_SET_MSG_STATUS:
+		if (NULL == po->ops->set_msg_status) {
+			dbg("[tcore_SMS] ERR: po->ops->set_msg_status is"
+				" NULL");
+			return TCORE_RETURN_ENOSYS;
+		}
+
+		rtn = po->ops->set_msg_status(o, ur);
+
+		break;
+
+	case TREQ_SMS_GET_PARAMS:
+		if (NULL == po->ops->get_sms_params) {
+			dbg("[tcore_SMS] ERR: po->ops->get_sms_params is"
+				" NULL");
+			return TCORE_RETURN_ENOSYS;
+		}
+
+		rtn = po->ops->get_sms_params(o, ur);
+
+		break;
+
+	case TREQ_SMS_SET_PARAMS:
+		if (NULL == po->ops->set_sms_params) {
+			dbg("[tcore_SMS] ERR: po->ops->set_sms_params is"
+				" NULL");
+			return TCORE_RETURN_ENOSYS;
+		}
+
+		rtn = po->ops->set_sms_params(o, ur);
+
+		break;
+
+	case TREQ_SMS_GET_PARAMCNT:
+		if (NULL == po->ops->get_paramcnt) {
+			dbg("[tcore_SMS] ERR: po->ops->get_paramcnt is NULL");
+			return TCORE_RETURN_ENOSYS;
+		}
+
+		rtn = po->ops->get_paramcnt(o, ur);
+
+		break;
+
+	case TREQ_SMS_SEND_CDMA_MSG:
+		if (NULL == po->ops->send_cdma_msg) {
+			dbg("[tcore_SMS] ERR: po->ops->send_cdma_msg is NULL");
+			return TCORE_RETURN_ENOSYS;
+		}
+
+		rtn = po->ops->send_cdma_msg(o, ur);
+
+		break;
+
+	default:
+		break;
 	}
 
 	dbg("[tcore_SMS] result = [0x%x], command = [0x%x]", rtn, command);
