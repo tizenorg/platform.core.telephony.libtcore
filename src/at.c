@@ -31,13 +31,16 @@
 #include "user_request.h"
 #include "at.h"
 
-#define NUM_ELEMS(x) (sizeof(x) / sizeof(x[0]))
+#define NUM_ELEMS(x) (sizeof(x)/sizeof(x[0]))
+#define MODE_HEX 	0
+#define MODE_BIN	1
 
 #define CR '\r'
 #define LF '\n'
 
-#define MAX_AT_RESPONSE    255  // for testing
-// #define MAX_AT_RESPONSE    8191
+#define MAX_AT_RESPONSE    255
+
+typedef gboolean (*rfs_hook_cb) (const char *data);
 
 struct tcore_at_type {
 	TcoreHal *hal;
@@ -57,6 +60,9 @@ struct tcore_at_type {
 	gboolean pdu_status;
 	struct _notification *pdu_noti;
 	GSList *pdu_lines;
+
+	rfs_hook_cb rfs_hook;
+	gboolean data_mode;
 };
 
 struct _notification_callback {
@@ -197,6 +203,7 @@ static void _emit_unsolicited_message(TcoreAT *at, const char *line)
 	if (!at || !line)
 		return;
 
+	dbg("at->pdu_status  %d line 0x%x at->data_mode %d", at->pdu_status, line, at->data_mode);
 	if (at->pdu_status == FALSE) {
 		g_hash_table_iter_init(&iter, at->unsolicited_table);
 
@@ -219,13 +226,25 @@ static void _emit_unsolicited_message(TcoreAT *at, const char *line)
 			return;
 		}
 
-		data = g_slist_append(NULL, g_strdup(line));
-	} else {
+		if (at->data_mode == MODE_BIN) {
+			at->pdu_lines = g_slist_append(at->pdu_lines, (gpointer)line);
+			data = at->pdu_lines;
+		} else {
+			data = g_slist_append(NULL, g_strdup(line));
+		}
+	}
+	else {
 		noti = at->pdu_noti;
 		at->pdu_status = FALSE;
 		at->pdu_noti = NULL;
-		at->pdu_lines = g_slist_append(at->pdu_lines, g_strdup(line));
 
+		if (at->data_mode == MODE_BIN) {
+			dbg("Binary mode");
+			at->pdu_lines = g_slist_append(at->pdu_lines, (gpointer)line);
+			dbg("at->pdu_lines: 0x%x", at->pdu_lines);
+		} else {
+			at->pdu_lines = g_slist_append(at->pdu_lines, g_strdup(line));
+		}
 		data = at->pdu_lines;
 	}
 
@@ -246,14 +265,15 @@ static void _emit_unsolicited_message(TcoreAT *at, const char *line)
 
 		p = p->next;
 	}
-
-
-	g_slist_free_full(data, g_free);
+	dbg(" Free the list");
+	if (at->data_mode != MODE_BIN) {
+		g_slist_free_full(data, g_free);
+	}
 	at->pdu_lines = NULL;
-
 	if (g_slist_length(noti->callbacks) == 0) {
 		g_hash_table_remove(at->unsolicited_table, key);
 	}
+	dbg("exit");
 }
 
 static void _free_noti_list(void *data)
@@ -314,7 +334,7 @@ TcoreAT* tcore_at_new(TcoreHal *hal)
 	at->buf = calloc(at->buf_size + 1, 1);
 	at->buf_read_pos = at->buf;
 	at->buf_write_pos = at->buf;
-
+	at->data_mode = MODE_HEX;
 	at->unsolicited_table = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, _free_noti_list);
 	return at;
 }
@@ -502,11 +522,11 @@ TReturn tcore_at_buf_write(TcoreAT *at, unsigned int data_len, const char *data)
 			if (at->buf_size > write_pos + data_len)
 				break;
 		}
+
 		at->buf = realloc(at->buf, at->buf_size);
 		at->buf_read_pos = at->buf;
 		at->buf_write_pos = at->buf + write_pos;
 		memset(at->buf_write_pos, 0, at->buf_size - (at->buf_write_pos - at->buf));
-
 		dbg("resize buffer to %d", at->buf_size);
 	}
 
@@ -558,6 +578,48 @@ void tcore_at_request_free(TcoreATRequest *req)
 	free(req);
 }
 
+/* To get the length value from little-endian bytes */
+static int __sum_4_bytes(const char *posn)
+{
+	int sum = 0;
+	sum = sum | (*(posn+3)) << 24;
+	sum = sum | (*(posn+2)) << 16;
+	sum = sum | (*(posn+1)) << 8;
+	sum = sum | *posn ;
+	return sum;
+}
+
+/* Function to process binary data received as part of XDRV Indication */
+void tcore_at_process_binary_data(TcoreAT *at, char *position, int data_len)
+{
+
+	#define NVM_PAYLOAD_LENGTH_0			52
+	#define NVM_PAYLOAD_LENGTH_1			68
+
+	int m_length_0 = ZERO , m_length_1 = ZERO;
+	static int data_len_final = ZERO, actual_buffer_size = ZERO;
+	dbg("Entered");
+
+	m_length_0 = __sum_4_bytes(&position[NVM_PAYLOAD_LENGTH_0]);
+	m_length_1 = __sum_4_bytes(&position[NVM_PAYLOAD_LENGTH_1]);
+	data_len_final = data_len_final + data_len;
+
+	dbg("m_length_0 = %d , m_length_1 = %d, data_len_final = %d actual_buffer_size: %d", m_length_0, m_length_1, data_len_final, actual_buffer_size);
+	if (actual_buffer_size == ZERO) {
+		actual_buffer_size = data_len + m_length_0 + m_length_1;
+		dbg("Actual buffer size is %d", actual_buffer_size);
+	}
+
+	if (data_len_final == actual_buffer_size) {
+		_emit_unsolicited_message(at, position);
+		at->data_mode = MODE_HEX;
+		at->buf_read_pos = at->buf_read_pos + (actual_buffer_size + 1);
+		data_len_final = ZERO;
+		actual_buffer_size = ZERO;
+	}
+	dbg("Exit");
+}
+
 gboolean tcore_at_process(TcoreAT *at, unsigned int data_len, const char *data)
 {
 	char *pos;
@@ -570,6 +632,7 @@ gboolean tcore_at_process(TcoreAT *at, unsigned int data_len, const char *data)
 	tcore_at_buf_write(at, data_len, data);
 
 	pos = at->buf_read_pos;
+	dbg("On entry at->buf_read_pos: 0x%x", at->buf_read_pos);
 
 	while (1) {
 		while (*pos == CR || *pos == LF)
@@ -577,8 +640,18 @@ gboolean tcore_at_process(TcoreAT *at, unsigned int data_len, const char *data)
 
 		next_pos = _find_next_EOL(pos);
 		if (!next_pos)
+		{
+			dbg("Data could be in Binary mode !!");
+			if (at->rfs_hook) {
+				if (TRUE == at->rfs_hook(pos)){
+					at->data_mode = MODE_BIN;
+					tcore_at_process_binary_data(at, pos, data_len);
+				}
+				dbg("Not Binary data");
+			}
+			dbg("Rfs hook is not set !!");
 			break;
-
+		}
 		if (pos != next_pos)
 			*next_pos = '\0';
 
@@ -586,8 +659,11 @@ gboolean tcore_at_process(TcoreAT *at, unsigned int data_len, const char *data)
 		dbg("line = [%s]", pos);
 		// check request
 		if (!at->req) {
+			dbg(" Not At request " );
 			_emit_unsolicited_message(at, pos);
-		} else {
+		}
+		else {
+
 			if (g_strcmp0(pos, "> ") == 0) {
 				if (at->req->next_send_pos) {
 					dbg("send next: [%s]", at->req->next_send_pos);
@@ -629,21 +705,24 @@ gboolean tcore_at_process(TcoreAT *at, unsigned int data_len, const char *data)
 
 					break;
 
-				case TCORE_AT_SINGLELINE:
-					if (at->resp->lines == NULL) {
-						if (at->req->prefix) {
-							if (g_str_has_prefix(pos, at->req->prefix)) {
-								_response_add(at->resp, pos);
+					case TCORE_AT_SINGLELINE:
+						dbg("Type is SINGLELINE");
+						if (at->resp->lines == NULL) {
+							if (at->req->prefix) {
+								if (g_str_has_prefix(pos, at->req->prefix)) {
+										_response_add(at->resp, pos);
+								}
+								else {
+									_emit_unsolicited_message(at, pos);
+								}
 							} else {
-								_emit_unsolicited_message(at, pos);
+								_response_add(at->resp, pos);
 							}
-						} else {
-							_response_add(at->resp, pos);
 						}
-					} else {
-						_emit_unsolicited_message(at, pos);
-					}
-					break;
+						else {
+							_emit_unsolicited_message(at, pos);
+						}
+						break;
 
 				case TCORE_AT_MULTILINE:
 					if (at->req->prefix) {
@@ -685,7 +764,7 @@ gboolean tcore_at_process(TcoreAT *at, unsigned int data_len, const char *data)
 		pos = next_pos + 1;
 		at->buf_read_pos = pos;
 	}
-
+	dbg("On exit at->buf_read_pos: 0x%x", at->buf_read_pos);
 	return FALSE;
 }
 
@@ -878,4 +957,18 @@ char* tcore_at_tok_nth(GSList *tokens, unsigned int token_index)
 		return NULL;
 
 	return (char *) g_slist_nth_data(tokens, token_index);
+}
+
+gboolean tcore_at_add_hook(TcoreHal *hal, void *hook_func)
+{
+	TcoreAT *at;
+	at = tcore_hal_get_at(hal);
+
+	if (at != NULL) {
+		dbg("Setting the rfs hook callback function");
+		at->rfs_hook = (rfs_hook_cb) hook_func;
+		return TRUE;
+	}
+	dbg("AT is NULL !!!");
+	return FALSE;
 }

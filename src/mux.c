@@ -850,10 +850,14 @@ static void tcore_cmux_process_rcv_frame(unsigned char *data, int len)
 		ch->poll_final_bit = (ch->frame_type & 0x10) >> 4;
 
 		// get the length . TBD
+		dbg("*frame_process_ptr: %02x", *frame_process_ptr);
+		dbg("*(frame_process_ptr+1): %02x", *(frame_process_ptr+1));
 		if (*frame_process_ptr & 0x01) {                        // if, len < 127
+			dbg("Length < 127");
 			g_mux_obj_ptr->info_field_len = *frame_process_ptr++ >> 1;
 			header_length = 3;
 		} else {
+			dbg("Length > 127");
 			g_mux_obj_ptr->info_field_len = *(frame_process_ptr + 1) << 7;
 			g_mux_obj_ptr->info_field_len = g_mux_obj_ptr->info_field_len | ((*frame_process_ptr++ & 0xFE) >> 1);
 			header_length = 4;

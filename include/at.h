@@ -26,6 +26,8 @@ __BEGIN_DECLS
 #include <tcore.h>
 #include <queue.h>
 
+#define ZERO								0
+
 enum tcore_at_command_type {
     TCORE_AT_NO_RESULT,   /* no intermediate response expected */
     TCORE_AT_NUMERIC,     /* a single intermediate response starting with a 0-9 */
@@ -102,6 +104,10 @@ typedef gboolean (*TcoreATNotificationCallback)(TcoreAT *at, const GSList *lines
 typedef struct tcore_at_response TcoreATResponse;
 typedef struct tcore_at_request TcoreATRequest;
 
+void tcore_at_process_binary_data(TcoreAT *at,char *position,int data_len);
+int sum_4_bytes(char* posn);
+
+gboolean tcore_at_add_hook(TcoreHal *hal, void *hook_func);
 TcoreAT*         tcore_at_new(TcoreHal *hal);
 void             tcore_at_free(TcoreAT *at);
 

@@ -157,13 +157,12 @@ CoreObject *tcore_modem_new(TcorePlugin *p, const char *name,
 	CoreObject *o = NULL;
 	struct private_object_data *po = NULL;
 
+	//dbg("Entered");
 	if (!p)
 		return NULL;
-
 	o = tcore_object_new(p, name, hal);
 	if (!o)
 		return NULL;
-
 	po = calloc(sizeof(struct private_object_data), 1);
 	if (!po) {
 		tcore_object_free(o);
@@ -177,7 +176,6 @@ CoreObject *tcore_modem_new(TcorePlugin *p, const char *name,
 	tcore_object_set_free_hook(o, _free_hook);
 	tcore_object_set_clone_hook(o, _clone_hook);
 	tcore_object_set_dispatcher(o, _dispatcher);
-
 	return o;
 }
 
