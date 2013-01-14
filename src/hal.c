@@ -508,3 +508,14 @@ TReturn tcore_hal_set_power(TcoreHal *hal, gboolean flag)
 
 	return hal->ops->power(hal, flag);
 }
+
+TReturn tcore_hal_setup_netif(TcoreHal *hal, CoreObject *co,
+				TcoreHalSetupNetifCallback func,
+				void *user_data, unsigned int cid,
+				gboolean enable)
+{
+	if (!hal || !hal->ops || !hal->ops->setup_netif)
+		return TCORE_RETURN_EINVAL;
+
+	return hal->ops->setup_netif(co, func, user_data, cid, enable);
+}

@@ -25,6 +25,7 @@ __BEGIN_DECLS
 
 typedef void (*TcoreHalReceiveCallback)(TcoreHal *hal, unsigned int data_len, const void *data, void *user_data);
 typedef enum tcore_hook_return (*TcoreHalSendHook)(TcoreHal *hal, unsigned int data_len, void *data, void *user_data);
+typedef void (*TcoreHalSetupNetifCallback)(CoreObject *co, const char* devname, void *user_data);
 
 enum tcore_hal_recv_data_type {
 	TCORE_HAL_RECV_INDICATION,
@@ -43,6 +44,10 @@ enum tcore_hal_mode {
 struct tcore_hal_operations {
 	TReturn (*power)(TcoreHal *hal, gboolean flag);
 	TReturn (*send)(TcoreHal *hal, unsigned int data_len, void *data);
+	TReturn (*setup_netif)(CoreObject *co,
+				TcoreHalSetupNetifCallback func,
+				void *user_data, unsigned int cid,
+				gboolean enable);
 };
 
 TcoreHal*    tcore_hal_new(TcorePlugin *plugin, const char *name,
@@ -85,6 +90,12 @@ gboolean     tcore_hal_get_power_state(TcoreHal *hal);
 
 TcoreQueue*  tcore_hal_ref_queue(TcoreHal *hal);
 TcorePlugin* tcore_hal_ref_plugin(TcoreHal *hal);
+
+TReturn      tcore_hal_setup_netif(TcoreHal *hal, CoreObject *co,
+					TcoreHalSetupNetifCallback func,
+					void *user_data, unsigned int cid,
+					gboolean enable);
+
 
 __END_DECLS
 

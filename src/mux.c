@@ -283,10 +283,24 @@ static TReturn tcore_cmux_hal_send(TcoreHal *h, unsigned int data_len, void *dat
 	return TCORE_RETURN_SUCCESS;
 }
 
+static TReturn tcore_cmux_hal_setup_netif(CoreObject *co,
+					TcoreHalSetupNetifCallback func,
+					void *user_data, unsigned int cid,
+					gboolean enable)
+{
+	TcoreHal *hal = g_mux_obj_ptr->phy_hal;
+
+	if (hal == NULL)
+		return TCORE_RETURN_EINVAL;
+
+	return tcore_hal_setup_netif(hal, co, func, user_data, cid, enable);
+}
+
 /* CMUX supported HAL (Logical HAL) operations */
 static struct tcore_hal_operations mux_hops = {
 	.power = tcore_cmux_hal_power,
 	.send = tcore_cmux_hal_send,
+	.setup_netif = tcore_cmux_hal_setup_netif,
 };
 
 static TReturn tcore_cmux_send_data(int data_len, unsigned char *data)
