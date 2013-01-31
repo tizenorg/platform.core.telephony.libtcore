@@ -16,7 +16,7 @@ FOREACH(flag ${pkgs_CFLAGS})
 	SET(EXTRA_CFLAGS "${EXTRA_CFLAGS} ${flag}")
 ENDFOREACH(flag)
 
-SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -I${CMAKE_SOURCE_DIR}/include ${EXTRA_CFLAGS} -Werror -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -Wdeclaration-after-statement -Wmissing-declarations -Wredundant-decls -Wcast-align")
+SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -I${CMAKE_SOURCE_DIR}/include ${EXTRA_CFLAGS} -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -Wdeclaration-after-statement -Wmissing-declarations -Wredundant-decls -Wcast-align")
 
 ADD_DEFINITIONS("-DFEATURE_TLOG_DEBUG")
 ADD_DEFINITIONS("-DTCORE_LOG_TAG=\"TCORE\"")
@@ -67,6 +67,6 @@ CONFIGURE_FILE(tcore.pc.in tcore.pc @ONLY)
 # install
 INSTALL(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/ DESTINATION include/tcore)
 INSTALL(TARGETS tcore
-		LIBRARY DESTINATION lib)
-INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/tcore.pc DESTINATION lib/pkgconfig)
+	LIBRARY DESTINATION ${LIB_INSTALL_DIR})
+INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/tcore.pc DESTINATION ${LIB_INSTALL_DIR}/pkgconfig)
 INSTALL(FILES ${CMAKE_SOURCE_DIR}/LICENSE DESTINATION /usr/share/license RENAME libtcore)

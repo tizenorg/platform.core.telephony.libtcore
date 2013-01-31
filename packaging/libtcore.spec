@@ -1,4 +1,3 @@
-#sbs-git:slp/pkgs/l/libtcore
 Name: libtcore
 Summary: Telephony-core library
 Version: 0.1.212
@@ -27,7 +26,7 @@ Telephony-core library (Development)
 %setup -q
 
 %build
-cmake . -DCMAKE_INSTALL_PREFIX=%{_prefix} -DVERSION=%{version}
+%cmake . -DVERSION=%{version}
 make %{?jobs:-j%jobs}
 
 %post
@@ -36,16 +35,12 @@ make %{?jobs:-j%jobs}
 %postun -p /sbin/ldconfig
 
 %install
-rm -rf %{buildroot}
 %make_install
-mkdir -p %{buildroot}/usr/share/license
 
 %files
 %manifest libtcore.manifest
 %defattr(-,root,root,-)
-#%doc COPYING
 %{_libdir}/libtcore*
-#%{_bindir}/*
 /usr/share/license/libtcore
 
 %files devel
