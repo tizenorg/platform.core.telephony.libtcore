@@ -1,0 +1,59 @@
+From 69ef003199bc6848d39d75b12bd6ccb84383abad Mon Sep 17 00:00:00 2001
+From: Guillaume Zajac <guillaume.zajac@linux.intel.com>
+Date: Wed, 3 Oct 2012 10:14:40 +0200
+Subject: [PATCH 02/10] hal: Add new entry points and method declarations
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 8bit
+
+Create callback for HAL power operation.
+
+mux_init-->initialize multiplexer through HAL
+lin_object_channel--> link core object to HAL channel
+---
+ include/hal.h |   10 ++++++++--
+ 1 file changed, 8 insertions(+), 2 deletions(-)
+
+diff --git a/include/hal.h b/include/hal.h
+index 55b4762..bed6684 100644
+--- a/include/hal.h
++++ b/include/hal.h
+@@ -25,6 +25,7 @@ __BEGIN_DECLS
+ 
+ typedef void (*TcoreHalReceiveCallback)(TcoreHal *hal, unsigned int data_len, const void *data, void *user_data);
+ typedef enum tcore_hook_return (*TcoreHalSendHook)(TcoreHal *hal, unsigned int data_len, void *data, void *user_data);
++typedef void (*TcoreHalPowerCallBack)(TcoreHal *hal, void *user_data);
+ 
+ enum tcore_hal_recv_data_type {
+ 	TCORE_HAL_RECV_INDICATION,
+@@ -41,9 +42,11 @@ enum tcore_hal_mode {
+ };
+ 
+ struct tcore_hal_operations {
+-	TReturn (*power)(TcoreHal *hal, gboolean flag);
++	TReturn (*power)(TcoreHal *hal, gboolean flag,
++				TcoreHalPowerCallBack func, void *user_data);
+ 	TReturn (*send)(TcoreHal *hal, unsigned int data_len, void *data);
+ 	TReturn (*set_sound_path)(TcoreHal *hal, int device);
++	TReturn (*link_object_channel)(CoreObject *object);
+ };
+ 
+ TcoreHal*    tcore_hal_new(TcorePlugin *plugin, const char *name,
+@@ -58,11 +61,14 @@ TcoreAT*     tcore_hal_get_at(TcoreHal *hal);
+ enum tcore_hal_mode tcore_hal_get_mode(TcoreHal *hal);
+ TReturn      tcore_hal_set_mode(TcoreHal *hal, enum tcore_hal_mode mode);
+ 
+-TReturn      tcore_hal_set_power(TcoreHal *hal, gboolean flag);
++TReturn      tcore_hal_set_power(TcoreHal *hal, gboolean flag,
++					TcoreHalPowerCallBack func,
++					void *user_data);
+ TReturn	      tcore_hal_set_sound_path(TcoreHal *hal, int device);
+ 
+ TReturn      tcore_hal_link_user_data(TcoreHal *hal, void *user_data);
+ void*        tcore_hal_ref_user_data(TcoreHal *hal);
++TReturn	     tcore_hal_link_object(TcoreHal *hal, CoreObject *co);
+ 
+ TReturn      tcore_hal_send_data(TcoreHal *hal, unsigned int data_len, void *data);
+ TReturn      tcore_hal_send_request(TcoreHal *hal, TcorePending *pending);
+-- 
+1.7.10.4
+

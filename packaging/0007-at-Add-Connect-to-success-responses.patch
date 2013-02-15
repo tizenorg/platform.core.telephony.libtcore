@@ -1,0 +1,26 @@
+From 5f313b36343eae686e0f630d1dc037513b4aac1e Mon Sep 17 00:00:00 2001
+From: Guillaume Zajac <guillaume.zajac@linux.intel.com>
+Date: Thu, 4 Oct 2012 14:59:15 +0200
+Subject: [PATCH 07/10] at: Add Connect to success responses
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 8bit
+
+---
+ src/at.c |    1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/src/at.c b/src/at.c
+index 00e40f9..c13d830 100644
+--- a/src/at.c
++++ b/src/at.c
+@@ -75,6 +75,7 @@ struct _notification {
+  */
+ static const char *list_final_responses_success[] = {
+     "OK",
++    "CONNECT",
+ };
+ 
+ /**
+-- 
+1.7.10.4
+
