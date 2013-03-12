@@ -68,6 +68,7 @@ enum telephony_ps_state {
 };
 
 enum ps_data_call_status {
+	PS_DATA_CALL_CTX_DEFINED,
 	PS_DATA_CALL_NOT_CONNECTED,
 	PS_DATA_CALL_CONNECTED
 };
