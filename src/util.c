@@ -36,7 +36,6 @@
 #include "tcore.h"
 #include "util.h"
 
-
 #define	tabGsmUniMax2 9
 #define	tabGsmUniMax 42
 
@@ -1151,6 +1150,61 @@ unsigned char *tcore_util_decode_hex(const char *src, int len)
 	}
 
 	return buf;
+}
+
+#define convert_to_hex(in, out) (in <= 9) ? \
+	(out = '0' + in) : (out = 'A' + in - 10)
+
+long tcore_util_encode_hex(const unsigned char *src, long num_bytes,
+				char *buf)
+{
+	long i, j;
+
+	if (num_bytes <= 0)
+		return -1;
+
+	for (i = 0, j = 0; i < num_bytes; i++, j++) {
+		convert_to_hex(((src[i] >> 4) & 0xf), buf[j++]);
+		convert_to_hex((src[i] & 0xf), buf[j]);
+	}
+
+	buf[j] = '\0';
+
+	return j;
+}
+
+/* pdu buffer size must be 12 (SCA max length) + 164 (TPDU max length) bytes */
+int tcore_util_pdu_encode(const unsigned char *sca, const unsigned char *tpdu,
+				int tpdu_len, char *pdu)
+{
+	int i, sca_len;
+	unsigned char converted_sca[SMS_ENCODED_SCA_LEN_MAX];
+
+	if (sca[0] == 0) {
+		converted_sca[0] = 0;
+		sca_len = 1;
+
+		goto out;
+	}
+
+	/*
+	 * For PDU, the SC Address length is the number of packed BCD bytes
+	 * + 1 byte for SC Address type whereas the length given in
+	 * 3GPP 23.040 Address encoding is the number of digits without 1 byte
+	 * for address type.
+	 */
+	sca_len = ((sca[0] + 1) / 2) + 1;
+
+	converted_sca[0] = (unsigned char)sca_len;
+
+	for (i = 1; i <= sca_len; i++)
+		converted_sca[i] = sca[i];
+
+out:
+	memcpy(pdu, converted_sca, sca_len);
+	memcpy(pdu + sca_len, tpdu, tpdu_len);
+
+	return sca_len + tpdu_len;
 }
 
 unsigned char *tcore_util_unpack_gsm7bit(const unsigned char *src, unsigned int src_len)

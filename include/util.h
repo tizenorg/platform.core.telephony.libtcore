@@ -76,6 +76,11 @@ enum tcore_dcs_type
             tcore_util_get_cbs_coding_scheme(unsigned char encode);
 
 unsigned char* tcore_util_decode_hex(const char *src, int len);
+long tcore_util_encode_hex(const unsigned char *src, long num_bytes,
+				char *buf);
+
+int tcore_util_pdu_encode(const unsigned char *sca, const unsigned char *tpdu,
+				int tpdu_len, char *pdu);
 
 unsigned char*		tcore_util_unpack_gsm7bit(const unsigned char *src, unsigned int src_len);
 unsigned char*		tcore_util_pack_gsm7bit(const unsigned char *src, unsigned int src_len);

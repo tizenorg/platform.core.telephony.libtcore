@@ -58,25 +58,23 @@ __BEGIN_DECLS
 ==================================================================================================*/
 /* NetText */
 
-#define SMS_SMSP_ADDRESS_LEN				20		/* EF-SMSP digit length */
-#define SMS_SMSP_ALPHA_ID_LEN_MAX			128		/* EF-SMSP alpha id length */
-#define SMS_MAX_EFSMSP_RECORD_LENGTH		156		/* Maximum number of bytes SMSP Record size (Y + 28), y : 0 ~ 128 */
+#define SMS_SMSP_ADDRESS_LEN			20	/* EF-SMSP digit length */
+#define SMS_SMSP_ALPHA_ID_LEN_MAX		128	/* EF-SMSP alpha id length */
+#define SMS_MAX_EFSMSP_RECORD_LENGTH		156	/* Maximum number of bytes SMSP Record size (Y + 28), y : 0 ~ 128 */
 
-#define SMS_MSG_SIZE_MAX					918		/**< Maximum Message Size */
-#define SMS_CB_SIZE_MAX						93		/** Maximum CB Message Size */
-#define SMS_ETWS_SIZE_MAX					56		/** Maximum ETWS Message Size */
+#define SMS_MSG_SIZE_MAX			918	/**< Maximum Message Size */
+#define SMS_CB_SIZE_MAX				93						/** Maximum CB Message Size */
+#define SMS_ETWS_SIZE_MAX			56	/** Maximum ETWS Message Size */
 
-#define SMS_ADDRESS_LEN_MAX					20		/* Nettext Address Length */
-#define SMS_SCADDRESS_LEN_MAX				18		/* SC Address Length */
+#define SMS_ENCODED_SCA_LEN_MAX		12	/* Encoded SCA is 12 bytes long maximum */
 
-#define SMS_CB_PAGE_SIZE_MAX				9		/**< CB maximum page size*/
-#define SMS_GSM_SMS_MSG_NUM_MAX				255		/**< Maximum GSM SMS message number*/
-#define SMS_GSM_SMS_CBMI_LIST_SIZE_MAX		50		/**< Maximum GSM SMS CBMI list size*/
-#define SMS_SMDATA_SIZE_MAX					165		/**< Maximum SMS data size that can be stored*/
-#define SMS_MAX_SMS_SERVICE_CENTER_ADDR		12		/**<Maximum SMS service center address*/
-#define SMS_MAX_INDEX						255		/**< Maximum index value for SMS */
+#define SMS_CB_PAGE_SIZE_MAX			9	/**< CB maximum page size*/
+#define SMS_GSM_SMS_MSG_NUM_MAX		255	/**< Maximum GSM SMS message number*/
+#define SMS_GSM_SMS_CBMI_LIST_SIZE_MAX		50	/**< Maximum GSM SMS CBMI list size*/
+#define SMS_SMDATA_SIZE_MAX			164	/**< Maximum SMS data size that can be stored*/
+#define SMS_MAX_INDEX				255	/**< Maximum index value for SMS */
 
-#define SMS_SMSP_PARAMS_MAX_LEN				28
+#define SMS_SMSP_PARAMS_MAX_LEN		28
 
 // ************************  CDMA Features  **************************//
 #define SMS_PARAM_TELESERVICE_MASK					1 << 0	/**< Teleservice parameter bit position */
@@ -313,12 +311,21 @@ enum telephony_sms_3gpp_type {
 
 
 /**
- * This structure defines the fields related to an Sms like SIM index, TPDU  and length
+ * This structure defines the fields related to an Sms like SIM index, TPDU
+ * and length.
  */
 struct telephony_sms_DataPackageInfo {
-	unsigned char	sca[SMS_SMSP_ADDRESS_LEN];			/* Service Centre address - an optional parameter. If this parameter is not present, then this field will be Null.If present, the valid service centre address information is filled as per 3GPP TS23.040 9.1.2.5 Address fields */
-	int			msgLength;							/* Size of array szData (which is actual TPDU message) */
-	unsigned char tpduData[SMS_SMDATA_SIZE_MAX + 1];	/* SMS TPDU message */
+	/*
+	 * Service Centre address - an optional parameter. If this parameter
+	 * is not present, then this field will be Null.If present, the valid
+	 * service centre address information is filled as per 3GPP TS23.040
+	 * 9.1.2.5 Address fields
+	 */
+	unsigned char sca[SMS_ENCODED_SCA_LEN_MAX];
+	/* Size of array szData (which is actual TPDU message) */
+	int msgLength;
+	/* SMS TPDU message */
+	unsigned char tpduData[SMS_SMDATA_SIZE_MAX + 1];
 };
 
 /**
@@ -889,12 +896,10 @@ struct treq_sms_set_params {
 struct treq_sms_get_paramcnt {
 };
 
-/*----------------------------------*/
-/*                Structs of Responses              */
-/*----------------------------------*/
+
+/* Structs of Responses */
 struct tresp_sms_send_umts_msg {
-	struct telephony_sms_DataPackageInfo	dataInfo;
-	int									result;
+	int result;
 };
 
 struct tresp_sms_read_msg {
@@ -944,7 +949,6 @@ struct tresp_sms_get_pref_bearer {
 };
 
 struct tresp_sms_set_pref_bearer {
-	int	svc;
 	int	result;
 };
 
