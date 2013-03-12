@@ -73,61 +73,59 @@ struct tcore_network_operations {
 	TReturn (*get_neighboring_cell_info)(CoreObject *o, UserRequest *ur);
 };
 
-CoreObject* tcore_network_new(TcorePlugin *plugin, const char *name,
-                struct tcore_network_operations *ops, TcoreHal *hal);
-void        tcore_network_free(CoreObject *co);
+CoreObject *tcore_network_new(TcorePlugin *plugin,
+			struct tcore_network_operations *ops, TcoreHal *hal);
+void tcore_network_free(CoreObject *co);
 
-CoreObject *tcore_network_clone(TcorePlugin *p, const char *name, TcoreHal *hal);
 void tcore_network_override_ops(CoreObject *o, struct tcore_network_operations *network_ops);
 
-TReturn     tcore_network_set_plmn(CoreObject *co, const char *plmn);
-char*       tcore_network_get_plmn(CoreObject *co);
+TReturn tcore_network_set_plmn(CoreObject *co, const char *plmn);
+char *tcore_network_get_plmn(CoreObject *co);
 
-TReturn     tcore_network_set_network_name(CoreObject *co,
-                enum tcore_network_name_type type, const char *network_name);
-char*       tcore_network_get_network_name(CoreObject *co,
-                enum tcore_network_name_type type);
+TReturn tcore_network_set_network_name(CoreObject *co,
+			enum tcore_network_name_type type, const char *network_name);
+char *tcore_network_get_network_name(CoreObject *co,
+			enum tcore_network_name_type type);
 
-TReturn     tcore_network_set_network_name_priority(CoreObject *co,
-                enum tcore_network_name_priority priority);
-TReturn     tcore_network_get_network_name_priority(CoreObject *co,
-                enum tcore_network_name_priority *priority);
+TReturn tcore_network_set_network_name_priority(CoreObject *co,
+			enum tcore_network_name_priority priority);
+TReturn tcore_network_get_network_name_priority(CoreObject *co,
+			enum tcore_network_name_priority *priority);
 
-TReturn     tcore_network_set_roaming_state(CoreObject *co, gboolean state);
-gboolean    tcore_network_get_roaming_state(CoreObject *co);
+TReturn tcore_network_set_roaming_state(CoreObject *co, gboolean state);
+gboolean tcore_network_get_roaming_state(CoreObject *co);
 
-TReturn     tcore_network_set_service_status(CoreObject *co,
-                enum tcore_network_service_domain_type type,
-                enum telephony_network_service_domain_status status);
-TReturn     tcore_network_get_service_status(CoreObject *co,
-                enum tcore_network_service_domain_type type,
-                enum telephony_network_service_domain_status *result);
+TReturn tcore_network_set_service_status(CoreObject *co,
+			enum tcore_network_service_domain_type type,
+			enum telephony_network_service_domain_status status);
+TReturn tcore_network_get_service_status(CoreObject *co,
+			enum tcore_network_service_domain_type type,
+			enum telephony_network_service_domain_status *result);
 
-TReturn     tcore_network_set_access_technology(CoreObject *co,
-                enum telephony_network_access_technology act);
-TReturn     tcore_network_get_access_technology(CoreObject *co,
-                enum telephony_network_access_technology *result);
+TReturn tcore_network_set_access_technology(CoreObject *co,
+			enum telephony_network_access_technology act);
+TReturn tcore_network_get_access_technology(CoreObject *co,
+			enum telephony_network_access_technology *result);
 
-TReturn     tcore_network_set_lac(CoreObject *co, unsigned int lac);
-TReturn     tcore_network_get_lac(CoreObject *co, unsigned int *result);
+TReturn tcore_network_set_lac(CoreObject *co, unsigned int lac);
+TReturn tcore_network_get_lac(CoreObject *co, unsigned int *result);
 
-TReturn     tcore_network_set_rac(CoreObject *co, unsigned int rac);
-TReturn     tcore_network_get_rac(CoreObject *co, unsigned int *result);
+TReturn tcore_network_set_rac(CoreObject *co, unsigned int rac);
+TReturn tcore_network_get_rac(CoreObject *co, unsigned int *result);
 
-TReturn     tcore_network_set_cell_id(CoreObject *co, unsigned int cell_id);
-TReturn     tcore_network_get_cell_id(CoreObject *co, unsigned int *result);
+TReturn tcore_network_set_cell_id(CoreObject *co, unsigned int cell_id);
+TReturn tcore_network_get_cell_id(CoreObject *co, unsigned int *result);
 
-TReturn     tcore_network_set_service_type(CoreObject *co,
-                enum telephony_network_service_type service_type);
-TReturn     tcore_network_get_service_type(CoreObject *co,
-                enum telephony_network_service_type *result);
+TReturn tcore_network_set_service_type(CoreObject *co,
+			enum telephony_network_service_type service_type);
+TReturn tcore_network_get_service_type(CoreObject *co,
+			enum telephony_network_service_type *result);
 
-TReturn     tcore_network_operator_info_add(CoreObject *co,
-                struct tcore_network_operator_info *noi);
+TReturn tcore_network_operator_info_add(CoreObject *co,
+			struct tcore_network_operator_info *noi);
 
-struct tcore_network_operator_info*
-            tcore_network_operator_info_find(CoreObject *co,
-                const char *mcc, const char *mnc);
+struct tcore_network_operator_info *tcore_network_operator_info_find(CoreObject *co,
+			const char *mcc, const char *mnc);
 
 __END_DECLS
 

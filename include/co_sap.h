@@ -36,10 +36,10 @@ struct tcore_sap_operations {
 	TReturn (*get_cardreader_status)(CoreObject *o, UserRequest *ur);
 };
 
-CoreObject* tcore_sap_new(TcorePlugin *p, const char *name, struct tcore_sap_operations *ops, TcoreHal *hal);
-void        tcore_sap_free(CoreObject *o);
+CoreObject *tcore_sap_new(TcorePlugin *p,
+			struct tcore_sap_operations *ops, TcoreHal *hal);
+void tcore_sap_free(CoreObject *o);
 
-CoreObject *tcore_sap_clone(TcorePlugin *p, const char *name, TcoreHal *hal);
 void tcore_sap_override_ops(CoreObject *o, struct tcore_sap_operations *sap_ops);
 
 __END_DECLS

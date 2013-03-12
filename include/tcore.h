@@ -47,6 +47,7 @@
 typedef struct tcore_object_type CoreObject;
 typedef struct tcore_hal_type TcoreHal;
 typedef struct tcore_plugin_type TcorePlugin;
+typedef struct tcore_modem_type TcoreModem;
 typedef struct tcore_queue_type TcoreQueue;
 typedef struct tcore_pending_type TcorePending;
 typedef struct tcore_communicator_type Communicator;

@@ -72,7 +72,8 @@ struct tcore_sat_proactive_command {
 		TelSatCloseChannelIndInfo_t closeChannel;
 		TelSatReceiveDataIndInfo_t receiveData;
 		TelSatSendDataIndInfo_t sendData;
-		TelSatGetChannelStatusIndInfo_t getChannelStatus;*/
+		TelSatGetChannelStatusIndInfo_t getChannelStatus;
+*/
 	} data;
 };
 
@@ -85,10 +86,10 @@ int tcore_sat_decode_proactive_command(unsigned char* tlv_origin, unsigned int t
 int tcore_sat_encode_envelop_cmd(const struct treq_sat_envelop_cmd_data *src_envelop, char *dst_envelop);
 int tcore_sat_encode_terminal_response(const struct treq_sat_terminal_rsp_data *src_tr, char *dst_tr);
 
-CoreObject* tcore_sat_new(TcorePlugin *p, const char *name, struct tcore_sat_operations *ops, TcoreHal *hal);
-void        tcore_sat_free(CoreObject *n);
+CoreObject *tcore_sat_new(TcorePlugin *p,
+			struct tcore_sat_operations *ops, TcoreHal *hal);
+void tcore_sat_free(CoreObject *n);
 
-CoreObject *tcore_sat_clone(TcorePlugin *p, const char *name, TcoreHal *hal);
 void tcore_sat_override_ops(CoreObject *o, struct tcore_sat_operations *sat_ops);
 
 #endif

@@ -35,26 +35,27 @@ struct tcore_ps_operations {
 	TReturn (*deactivate_context)(CoreObject *co_ps, CoreObject *context, void *user_data);
 };
 
-CoreObject*  tcore_ps_new(TcorePlugin *p, const char *name, struct tcore_ps_operations *ops, TcoreHal *hal);
-void         tcore_ps_free(CoreObject *o);
+CoreObject *tcore_ps_new(TcorePlugin *p,
+			struct tcore_ps_operations *ops, TcoreHal *hal);
+void tcore_ps_free(CoreObject *o);
 
-CoreObject *tcore_ps_clone(TcorePlugin *p, const char *name, TcoreHal *hal);
 void tcore_ps_override_ops(CoreObject *o, struct tcore_ps_operations *ps_ops);
 
-TReturn      tcore_ps_add_context(CoreObject *o, CoreObject *ctx_o);
-TReturn      tcore_ps_remove_context(CoreObject *o, CoreObject *ctx_o);
-CoreObject*  tcore_ps_ref_context_by_role(CoreObject *o, enum co_context_role role);
-GSList*      tcore_ps_ref_context_by_id(CoreObject *o, unsigned int id);
+TReturn tcore_ps_add_context(CoreObject *o, CoreObject *ctx_o);
+TReturn tcore_ps_remove_context(CoreObject *o, CoreObject *ctx_o);
+CoreObject *tcore_ps_ref_context_by_role(CoreObject *o, enum co_context_role role);
+GSList *tcore_ps_ref_context_by_id(CoreObject *o, unsigned int id);
 
-TReturn      tcore_ps_set_online(CoreObject *o, gboolean state);
+TReturn tcore_ps_set_online(CoreObject *o, gboolean state);
 
-TReturn      tcore_ps_assign_context_id(CoreObject *o, CoreObject *context, unsigned int cid);
-TReturn      tcore_ps_clear_context_id(CoreObject *o, CoreObject *context);
+TReturn tcore_ps_assign_context_id(CoreObject *o, CoreObject *context, unsigned int cid);
+TReturn tcore_ps_clear_context_id(CoreObject *o, CoreObject *context);
 
-TReturn      tcore_ps_define_context(CoreObject *o, CoreObject *context, void *user_data);
-TReturn      tcore_ps_activate_context(CoreObject *o, CoreObject *context, void *user_data);
-TReturn      tcore_ps_deactivate_context(CoreObject *o, CoreObject *context, void *user_data);
-TReturn      tcore_ps_deactivate_contexts(CoreObject *o);
+TReturn tcore_ps_define_context(CoreObject *o, CoreObject *ps_context, void *user_data);
+
+TReturn tcore_ps_activate_context(CoreObject *o, CoreObject *context, void *user_data);
+TReturn tcore_ps_deactivate_context(CoreObject *o, CoreObject *context, void *user_data);
+TReturn tcore_ps_deactivate_contexts(CoreObject *o);
 
 __END_DECLS
 

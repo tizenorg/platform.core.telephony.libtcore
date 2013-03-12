@@ -243,7 +243,7 @@ static void _ussd_session_init(struct ussd_session *ussd_s)
 }
 
 struct ussd_session* tcore_ss_ussd_create_session(CoreObject *o,
-		enum tcore_ss_ussd_type type, void *data, int data_len)
+				enum tcore_ss_ussd_type type, void *data, int data_len)
 {
 	struct private_object_data *po = NULL;
 
@@ -313,8 +313,8 @@ enum tcore_ss_ussd_type tcore_ss_ussd_get_session_type(struct ussd_session *ussd
 	}
 }
 
-void tcore_ss_ussd_set_session_type(struct ussd_session *ussd_s,
-		enum tcore_ss_ussd_type type)
+void tcore_ss_ussd_set_session_type(struct ussd_session* ussd_s,
+				enum tcore_ss_ussd_type type)
 {
 	if (!ussd_s || !ussd_s->session) {
 		dbg("[ error ] there is no session");
@@ -340,7 +340,8 @@ int tcore_ss_ussd_get_session_data(struct ussd_session* ussd_s, void **data)
 	}
 }
 
-void tcore_ss_ussd_set_session_data(struct ussd_session* ussd_s, void *data, int data_len)
+void tcore_ss_ussd_set_session_data(struct ussd_session* ussd_s,
+				void* data, int data_len)
 {
 	if (!ussd_s || !ussd_s->session) {
 		dbg("[ error ] there is no session");
@@ -372,8 +373,8 @@ void tcore_ss_override_ops(CoreObject *o, struct tcore_ss_operations *ss_ops)
 	return;
 }
 
-CoreObject *tcore_ss_new(TcorePlugin *p, const char *name,
-		struct tcore_ss_operations *ops, TcoreHal *hal)
+CoreObject *tcore_ss_new(TcorePlugin *p,
+				struct tcore_ss_operations *ops, TcoreHal *hal)
 {
 	CoreObject *o = NULL;
 	struct private_object_data *po = NULL;
@@ -381,7 +382,7 @@ CoreObject *tcore_ss_new(TcorePlugin *p, const char *name,
 	if (!p)
 		return NULL;
 
-	o = tcore_object_new(p, name, hal);
+	o = tcore_object_new(p, hal);
 	if (!o)
 		return NULL;
 
@@ -400,22 +401,6 @@ CoreObject *tcore_ss_new(TcorePlugin *p, const char *name,
 	tcore_object_set_free_hook(o, _free_hook);
 	tcore_object_set_clone_hook(o, _clone_hook);
 	tcore_object_set_dispatcher(o, _dispatcher);
-
-	return o;
-}
-
-CoreObject *tcore_ss_clone(TcorePlugin *p, const char *name, TcoreHal *hal)
-{
-	CoreObject *o = NULL;
-
-	if (!p)
-		return NULL;
-
-	o = tcore_object_clone_template_object(p, name, CORE_OBJECT_TYPE_SS);
-	if (!o)
-		return NULL;
-
-	tcore_object_set_hal(o, hal);
 
 	return o;
 }

@@ -73,7 +73,7 @@ static void _free_hook(CoreObject *o)
 	}
 }
 
-CoreObject *tcore_context_new(TcorePlugin *p, const char *name, TcoreHal *hal)
+CoreObject *tcore_context_new(TcorePlugin *p, TcoreHal *hal)
 {
 	CoreObject *o = NULL;
 	struct private_object_data *po = NULL;
@@ -81,7 +81,7 @@ CoreObject *tcore_context_new(TcorePlugin *p, const char *name, TcoreHal *hal)
 	if (!p)
 		return NULL;
 
-	o = tcore_object_new(p, name, hal);
+	o = tcore_object_new(p, hal);
 	if (!o)
 		return NULL;
 
@@ -100,22 +100,6 @@ CoreObject *tcore_context_new(TcorePlugin *p, const char *name, TcoreHal *hal)
 	tcore_object_set_type(o, CORE_OBJECT_TYPE_PS_CONTEXT);
 	tcore_object_link_object(o, po);
 	tcore_object_set_free_hook(o, _free_hook);
-
-	return o;
-}
-
-CoreObject *tcore_context_clone(TcorePlugin *p, const char *name, TcoreHal *hal)
-{
-	CoreObject *o = NULL;
-
-	if (!p)
-		return NULL;
-
-	o = tcore_object_clone_template_object(p, name, CORE_OBJECT_TYPE_PS_CONTEXT);
-	if (!o)
-		return NULL;
-
-	tcore_object_set_hal(o, hal);
 
 	return o;
 }

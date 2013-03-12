@@ -52,12 +52,15 @@ TcorePlugin *tcore_plugin_new(Server *server,
 {
 	TcorePlugin *p;
 
-	p = calloc(1, sizeof(struct tcore_plugin_type));
-	if (!p)
+	p = g_try_new0(struct tcore_plugin_type, 1);
+	if (p == NULL)
 		return NULL;
 
-	if (filename)
-		p->filename = strdup(filename);
+	/*
+	 * Assign 'filename' name irrespective of if it is NULL,
+	 * g_strdup would take care of this scenario.
+	 */
+	p->filename = g_strdup(filename);
 
 	p->desc = desc;
 	p->property = g_hash_table_new(g_str_hash, g_str_equal);
@@ -72,7 +75,7 @@ void tcore_plugin_free(TcorePlugin *plugin)
 	GSList *list;
 	CoreObject *o;
 
-	if (!plugin)
+	if (plugin == NULL)
 		return;
 
 	dbg("");
@@ -80,7 +83,7 @@ void tcore_plugin_free(TcorePlugin *plugin)
 	if (plugin->list_co) {
 		for (list = plugin->list_co; list; list = list->next) {
 			o = list->data;
-			if (!o)
+			if (o == NULL)
 				continue;
 
 			tcore_object_free(o);
@@ -92,7 +95,7 @@ void tcore_plugin_free(TcorePlugin *plugin)
 	}
 
 	if (plugin->filename) {
-		free(plugin->filename);
+		g_free(plugin->filename);
 		plugin->filename = NULL;
 	}
 
@@ -108,12 +111,12 @@ void tcore_plugin_free(TcorePlugin *plugin)
 		plugin->handle = NULL;
 	}
 
-	free(plugin);
+	g_free(plugin);
 }
 
 const struct tcore_plugin_define_desc *tcore_plugin_get_description(TcorePlugin *plugin)
 {
-	if (!plugin)
+	if (plugin == NULL)
 		return NULL;
 
 	return plugin->desc;
@@ -121,21 +124,24 @@ const struct tcore_plugin_define_desc *tcore_plugin_get_description(TcorePlugin 
 
 char *tcore_plugin_get_filename(TcorePlugin *plugin)
 {
-	if (!plugin)
+	if (plugin == NULL)
 		return NULL;
 
-	if (!plugin->filename)
-		return NULL;
-
-	return strdup(plugin->filename);
+	/*
+	 * Return copy of 'filename',
+	 *
+	 * it CAN even be NULL if plugin->filename is NULL,
+	 * g_strdup will take care of this scenario.
+	 */
+	return g_strdup(plugin->filename);
 }
 
 char* tcore_plugin_ref_plugin_name(TcorePlugin *plugin)
 {
-	if (!plugin)
+	if (plugin == NULL)
 		return NULL;
 
-	if (!plugin->desc->name)
+	if (plugin->desc == NULL)
 		return NULL;
 
 	return plugin->desc->name;
@@ -143,7 +149,7 @@ char* tcore_plugin_ref_plugin_name(TcorePlugin *plugin)
 
 Server *tcore_plugin_ref_server(TcorePlugin *plugin)
 {
-	if (!plugin)
+	if (plugin == NULL)
 		return NULL;
 
 	return plugin->parent_server;
@@ -151,7 +157,7 @@ Server *tcore_plugin_ref_server(TcorePlugin *plugin)
 
 TReturn tcore_plugin_link_user_data(TcorePlugin *plugin, void *user_data)
 {
-	if (!plugin)
+	if (plugin == NULL)
 		return TCORE_RETURN_EINVAL;
 
 	plugin->user_data = user_data;
@@ -161,7 +167,7 @@ TReturn tcore_plugin_link_user_data(TcorePlugin *plugin, void *user_data)
 
 void *tcore_plugin_ref_user_data(TcorePlugin *plugin)
 {
-	if (!plugin)
+	if (plugin == NULL)
 		return FALSE;
 
 	return plugin->user_data;
@@ -169,30 +175,30 @@ void *tcore_plugin_ref_user_data(TcorePlugin *plugin)
 
 TReturn tcore_plugin_add_core_object(TcorePlugin *plugin, CoreObject *co)
 {
-	if (!plugin || !co)
+	if ((plugin == NULL) || (co == NULL))
 		return TCORE_RETURN_EINVAL;
 
-	dbg("add core_object! (name=%s)", tcore_object_ref_name(co));
+	dbg("add core_object! (Type: [0x%x])", tcore_object_get_type(co));
 
 	plugin->list_co = g_slist_insert(plugin->list_co, co, 0);
 
 	return TCORE_RETURN_SUCCESS;
 }
 
-CoreObject *tcore_plugin_ref_core_object(TcorePlugin *plugin, const char *name)
+CoreObject *tcore_plugin_ref_core_object(TcorePlugin *plugin, unsigned int type)
 {
 	GSList *list;
 	CoreObject *co;
 
-	if (!plugin)
+	if (plugin == NULL)
 		return NULL;
 
 	for (list = plugin->list_co; list; list = list->next) {
 		co = list->data;
-		if (!co)
+		if (co == NULL)
 			continue;
 
-		if (strcmp(tcore_object_ref_name(co), name) == 0) {
+		if (tcore_object_get_type(co) == type) {
 			return co;
 		}
 	}
@@ -200,18 +206,17 @@ CoreObject *tcore_plugin_ref_core_object(TcorePlugin *plugin, const char *name)
 	return NULL;
 }
 
-
 GSList *tcore_plugin_get_core_objects_bytype(TcorePlugin *plugin, unsigned int type)
 {
 	GSList *list, *rlist = NULL;
 	CoreObject *co;
 
-	if (!plugin)
+	if (plugin == NULL)
 		return NULL;
 
 	for (list = plugin->list_co; list; list = list->next) {
 		co = list->data;
-		if (!co)
+		if (co == NULL)
 			continue;
 
 		if (tcore_object_get_type(co) == type) {
@@ -227,14 +232,14 @@ TReturn tcore_plugin_core_object_event_emit(TcorePlugin *plugin, const char *eve
 	GSList *list;
 	CoreObject *co;
 
-	if (!plugin)
+	if (plugin == NULL)
 		return TCORE_RETURN_EINVAL;
 
 	dbg("event(%s) emit", event);
 
 	for (list = plugin->list_co; list; list = list->next) {
 		co = list->data;
-		if (!co)
+		if (co == NULL)
 			continue;
 
 		tcore_object_emit_callback(co, event, event_info);
@@ -247,19 +252,19 @@ TReturn tcore_plugin_link_property(TcorePlugin *plugin, const char *key, void *d
 {
 	void *prev;
 
-	if (!plugin)
+	if (plugin == NULL)
 		return TCORE_RETURN_EINVAL;
 
-	if (!plugin->property)
+	if (plugin->property == NULL)
 		return TCORE_RETURN_EINVAL;
 
 	prev = g_hash_table_lookup(plugin->property, key);
 	if (prev != NULL) {
-		free(prev);
+		g_free(prev);
 		g_hash_table_replace(plugin->property, (gpointer)key, data);
 	}
 	else {
-		g_hash_table_insert(plugin->property, strdup(key), data);
+		g_hash_table_insert(plugin->property, g_strdup(key), data);
 	}
 
 	return TCORE_RETURN_SUCCESS;
@@ -267,10 +272,10 @@ TReturn tcore_plugin_link_property(TcorePlugin *plugin, const char *key, void *d
 
 void *tcore_plugin_ref_property(TcorePlugin *plugin, const char *key)
 {
-	if (!plugin)
+	if (plugin == NULL)
 		return NULL;
 
-	if (!plugin->property)
+	if (plugin->property == NULL)
 		return NULL;
 
 	return g_hash_table_lookup(plugin->property, key);

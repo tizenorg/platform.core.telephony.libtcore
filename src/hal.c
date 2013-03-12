@@ -66,7 +66,7 @@ struct tcore_hal_type {
 
 static gboolean _hal_idle_send(void *user_data)
 {
-	TcoreHal *h = user_data;
+	TcoreHal *hal = user_data;
 	TcorePending *p = NULL;
 	TcoreQueue *q;
 	int ret = 0;
@@ -74,26 +74,26 @@ static gboolean _hal_idle_send(void *user_data)
 	unsigned int data_len = 0;
 	gboolean renew = FALSE;
 
-	if (!h)
+	if (hal == NULL)
 		return FALSE;
 
 	msg("--[Queue SEND]-------------------");
 
-	p = tcore_queue_ref_next_pending(h->queue);
-	if (!p) {
-		dbg("next pending is NULL. no send, queue len=%d", tcore_queue_get_length(h->queue));
+	p = tcore_queue_ref_next_pending(hal->queue);
+	if (p == NULL) {
+		dbg("next pending is NULL. no send, queue len=%d", tcore_queue_get_length(hal->queue));
 		goto out;
 	}
 
 	data = tcore_pending_ref_request_data(p, &data_len);
 	dbg("queue len=%d, pending=0x%x, id=0x%x, data_len=%d",
-			tcore_queue_get_length(h->queue), (unsigned int)p, tcore_pending_get_id(p), data_len);
+			tcore_queue_get_length(hal->queue), (unsigned int)p, tcore_pending_get_id(p), data_len);
 
-	if (h->mode == TCORE_HAL_MODE_AT) {
-		ret = tcore_at_set_request(h->at, data, TRUE);
+	if (hal->mode == TCORE_HAL_MODE_AT) {
+		ret = tcore_at_set_request(hal->at, data, TRUE);
 	}
 	else {
-		ret = tcore_hal_send_data(h, data_len, data);
+		ret = tcore_hal_send_data(hal, data_len, data);
 	}
 
 	if (ret == TCORE_RETURN_SUCCESS) {
@@ -105,7 +105,7 @@ static gboolean _hal_idle_send(void *user_data)
 
 	if (ret != TCORE_RETURN_HOOK_STOP) {
 		if (tcore_pending_get_auto_free_status_after_sent(p)) {
-			q = tcore_hal_ref_queue(h);
+			q = tcore_hal_ref_queue(hal);
 			tcore_queue_pop_by_pending(q, p);
 			tcore_pending_free(p);
 
@@ -116,7 +116,7 @@ static gboolean _hal_idle_send(void *user_data)
 			/* Send fail */
 			if (ret != TCORE_RETURN_SUCCESS) {
 				dbg("send fail.");
-				q = tcore_hal_ref_queue(h);
+				q = tcore_hal_ref_queue(hal);
 				p = tcore_queue_pop(q);
 				tcore_pending_free(p);
 			}
@@ -132,82 +132,86 @@ TcoreHal *tcore_hal_new(TcorePlugin *plugin, const char *name,
 		struct tcore_hal_operations *hops,
 		enum tcore_hal_mode mode)
 {
-	TcoreHal *h;
+	TcoreHal *hal;
 
-	if (!name)
+	if (name == NULL)
 		return NULL;
 
-	h = calloc(1, sizeof(struct tcore_hal_type));
-	if (!h)
+	hal = g_try_new0(struct tcore_hal_type, 1);
+	if (hal == NULL)
 		return NULL;
 
-	h->parent_plugin = plugin;
-	h->ops = hops;
-	h->name = strdup(name);
-	h->queue = tcore_queue_new(h);
-	h->mode = mode;
+	hal->parent_plugin = plugin;
+	hal->ops = hops;
+	hal->name = g_strdup(name);
+	hal->queue = tcore_queue_new(hal);
+	hal->mode = mode;
 
+	/* Create and link AT parser if HAL mode is AT */
 	if (mode == TCORE_HAL_MODE_AT)
-		h->at = tcore_at_new(h);
+		hal->at = tcore_at_new(hal);
 
-	if (plugin)
-		tcore_server_add_hal(tcore_plugin_ref_server(plugin), h);
-
-	return h;
+	return hal;
 }
 
 void tcore_hal_free(TcoreHal *hal)
 {
-	if (!hal)
+	if (hal == NULL)
 		return;
 
 	dbg("hal=%s", hal->name);
 
-	if (hal->name)
-		free(hal->name);
+	/* Freeing HAL name */
+	g_free(hal->name);
 
-	if (hal->callbacks)
-		g_slist_free(hal->callbacks);
+	/* Freeing HAL callbacks list */
+	g_slist_free(hal->callbacks);
 
-	if (hal->queue)
-		tcore_queue_free(hal->queue);
+	/* Freeing HAL Queue */
+	tcore_queue_free(hal->queue);
 
-	if (hal->at)
-		tcore_at_free(hal->at);
+	/* Freeing AT parser linked to HAL */
+	tcore_at_free(hal->at);
 
-	free(hal);
+	/* Freeing HAL */
+	g_free(hal);
 }
 
 TReturn tcore_hal_set_name(TcoreHal *hal, const char *name)
 {
-	if (!hal)
+	if (hal == NULL)
 		return TCORE_RETURN_EINVAL;
 
-	if (hal->name) {
-		free(hal->name);
-		hal->name = NULL;
-	}
+	/* Freeing the previously assigned HAL name */
+	g_free(hal->name);
+	hal->name = NULL;
 
-	if (name)
-		hal->name = strdup(name);
+	/*
+	 * Assign the new HAL name irrespective of if 'name' is NULL,
+	 * g_strdup would take care of this scenario.
+	 */
+	hal->name = g_strdup(name);
 
 	return TCORE_RETURN_SUCCESS;
 }
 
 char *tcore_hal_get_name(TcoreHal *hal)
 {
-	if (!hal)
+	if (hal == NULL)
 		return NULL;
 
-	if (hal->name)
-		return strdup(hal->name);
-
-	return NULL;
+	/*
+	 * Return copy of HAL name,
+	 *
+	 * it CAN even be NULL if hal->name is NULL,
+	 * g_strdup will take care of this scenario.
+	 */
+	return g_strdup(hal->name);
 }
 
 TcoreAT *tcore_hal_get_at(TcoreHal *hal)
 {
-	if (!hal)
+	if (hal == NULL)
 		return NULL;
 
 	return hal->at;
@@ -215,7 +219,7 @@ TcoreAT *tcore_hal_get_at(TcoreHal *hal)
 
 enum tcore_hal_mode tcore_hal_get_mode(TcoreHal *hal)
 {
-	if (!hal)
+	if (hal == NULL)
 		return TCORE_HAL_MODE_UNKNOWN;
 
 	return hal->mode;
@@ -223,7 +227,7 @@ enum tcore_hal_mode tcore_hal_get_mode(TcoreHal *hal)
 
 TReturn tcore_hal_set_mode(TcoreHal *hal, enum tcore_hal_mode mode)
 {
-	if (!hal)
+	if (hal == NULL)
 		return TCORE_RETURN_EINVAL;
 
 	hal->mode = mode;
@@ -233,7 +237,7 @@ TReturn tcore_hal_set_mode(TcoreHal *hal, enum tcore_hal_mode mode)
 
 TReturn tcore_hal_link_user_data(TcoreHal *hal, void *user_data)
 {
-	if (!hal)
+	if (hal == NULL)
 		return TCORE_RETURN_EINVAL;
 
 	hal->user_data = user_data;
@@ -243,7 +247,7 @@ TReturn tcore_hal_link_user_data(TcoreHal *hal, void *user_data)
 
 void *tcore_hal_ref_user_data(TcoreHal *hal)
 {
-	if (!hal)
+	if (hal == NULL)
 		return NULL;
 
 	return hal->user_data;
@@ -255,12 +259,12 @@ TReturn tcore_hal_send_data(TcoreHal *hal, unsigned int data_len, void *data)
 	struct hook_send_type *hook;
 	GSList *list;
 
-	if (!hal || !hal->ops || !hal->ops->send)
+	if ((hal == NULL) || (hal->ops == NULL) || (hal->ops->send == NULL))
 		return TCORE_RETURN_EINVAL;
 
 	for (list = hal->hook_list_send; list; list = list->next) {
 		hook = list->data;
-		if (!hook) {
+		if (hook == NULL) {
 			continue;
 		}
 
@@ -278,7 +282,7 @@ TReturn tcore_hal_send_request(TcoreHal *hal, TcorePending *pending)
 	int qlen = 0;
 	enum tcore_pending_priority priority;
 
-	if (!hal || !pending)
+	if ((hal == NULL) || (pending == NULL))
 		return TCORE_RETURN_EINVAL;
 
 	if (hal->power_state == FALSE)
@@ -303,7 +307,7 @@ TReturn tcore_hal_send_request(TcoreHal *hal, TcorePending *pending)
 
 TReturn tcore_hal_send_force(TcoreHal *hal)
 {
-	if (!hal)
+	if (hal == NULL)
 		return TCORE_RETURN_EINVAL;
 
 	_hal_idle_send(hal);
@@ -316,7 +320,7 @@ TReturn tcore_hal_dispatch_response_data(TcoreHal *hal, int id,
 {
 	TcorePending *p = NULL;
 
-	if (!hal)
+	if (hal == NULL)
 		return TCORE_RETURN_EINVAL;
 
 	if (data_len > 0 && data == NULL)
@@ -334,7 +338,7 @@ TReturn tcore_hal_dispatch_response_data(TcoreHal *hal, int id,
 		if(hal->mode == TCORE_HAL_MODE_CUSTOM) {
 			dbg("TCORE_HAL_MODE_CUSTOM");
 			p = tcore_queue_pop_by_id(hal->queue, id);
-			if (!p) {
+			if (p == NULL) {
 				dbg("unknown pending (id=0x%x)", id);
 				return TCORE_RETURN_PENDING_WRONG_ID;
 			}
@@ -347,8 +351,9 @@ TReturn tcore_hal_dispatch_response_data(TcoreHal *hal, int id,
 			dbg("TCORE_HAL_MODE_TRANSPARENT");
 
 			/* Invoke CMUX receive API for decoding */
-			tcore_cmux_rcv_from_hal((unsigned char *)data, data_len);
+			tcore_cmux_rcv_from_hal(hal, (unsigned char *)data, data_len);
 		}
+
 		/* Send next request in queue */
 		g_idle_add_full(IDLE_SEND_PRIORITY, _hal_idle_send, hal, NULL );
 	}
@@ -361,11 +366,11 @@ TReturn tcore_hal_add_recv_callback(TcoreHal *hal, TcoreHalReceiveCallback func,
 {
 	struct recv_callback_item_type *item;
 
-	if (!hal)
+	if (hal == NULL)
 		return TCORE_RETURN_EINVAL;
 
-	item = calloc(1, sizeof(struct recv_callback_item_type));
-	if (!item)
+	item = g_try_new0(struct recv_callback_item_type, 1);
+	if (item == NULL)
 		return TCORE_RETURN_ENOMEM;
 
 	item->func = func;
@@ -381,19 +386,19 @@ TReturn tcore_hal_remove_recv_callback(TcoreHal *hal, TcoreHalReceiveCallback fu
 	struct recv_callback_item_type *item;
 	GSList *list;
 
-	if (!hal)
+	if (hal == NULL)
 		return TCORE_RETURN_EINVAL;
 
 	for (list = hal->callbacks; list; list = list->next) {
 		item = list->data;
-		if (!item) {
+		if (item == NULL) {
 			continue;
 		}
 
 		if (item->func == func) {
 			hal->callbacks = g_slist_remove(hal->callbacks, item);
-			free(item);
-			if (!hal->callbacks)
+			g_free(item);
+			if (hal->callbacks == NULL)
 				break;
 
 			list = hal->callbacks;
@@ -409,7 +414,7 @@ TReturn tcore_hal_emit_recv_callback(TcoreHal *hal, unsigned int data_len,
 	GSList *list;
 	struct recv_callback_item_type *item;
 
-	if (!hal)
+	if (hal == NULL)
 		return TCORE_RETURN_EINVAL;
 
 	for (list = hal->callbacks; list; list = list->next) {
@@ -428,11 +433,11 @@ TReturn tcore_hal_add_send_hook(TcoreHal *hal, TcoreHalSendHook func, void *user
 {
 	struct hook_send_type *hook;
 
-	if (!hal || !func)
+	if ((hal == NULL) || (func == NULL))
 		return TCORE_RETURN_EINVAL;
 
-	hook = calloc(1, sizeof(struct hook_send_type));
-	if (!hook)
+	hook = g_try_new0(struct hook_send_type, 1);
+	if (hook == NULL)
 		return TCORE_RETURN_ENOMEM;
 
 	hook->func = func;
@@ -448,18 +453,18 @@ TReturn tcore_hal_remove_send_hook(TcoreHal *hal, TcoreHalSendHook func)
 	struct hook_send_type *hook;
 	GSList *list;
 
-	if (!hal)
+	if (hal == NULL)
 		return TCORE_RETURN_EINVAL;
 
 	for (list = hal->hook_list_send; list; list = list->next) {
 		hook = list->data;
-		if (!hook) {
+		if (hook == NULL) {
 			continue;
 		}
 
 		if (hook->func == func) {
 			hal->hook_list_send = g_slist_remove(hal->hook_list_send, hook);
-			free(hook);
+			g_free(hook);
 			list = hal->hook_list_send;
 		}
 	}
@@ -469,7 +474,7 @@ TReturn tcore_hal_remove_send_hook(TcoreHal *hal, TcoreHalSendHook func)
 
 TcoreQueue *tcore_hal_ref_queue(TcoreHal *hal)
 {
-	if (!hal)
+	if (hal == NULL)
 		return NULL;
 
 	return hal->queue;
@@ -477,7 +482,7 @@ TcoreQueue *tcore_hal_ref_queue(TcoreHal *hal)
 
 TcorePlugin *tcore_hal_ref_plugin(TcoreHal *hal)
 {
-	if (!hal)
+	if (hal == NULL)
 		return NULL;
 
 	return hal->parent_plugin;
@@ -485,7 +490,7 @@ TcorePlugin *tcore_hal_ref_plugin(TcoreHal *hal)
 
 TReturn tcore_hal_set_power_state(TcoreHal *hal, gboolean flag)
 {
-	if (!hal)
+	if (hal == NULL)
 		return TCORE_RETURN_EINVAL;
 
 	hal->power_state = flag;
@@ -495,7 +500,7 @@ TReturn tcore_hal_set_power_state(TcoreHal *hal, gboolean flag)
 
 gboolean tcore_hal_get_power_state(TcoreHal *hal)
 {
-	if (!hal)
+	if (hal == NULL)
 		return FALSE;
 
 	return hal->power_state;
@@ -503,7 +508,7 @@ gboolean tcore_hal_get_power_state(TcoreHal *hal)
 
 TReturn tcore_hal_set_power(TcoreHal *hal, gboolean flag)
 {
-	if (!hal || !hal->ops || !hal->ops->power)
+	if ((hal == NULL) || (hal->ops == NULL) || (hal->ops->power == NULL))
 		return TCORE_RETURN_EINVAL;
 
 	return hal->ops->power(hal, flag);
@@ -514,7 +519,7 @@ TReturn tcore_hal_setup_netif(TcoreHal *hal, CoreObject *co,
 				void *user_data, unsigned int cid,
 				gboolean enable)
 {
-	if (!hal || !hal->ops || !hal->ops->setup_netif)
+	if ((hal == NULL) || (hal->ops == NULL) || (hal->ops->setup_netif == NULL))
 		return TCORE_RETURN_EINVAL;
 
 	return hal->ops->setup_netif(co, func, user_data, cid, enable);

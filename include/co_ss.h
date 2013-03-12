@@ -95,7 +95,7 @@ enum tcore_ss_class {
 
 enum tcore_ss_status {
 	TCORE_SS_STATUS_REG = 0x01, /* 0x01 : Registration */
-	TCORE_SS_STATUS_DEREG,      /* 0x02 : De-registration( erase ) */
+	TCORE_SS_STATUS_DEREG,      /* 0x02 : De-registration(erase) */
 	TCORE_SS_STATUS_ACTIVATE,   /* 0x03 : Activation */
 	TCORE_SS_STATUS_DEACTIVATE, /* 0x04 : De-activation */
 	TCORE_SS_STATUS_MAX
@@ -176,19 +176,22 @@ struct tcore_ss_operations {
 };
 
 
-CoreObject* tcore_ss_new(TcorePlugin *p, const char *name, struct tcore_ss_operations *ops, TcoreHal *hal);
-void        tcore_ss_free(CoreObject *o);
+CoreObject *tcore_ss_new(TcorePlugin *p,
+				struct tcore_ss_operations *ops, TcoreHal *hal);
+void tcore_ss_free(CoreObject *o);
 
-CoreObject *tcore_ss_clone(TcorePlugin *p, const char *name, TcoreHal *hal);
 void tcore_ss_override_ops(CoreObject *o, struct tcore_ss_operations *ss_ops);
 
-struct ussd_session*	tcore_ss_ussd_create_session( CoreObject *o, enum tcore_ss_ussd_type type, void *data, int data_len );
-void					tcore_ss_ussd_destroy_session( struct ussd_session *ussd_s );
-struct ussd_session*	tcore_ss_ussd_get_session( CoreObject *o );
-enum tcore_ss_ussd_type tcore_ss_ussd_get_session_type( struct ussd_session* ussd_s );
-void					tcore_ss_ussd_set_session_type( struct ussd_session* ussd_s, enum tcore_ss_ussd_type type );
-int						tcore_ss_ussd_get_session_data( struct ussd_session* ussd_s, void** data );
-void					tcore_ss_ussd_set_session_data( struct ussd_session* ussd_s, void* data, int data_len );
+struct ussd_session *tcore_ss_ussd_create_session(CoreObject *o,
+				enum tcore_ss_ussd_type type, void *data, int data_len);
+void tcore_ss_ussd_destroy_session(struct ussd_session *ussd_s);
+struct ussd_session *tcore_ss_ussd_get_session(CoreObject *o);
+enum tcore_ss_ussd_type tcore_ss_ussd_get_session_type(struct ussd_session* ussd_s);
+void tcore_ss_ussd_set_session_type(struct ussd_session* ussd_s,
+				enum tcore_ss_ussd_type type);
+int tcore_ss_ussd_get_session_data(struct ussd_session* ussd_s, void** data);
+void tcore_ss_ussd_set_session_data(struct ussd_session* ussd_s,
+				void* data, int data_len);
 
 __END_DECLS
 

@@ -21,8 +21,41 @@
 #ifndef __MUX_H__
 #define __MUX_H__
 
-TReturn tcore_cmux_init(TcorePlugin *plugin, TcoreHal *hal);
-void    tcore_cmux_close(void);
-int     tcore_cmux_rcv_from_hal(unsigned char *data, size_t length);
+#include "queue.h"
+
+/* CMUX modes */
+typedef enum {
+	CMUX_MODE_BASIC = 0x00,
+	CMUX_MODE_ADVANCED
+} tcore_cmux_mode;
+
+/* CMUX Channel */
+typedef struct cmux_channel tcore_cmux_channel;
+
+/* Global MUX Object */
+typedef struct cmux_obj tcore_cmux_object;
+
+/* Internal CMUX setup complete callback prototype */
+typedef void (*cmux_setup_complete_cb_func) (gpointer user_data);
+
+/* CMUX setup callback prototype */
+typedef void (*cmux_setup_cb_func) (int channel_id, TcoreHal *hal,
+									gpointer user_data);
+
+/* CMUX initialization - Internal and Kernel */
+TReturn tcore_cmux_init(TcoreHal *phy_hal, unsigned int frame_size,
+					TcorePendingResponseCallback resp_cb, void *resp_cb_data);
+
+/* Setup Internal CMUX */
+TReturn tcore_cmux_setup_internal_mux(tcore_cmux_mode mode,
+	int max_channels, unsigned int cmux_buf_size, TcoreHal *phy_hal,
+	cmux_setup_cb_func channel_setup_cb, gpointer channel_setup_user_data,
+	cmux_setup_complete_cb_func setup_complete_cb, gpointer setup_complete_user_data);
+
+/* Close CMUX */
+void tcore_cmux_close(TcoreHal *phy_hal);
+
+/* HAL Receive for Internal CMUX */
+void tcore_cmux_rcv_from_hal(TcoreHal *hal, unsigned char *data, size_t length);
 
 #endif  /* __MUX_H__ */

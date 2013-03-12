@@ -202,8 +202,8 @@ void tcore_modem_override_ops(CoreObject *o, struct tcore_modem_operations *mode
 	return;
 }
 
-CoreObject *tcore_modem_new(TcorePlugin *p, const char *name,
-		struct tcore_modem_operations *ops, TcoreHal *hal)
+CoreObject *tcore_modem_new(TcorePlugin *p,
+			struct tcore_modem_operations *ops, TcoreHal *hal)
 {
 	CoreObject *o = NULL;
 	struct private_object_data *po = NULL;
@@ -211,7 +211,8 @@ CoreObject *tcore_modem_new(TcorePlugin *p, const char *name,
 	//dbg("Entered");
 	if (!p)
 		return NULL;
-	o = tcore_object_new(p, name, hal);
+
+	o = tcore_object_new(p, hal);
 	if (!o)
 		return NULL;
 
@@ -228,22 +229,6 @@ CoreObject *tcore_modem_new(TcorePlugin *p, const char *name,
 	tcore_object_set_free_hook(o, _free_hook);
 	tcore_object_set_clone_hook(o, _clone_hook);
 	tcore_object_set_dispatcher(o, _dispatcher);
-	return o;
-}
-
-CoreObject *tcore_modem_clone(TcorePlugin *p, const char *name, TcoreHal *hal)
-{
-	CoreObject *o = NULL;
-
-	if (!p)
-		return NULL;
-
-	o = tcore_object_clone_template_object(p, name, CORE_OBJECT_TYPE_MODEM);
-	if (!o)
-		return NULL;
-
-	tcore_object_set_hal(o, hal);
-
 	return o;
 }
 

@@ -1262,8 +1262,8 @@ void tcore_call_override_ops(CoreObject *o,
 		_clone_call_control_operations(po, control_ops);
 }
 
-CoreObject *tcore_call_new(TcorePlugin *p, const char *name,
-							struct tcore_call_operations *ops, TcoreHal *hal)
+CoreObject *tcore_call_new(TcorePlugin *p,
+		struct tcore_call_operations *ops, TcoreHal *hal)
 {
 	CoreObject *o;
 	struct private_object_data *po;
@@ -1271,8 +1271,8 @@ CoreObject *tcore_call_new(TcorePlugin *p, const char *name,
 	if (NULL == p)
 		return NULL;
 
-	o = tcore_object_new(p, name, hal);
-	if (NULL == o)
+	o = tcore_object_new(p, hal);
+	if (!o)
 		return NULL;
 
 	po = g_try_new0(struct private_object_data, 1);
@@ -1288,22 +1288,6 @@ CoreObject *tcore_call_new(TcorePlugin *p, const char *name,
 	tcore_object_set_free_hook(o, _free_hook);
 	tcore_object_set_clone_hook(o, _clone_hook);
 	tcore_object_set_dispatcher(o, _dispatcher);
-
-	return o;
-}
-
-CoreObject *tcore_call_clone(TcorePlugin *p, const char *name, TcoreHal *hal)
-{
-	CoreObject *o;
-
-	if (NULL == p)
-		return NULL;
-
-	o = tcore_object_clone_template_object(p, name, CORE_OBJECT_TYPE_CALL);
-	if (NULL == o)
-		return NULL;
-
-	tcore_object_set_hal(o, hal);
 
 	return o;
 }

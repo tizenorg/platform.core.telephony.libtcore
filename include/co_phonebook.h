@@ -34,17 +34,17 @@ struct tcore_phonebook_operations {
 	TReturn (*delete_record)(CoreObject *o, UserRequest *ur);
 };
 
-CoreObject* tcore_phonebook_new(TcorePlugin *p, const char *name, struct tcore_phonebook_operations *ops, TcoreHal *hal);
-void        tcore_phonebook_free(CoreObject *n);
+CoreObject *tcore_phonebook_new(TcorePlugin *p,
+			struct tcore_phonebook_operations *ops, TcoreHal *hal);
+void tcore_phonebook_free(CoreObject *n);
 
-CoreObject *tcore_phonebook_clone(TcorePlugin *p, const char *name, TcoreHal *hal);
 void tcore_phonebook_override_ops(CoreObject *o, struct tcore_phonebook_operations *phonebook_ops);
 
-gboolean    tcore_phonebook_get_status(CoreObject *o);
-gboolean    tcore_phonebook_set_status(CoreObject *o, gboolean b_init);
+gboolean tcore_phonebook_get_status(CoreObject *o);
+gboolean tcore_phonebook_set_status(CoreObject *o, gboolean b_init);
 
 struct tel_phonebook_support_list* tcore_phonebook_get_support_list(CoreObject *o);
-gboolean    tcore_phonebook_set_support_list(CoreObject *o, struct tel_phonebook_support_list *list);
+gboolean tcore_phonebook_set_support_list(CoreObject *o, struct tel_phonebook_support_list *list);
 
 enum tel_phonebook_type tcore_phonebook_get_selected_type(CoreObject *o);
 gboolean tcore_phonebook_set_selected_type(CoreObject *o, enum tel_phonebook_type t);

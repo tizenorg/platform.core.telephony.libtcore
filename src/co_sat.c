@@ -6884,8 +6884,8 @@ void tcore_sat_override_ops(CoreObject *o, struct tcore_sat_operations *sat_ops)
 	return;
 }
 
-CoreObject *tcore_sat_new(TcorePlugin *p, const char *name,
-		struct tcore_sat_operations *ops, TcoreHal *hal)
+CoreObject *tcore_sat_new(TcorePlugin *p,
+			struct tcore_sat_operations *ops, TcoreHal *hal)
 {
 	CoreObject *o = NULL;
 	struct private_object_data *po = NULL;
@@ -6893,7 +6893,7 @@ CoreObject *tcore_sat_new(TcorePlugin *p, const char *name,
 	if (!p)
 		return NULL;
 
-	o = tcore_object_new(p, name, hal);
+	o = tcore_object_new(p, hal);
 	if (!o)
 		return NULL;
 
@@ -6910,22 +6910,6 @@ CoreObject *tcore_sat_new(TcorePlugin *p, const char *name,
 	tcore_object_set_clone_hook(o, _clone_hook);
 	tcore_object_set_free_hook(o, _free_hook);
 	tcore_object_set_dispatcher(o, _dispatcher);
-
-	return o;
-}
-
-CoreObject *tcore_sat_clone(TcorePlugin *p, const char *name, TcoreHal *hal)
-{
-	CoreObject *o = NULL;
-
-	if (!p)
-		return NULL;
-
-	o = tcore_object_clone_template_object(p, name, CORE_OBJECT_TYPE_SAT);
-	if (!o)
-		return NULL;
-
-	tcore_object_set_hal(o, hal);
 
 	return o;
 }

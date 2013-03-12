@@ -135,7 +135,7 @@ static struct tcore_at_response* _response_new()
 	struct tcore_at_response *resp;
 
 	resp = calloc(1, sizeof(struct tcore_at_response));
-	if (!resp)
+	if (resp == NULL)
 		return NULL;
 
 	return resp;
@@ -143,7 +143,7 @@ static struct tcore_at_response* _response_new()
 
 static void _response_free(struct tcore_at_response *resp)
 {
-	if (!resp)
+	if (resp == NULL)
 		return;
 
 	if (resp->lines) {
@@ -160,7 +160,7 @@ static void _response_free(struct tcore_at_response *resp)
 static void _response_add(struct tcore_at_response *resp,
 						  const char *line)
 {
-	if (!resp || !line)
+	if (resp == NULL || !line)
 		return;
 
 	dbg("current lines = %d", g_slist_length(resp->lines));
@@ -172,14 +172,14 @@ static void _emit_pending_response(TcoreAT *at)
 {
 	TcorePending *p;
 
-	if (!at)
+	if (at == NULL)
 		return;
 
 	tcore_at_request_free(at->req);
 	at->req = NULL;
 
 	p = tcore_queue_pop(tcore_hal_ref_queue(at->hal));
-	if (!p) {
+	if (p == NULL) {
 		dbg("no pending");
 	}
 
@@ -201,7 +201,7 @@ static void _emit_unsolicited_message(TcoreAT *at, const char *line)
 	gboolean ret;
 	GSList *data = NULL;
 
-	if (!at || !line)
+	if ((at == NULL) || !line)
 		return;
 
 	dbg("at->pdu_status  %d line 0x%x at->data_mode %d", at->pdu_status, line, at->data_mode);
@@ -326,13 +326,13 @@ TcoreAT* tcore_at_new(TcoreHal *hal)
 {
 	TcoreAT *at;
 
-	at = calloc(1, sizeof(struct tcore_at_type));
-	if (!at)
+	at = g_try_new0(struct tcore_at_type, 1);
+	if (at == NULL)
 		return NULL;
 
 	at->hal = hal;
 	at->buf_size = MAX_AT_RESPONSE;
-	at->buf = calloc(at->buf_size + 1, 1);
+	at->buf = g_try_malloc0(at->buf_size + 1);
 	at->buf_read_pos = at->buf;
 	at->buf_write_pos = at->buf;
 	at->data_mode = MODE_HEX;
@@ -342,7 +342,7 @@ TcoreAT* tcore_at_new(TcoreHal *hal)
 
 void tcore_at_free(TcoreAT *at)
 {
-	if (!at)
+	if (at == NULL)
 		return;
 
 	if (at->buf)
@@ -360,7 +360,7 @@ TReturn tcore_at_remove_notification_full(TcoreAT *at, const char *prefix, Tcore
 	struct _notification_callback *item;
 	GSList *p;
 
-	if (!at || !prefix)
+	if ((at == NULL) || !prefix)
 		return TCORE_RETURN_EINVAL;
 
 	if (!callback) {
@@ -408,12 +408,12 @@ TReturn tcore_at_add_notification(TcoreAT *at, const char *prefix,
 	struct _notification *noti;
 	struct _notification_callback *item;
 
-	if (!at || !prefix || !callback)
+	if ((at == NULL) || !prefix || !callback)
 		return TCORE_RETURN_EINVAL;
 
 	noti = g_hash_table_lookup(at->unsolicited_table, prefix);
 	if (!noti) {
-		noti = calloc(1, sizeof(struct _notification));
+		noti = g_try_new0(struct _notification, 1);
 		if (!noti)
 			return TCORE_RETURN_ENOMEM;
 
@@ -426,7 +426,7 @@ TReturn tcore_at_add_notification(TcoreAT *at, const char *prefix,
 	if (noti->type_pdu != pdu)
 		return TCORE_RETURN_EINVAL;
 
-	item = calloc(1, sizeof(struct _notification_callback));
+	item = g_try_new0(struct _notification_callback, 1);
 	if (!item)
 		return TCORE_RETURN_ENOMEM;
 
@@ -444,7 +444,7 @@ TReturn tcore_at_set_request(TcoreAT *at, TcoreATRequest *req, gboolean send)
 	char *end;
 	char next;
 
-	if (!at)
+	if (at == NULL)
 		return TCORE_RETURN_EINVAL;
 
 	at->req = req;
@@ -477,7 +477,7 @@ TReturn tcore_at_set_request(TcoreAT *at, TcoreATRequest *req, gboolean send)
 
 TcoreATRequest* tcore_at_get_request(TcoreAT *at)
 {
-	if (!at)
+	if (at == NULL)
 		return NULL;
 
 	return at->req;
@@ -486,7 +486,7 @@ TcoreATRequest* tcore_at_get_request(TcoreAT *at)
 
 TcoreATResponse* tcore_at_get_response(TcoreAT *at)
 {
-	if (!at)
+	if (at == NULL)
 		return NULL;
 
 	return at->resp;
@@ -497,7 +497,7 @@ TReturn tcore_at_buf_write(TcoreAT *at, unsigned int data_len, const char *data)
 	unsigned int read_pos;
 	unsigned int write_pos;
 
-	if (!at)
+	if (at == NULL)
 		return TCORE_RETURN_EINVAL;
 
 	read_pos = at->buf_read_pos - at->buf;
@@ -542,14 +542,14 @@ TcoreATRequest* tcore_at_request_new(const char *cmd, const char *prefix, enum t
 {
 	TcoreATRequest *req;
 
-	if (!cmd)
+	if (cmd == NULL)
 		return NULL;
 
 	if (strlen(cmd) < 1)
 		return NULL;
 
-	req = calloc(1, sizeof(struct tcore_at_request));
-	if (!req)
+	req = g_try_new0(struct tcore_at_request, 1);
+	if (req == NULL)
 		return NULL;
 
 	if (!strchr(cmd, CR))
@@ -567,7 +567,7 @@ TcoreATRequest* tcore_at_request_new(const char *cmd, const char *prefix, enum t
 
 void tcore_at_request_free(TcoreATRequest *req)
 {
-	if (!req)
+	if (req == NULL)
 		return;
 
 	if (req->cmd)
@@ -627,7 +627,7 @@ gboolean tcore_at_process(TcoreAT *at, unsigned int data_len, const char *data)
 	char *next_pos;
 	int ret;
 
-	if (!at || !data)
+	if ((at == NULL) || (data == NULL))
 		return FALSE;
 
 	tcore_at_buf_write(at, data_len, data);
@@ -659,7 +659,7 @@ gboolean tcore_at_process(TcoreAT *at, unsigned int data_len, const char *data)
 		// dbg("complete line found.");
 		dbg("line = [%s]", pos);
 		// check request
-		if (!at->req) {
+		if (at->req == NULL) {
 			dbg(" Not At request " );
 			_emit_unsolicited_message(at, pos);
 		}
@@ -675,7 +675,7 @@ gboolean tcore_at_process(TcoreAT *at, unsigned int data_len, const char *data)
 				}
 			}
 
-			if (!at->resp) {
+			if (at->resp == NULL) {
 				at->resp = _response_new();
 			}
 
@@ -774,15 +774,15 @@ TcorePending* tcore_at_pending_new(CoreObject *co, const char *cmd, const char *
 	TcorePending *p;
 	TcoreATRequest *req;
 
-	if (!cmd)
+	if (cmd == NULL)
 		return NULL;
 
 	req = tcore_at_request_new(cmd, prefix, type);
-	if (!req)
+	if (req == NULL)
 		return NULL;
 
 	p = tcore_pending_new(co, 0);
-	if (!p) {
+	if (p == NULL) {
 		tcore_at_request_free(req);
 		return NULL;
 	}
@@ -809,7 +809,7 @@ GSList* tcore_at_tok_new(const char *line)
 	int type = TYPE_NONE;
 	GSList *tokens = NULL;
 
-	if (!line)
+	if (line == NULL)
 		return NULL;
 
 	if (strlen(line) == 0)
@@ -858,7 +858,7 @@ GSList* tcore_at_tok_new(const char *line)
 		case TYPE_STR:
 			if (*pos == '"') {
 				type = TYPE_STR_FIN;
-				buf = calloc(pos - begin + 2, 1);
+				buf = g_try_malloc0(pos - begin + 2);
 				memcpy(buf, begin, pos - begin + 1);
 				tokens = g_slist_append(tokens, buf);
 			}
@@ -867,7 +867,7 @@ GSList* tcore_at_tok_new(const char *line)
 		case TYPE_PAREN:
 			if (*pos == ')') {
 				type = TYPE_PAREN_FIN;
-				buf = calloc(pos - begin + 2, 1);
+				buf = g_try_malloc0(pos - begin + 2);
 				memcpy(buf, begin, pos - begin + 1);
 				tokens = g_slist_append(tokens, buf);
 			}
@@ -876,7 +876,7 @@ GSList* tcore_at_tok_new(const char *line)
 		case TYPE_RAW:
 			if (*pos == ',' || *pos == '\0') {
 				type = TYPE_NONE;
-				buf = calloc(pos - begin + 1, 1);
+				buf = g_try_malloc0(pos - begin + 1);
 				memcpy(buf, begin, pos - begin);
 				tokens = g_slist_append(tokens, buf);
 			}
@@ -897,7 +897,7 @@ GSList* tcore_at_tok_new(const char *line)
 	} while (1);
 
 	if (type == TYPE_RAW) {
-		buf = calloc(pos - begin + 1, 1);
+		buf = g_try_malloc0(pos - begin + 1);
 		memcpy(buf, begin, pos - begin);
 		tokens = g_slist_append(tokens, buf);
 	}
@@ -907,7 +907,7 @@ GSList* tcore_at_tok_new(const char *line)
 
 void tcore_at_tok_free(GSList *tokens)
 {
-	if (!tokens)
+	if (tokens == NULL)
 		return;
 
 	g_slist_free_full(tokens, g_free);
@@ -918,7 +918,7 @@ char* tcore_at_tok_extract(const char *src)
 	char *dest = NULL;
 	char *last = NULL;
 
-	if (!src)
+	if (src == NULL)
 		return NULL;
 
 	if (strlen(src) < 2)
@@ -951,7 +951,7 @@ char* tcore_at_tok_extract(const char *src)
 
 char* tcore_at_tok_nth(GSList *tokens, unsigned int token_index)
 {
-	if (!tokens)
+	if (tokens == NULL)
 		return NULL;
 
 	if (token_index > g_slist_length(tokens))
@@ -1004,7 +1004,7 @@ TReturn tcore_prepare_and_send_at_request(CoreObject *co,
 
 	/* Create AT-Command Request */
 	req = tcore_at_request_new(at_cmd, at_cmd_prefix, at_cmd_type);
-	if (!req) {
+	if (req == NULL) {
 		dbg("Request is NULL");
 		tcore_pending_free(pending);
 		return ret;

@@ -150,102 +150,102 @@ struct tcore_call_control_operations {
 	TReturn (*deflect)(CoreObject *o, UserRequest *ur, const char *number, ConfirmCallback cb, void *user_data);
 };
 
-/* Call Core API */
-CoreObject *tcore_call_new(TcorePlugin *p, const char *name, struct tcore_call_operations *ops, TcoreHal *hal);
-void tcore_call_free(CoreObject *o);
+// Call Core API
+CoreObject *tcore_call_new(TcorePlugin *p,
+		struct tcore_call_operations *ops, TcoreHal *hal);
+void tcore_call_free( CoreObject *o);
 
-CoreObject *tcore_call_clone(TcorePlugin *p, const char *name, TcoreHal *hal);
 void tcore_call_override_ops(CoreObject *o,
-							struct tcore_call_operations *call_ops,
-							struct tcore_call_control_operations *control_ops);
+		struct tcore_call_operations *call_ops,
+		struct tcore_call_control_operations *control_ops);
 
-/* Call Object API */
-CallObject *tcore_call_object_new(CoreObject *o, int id);
-gboolean tcore_call_object_free(CoreObject *o, CallObject *co);
+// Call Object API
+CallObject *tcore_call_object_new( CoreObject *o, int id );
+gboolean tcore_call_object_free( CoreObject *o, CallObject *co );
 
-CallObject *tcore_call_object_current_on_mt_processing(CoreObject *o);
-CallObject *tcore_call_object_current_on_mo_processing(CoreObject *o);
-CallObject *tcore_call_object_find_by_id(CoreObject *o, int id);
-CallObject *tcore_call_object_find_by_number(CoreObject *o, char *num);
-GSList *tcore_call_object_find_by_status(CoreObject *o, enum tcore_call_status cs);
+CallObject *tcore_call_object_current_on_mt_processing( CoreObject *o );
+CallObject *tcore_call_object_current_on_mo_processing( CoreObject *o );
+CallObject *tcore_call_object_find_by_id( CoreObject *o, int id );
+CallObject *tcore_call_object_find_by_number( CoreObject *o, char *num );
+GSList *tcore_call_object_find_by_status( CoreObject *o, enum tcore_call_status cs );
 
-int tcore_call_object_get_id(CallObject *co);
+int tcore_call_object_get_id( CallObject *co );
 
-gboolean tcore_call_object_set_type(CallObject *co, enum tcore_call_type ct);
-enum tcore_call_type tcore_call_object_get_type(CallObject *co);
+gboolean tcore_call_object_set_type( CallObject *co, enum tcore_call_type ct );
+enum tcore_call_type tcore_call_object_get_type( CallObject *co );
 
-gboolean	tcore_call_object_set_direction(CallObject *co, enum tcore_call_direction cd);
-enum tcore_call_direction tcore_call_object_get_direction(CallObject *co);
+gboolean tcore_call_object_set_direction( CallObject *co, enum tcore_call_direction cd );
+enum tcore_call_direction tcore_call_object_get_direction( CallObject *co );
 
-gboolean	tcore_call_object_set_status(CallObject *co, enum tcore_call_status cs);
-enum tcore_call_status tcore_call_object_get_status(CallObject *co);
+gboolean tcore_call_object_set_status( CallObject *co, enum tcore_call_status cs );
+enum tcore_call_status  tcore_call_object_get_status( CallObject *co );
 
-gboolean	tcore_call_object_set_cli_info(CallObject *co, enum tcore_call_cli_mode mode, char *num);
-enum tcore_call_cli_mode tcore_call_object_get_cli_mode(CallObject *co);
-int tcore_call_object_get_number(CallObject *co, char *num);
+gboolean tcore_call_object_set_cli_info( CallObject *co, enum tcore_call_cli_mode mode, char *num );
+enum tcore_call_cli_mode tcore_call_object_get_cli_mode( CallObject *co );
+int tcore_call_object_get_number( CallObject *co, char *num );
 
-gboolean tcore_call_object_set_cna_info(CallObject *co, enum tcore_call_cna_mode mode, char *name, int dcs);
-enum tcore_call_cna_mode tcore_call_object_get_cna_mode(CallObject *co);
-int tcore_call_object_get_name(CallObject *co, char *name);
+gboolean tcore_call_object_set_cna_info( CallObject *co, enum tcore_call_cna_mode mode, char *name, int dcs );
+enum tcore_call_cna_mode tcore_call_object_get_cna_mode( CallObject *co );
+int tcore_call_object_get_name( CallObject *co, char *name );
 
-gboolean tcore_call_object_set_multiparty_state (CallObject *co,  gboolean is);
-gboolean tcore_call_object_get_multiparty_state (CallObject *co);
+gboolean tcore_call_object_set_multiparty_state ( CallObject *co,  gboolean is );
+gboolean tcore_call_object_get_multiparty_state ( CallObject *co );
 
-gboolean	tcore_call_object_set_active_line(CallObject *co, unsigned int line);
-int tcore_call_object_get_active_line(CallObject *co);
-
-
-/* Call Control API */
-gboolean tcore_call_control_new(CoreObject *o, struct tcore_call_control_operations *ops);
-void tcore_call_control_free(CoreObject *o);
-
-TReturn tcore_call_control_answer_hold_and_accept(CoreObject *o, UserRequest *ur, ConfirmCallback cb, void *user_data);
-TReturn tcore_call_control_answer_replace(CoreObject *o, UserRequest *ur, ConfirmCallback cb, void *user_data);
-TReturn tcore_call_control_answer_reject(CoreObject *o, UserRequest *ur, ConfirmCallback cb, void *user_data);
-
-TReturn tcore_call_control_end_specific(CoreObject *o, UserRequest *ur, const int id, ConfirmCallback cb, void *user_data);
-TReturn tcore_call_control_end_all_active(CoreObject *o, UserRequest *ur, ConfirmCallback cb, void *user_data);
-TReturn tcore_call_control_end_all_held(CoreObject *o, UserRequest *ur, ConfirmCallback cb, void *user_data);
-
-TReturn tcore_call_control_active(CoreObject *o, UserRequest *ur, ConfirmCallback cb, void *user_data);
-TReturn tcore_call_control_hold(CoreObject *o, UserRequest *ur, ConfirmCallback cb, void *user_data);
-TReturn tcore_call_control_swap(CoreObject *o, UserRequest *ur, ConfirmCallback cb, void *user_data);
-TReturn tcore_call_control_join(CoreObject *o, UserRequest *ur, ConfirmCallback cb, void *user_data);
-TReturn tcore_call_control_split(CoreObject *o, UserRequest *ur, const int id, ConfirmCallback cb, void *user_data);
-TReturn tcore_call_control_transfer(CoreObject *o, UserRequest *ur, ConfirmCallback cb, void *user_data);
-TReturn tcore_call_control_deflect(CoreObject *o, UserRequest *ur, const char *number, ConfirmCallback cb, void *user_data);
-
-void tcore_call_control_set_operations(CoreObject *o, struct tcore_call_control_operations *ops);
+gboolean tcore_call_object_set_active_line( CallObject *co, unsigned int line );
+int tcore_call_object_get_active_line( CallObject *co );
 
 
-void tcore_call_information_mo_col(CoreObject *o, char *number);
-void tcore_call_information_mo_waiting(CoreObject *o);
-void tcore_call_information_mo_cug(CoreObject *o, int cug_index);
-void tcore_call_information_mo_forwarded(CoreObject *o);
-void tcore_call_information_mo_barred_incoming(CoreObject *o);
-void tcore_call_information_mo_barred_outgoing(CoreObject *o);
-void tcore_call_information_mo_deflected(CoreObject *o);
-void tcore_call_information_mo_clir_suppression_reject(CoreObject *o);
-void tcore_call_information_mo_cfu(CoreObject *o);
-void tcore_call_information_mo_cfc(CoreObject *o);
+// Call Control API
+gboolean tcore_call_control_new( CoreObject *o, struct tcore_call_control_operations *ops );
+void tcore_call_control_free( CoreObject *o );
 
-void tcore_call_information_mt_cli(CoreObject *o, enum tcore_call_cli_mode mode, char *number);
-void tcore_call_information_mt_cna(CoreObject *o, enum tcore_call_cna_mode mode, char *name, int dcs);
-void tcore_call_information_mt_forwarded_call(CoreObject *o, char *number);
-void tcore_call_information_mt_cug_call(CoreObject *o, int cug_index, char *number);
-void tcore_call_information_mt_deflected_call(CoreObject *o, char *number);
-void tcore_call_information_mt_transfered(CoreObject *o, char *number);
+TReturn tcore_call_control_answer_hold_and_accept( CoreObject* o, UserRequest* ur, ConfirmCallback cb, void* user_data );
+TReturn tcore_call_control_answer_replace( CoreObject* o, UserRequest* ur, ConfirmCallback cb, void* user_data );
+TReturn tcore_call_control_answer_reject( CoreObject* o, UserRequest* ur, ConfirmCallback cb, void* user_data );
 
-void tcore_call_information_held(CoreObject *o, char *number);
-void tcore_call_information_active(CoreObject *o, char *number);
-void tcore_call_information_joined(CoreObject *o, char *number);
-void tcore_call_information_released_on_hold(CoreObject *o, char *number);
-void tcore_call_information_transfer_alert(CoreObject *o, char *number);
-void tcore_call_information_transfered(CoreObject *o, char *number);
-void tcore_call_information_cf_check_ss_message(CoreObject *o, char *number);
+TReturn tcore_call_control_end_specific( CoreObject* o, UserRequest* ur, const int id, ConfirmCallback cb, void* user_data );
+TReturn tcore_call_control_end_all_active( CoreObject* o, UserRequest* ur, ConfirmCallback cb, void* user_data );
+TReturn tcore_call_control_end_all_held( CoreObject* o, UserRequest* ur, ConfirmCallback cb, void* user_data );
+
+TReturn tcore_call_control_active( CoreObject* o, UserRequest* ur, ConfirmCallback cb, void* user_data );
+TReturn tcore_call_control_hold( CoreObject* o, UserRequest* ur, ConfirmCallback cb, void* user_data );
+TReturn tcore_call_control_swap( CoreObject* o, UserRequest* ur, ConfirmCallback cb, void* user_data );
+TReturn tcore_call_control_join( CoreObject* o, UserRequest* ur, ConfirmCallback cb, void* user_data );
+TReturn tcore_call_control_split( CoreObject* o, UserRequest* ur, const int id, ConfirmCallback cb, void* user_data );
+TReturn tcore_call_control_transfer( CoreObject* o, UserRequest* ur, ConfirmCallback cb, void* user_data );
+TReturn tcore_call_control_deflect( CoreObject* o, UserRequest* ur, const char* number, ConfirmCallback cb, void* user_data );
+
+void tcore_call_control_set_operations( CoreObject* o, struct tcore_call_control_operations *ops );
+
+
+void tcore_call_information_mo_col( CoreObject *o, char* number );
+void tcore_call_information_mo_waiting( CoreObject *o );
+void tcore_call_information_mo_cug( CoreObject *o, int cug_index );
+void tcore_call_information_mo_forwarded( CoreObject *o );
+void tcore_call_information_mo_barred_incoming( CoreObject *o );
+void tcore_call_information_mo_barred_outgoing( CoreObject *o );
+void tcore_call_information_mo_deflected( CoreObject *o );
+void tcore_call_information_mo_clir_suppression_reject( CoreObject *o );
+void tcore_call_information_mo_cfu( CoreObject *o );
+void tcore_call_information_mo_cfc( CoreObject *o );
+
+void tcore_call_information_mt_cli( CoreObject *o, enum tcore_call_cli_mode mode, char* number );
+void tcore_call_information_mt_cna( CoreObject *o, enum tcore_call_cna_mode mode, char* name, int dcs );
+void tcore_call_information_mt_forwarded_call( CoreObject *o, char* number );
+void tcore_call_information_mt_cug_call( CoreObject *o, int cug_index, char* number );
+void tcore_call_information_mt_deflected_call( CoreObject *o, char* number );
+void tcore_call_information_mt_transfered( CoreObject *o, char* number );
+
+void tcore_call_information_held( CoreObject *o, char* number );
+void tcore_call_information_active( CoreObject *o, char* number );
+void tcore_call_information_joined( CoreObject *o, char* number );
+void tcore_call_information_released_on_hold( CoreObject *o, char* number );
+void tcore_call_information_transfer_alert( CoreObject *o, char* number );
+void tcore_call_information_transfered( CoreObject *o, char* number );
+void tcore_call_information_cf_check_ss_message( CoreObject *o, char* number );
 
 /* To be removed later */
-void tcore_call_information_set_operations(CoreObject *o, struct tcore_call_information_operations *ops);
+void tcore_call_information_set_operations( CoreObject *o, struct tcore_call_information_operations *ops );
 
 __END_DECLS
 

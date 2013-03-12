@@ -50,48 +50,45 @@ struct tcore_hal_operations {
 				gboolean enable);
 };
 
-TcoreHal*    tcore_hal_new(TcorePlugin *plugin, const char *name,
-                 struct tcore_hal_operations *hops,
-                 enum tcore_hal_mode mode);
-void         tcore_hal_free(TcoreHal *hal);
+TcoreHal *tcore_hal_new(TcorePlugin *plugin, const char *name,
+		struct tcore_hal_operations *hops,
+		enum tcore_hal_mode mode);
+void tcore_hal_free(TcoreHal *hal);
 
-TReturn      tcore_hal_set_name(TcoreHal *hal, const char *name);
-char*        tcore_hal_get_name(TcoreHal *hal);
+TReturn tcore_hal_set_name(TcoreHal *hal, const char *name);
+char *tcore_hal_get_name(TcoreHal *hal);
 
-TcoreAT*     tcore_hal_get_at(TcoreHal *hal);
+TcoreAT *tcore_hal_get_at(TcoreHal *hal);
 enum tcore_hal_mode tcore_hal_get_mode(TcoreHal *hal);
-TReturn      tcore_hal_set_mode(TcoreHal *hal, enum tcore_hal_mode mode);
+TReturn tcore_hal_set_mode(TcoreHal *hal, enum tcore_hal_mode mode);
 
-TReturn      tcore_hal_set_power(TcoreHal *hal, gboolean flag);
+TReturn tcore_hal_set_power(TcoreHal *hal, gboolean flag);
 
-TReturn      tcore_hal_link_user_data(TcoreHal *hal, void *user_data);
-void*        tcore_hal_ref_user_data(TcoreHal *hal);
+TReturn tcore_hal_link_user_data(TcoreHal *hal, void *user_data);
+void *tcore_hal_ref_user_data(TcoreHal *hal);
 
-TReturn      tcore_hal_send_data(TcoreHal *hal, unsigned int data_len, void *data);
-TReturn      tcore_hal_send_request(TcoreHal *hal, TcorePending *pending);
-TReturn      tcore_hal_send_force(TcoreHal *hal);
+TReturn tcore_hal_send_data(TcoreHal *hal, unsigned int data_len, void *data);
+TReturn tcore_hal_send_request(TcoreHal *hal, TcorePending *pending);
+TReturn tcore_hal_send_force(TcoreHal *hal);
 
-TReturn      tcore_hal_dispatch_response_data(TcoreHal *hal, int id,
-                 unsigned int data_len, const void *data);
+TReturn tcore_hal_dispatch_response_data(TcoreHal *hal, int id,
+		unsigned int data_len, const void *data);
 
-TReturn      tcore_hal_add_recv_callback(TcoreHal *hal,
-                 TcoreHalReceiveCallback func, void *user_data);
-TReturn      tcore_hal_remove_recv_callback(TcoreHal *hal,
-                 TcoreHalReceiveCallback func);
-TReturn      tcore_hal_emit_recv_callback(TcoreHal *hal,
-                 unsigned int data_len, const void *data);
+TReturn tcore_hal_add_recv_callback(TcoreHal *hal, TcoreHalReceiveCallback func,
+		void *user_data);
+TReturn tcore_hal_remove_recv_callback(TcoreHal *hal, TcoreHalReceiveCallback func);
+TReturn tcore_hal_emit_recv_callback(TcoreHal *hal, unsigned int data_len,
+		const void *data);
+TReturn tcore_hal_add_send_hook(TcoreHal *hal, TcoreHalSendHook func, void *user_data);
+TReturn tcore_hal_remove_send_hook(TcoreHal *hal, TcoreHalSendHook func);
 
-TReturn      tcore_hal_add_send_hook(TcoreHal *hal, TcoreHalSendHook func,
-                 void *user_data);
-TReturn      tcore_hal_remove_send_hook(TcoreHal *hal, TcoreHalSendHook func);
+TReturn tcore_hal_set_power_state(TcoreHal *hal, gboolean flag);
+gboolean tcore_hal_get_power_state(TcoreHal *hal);
 
-TReturn      tcore_hal_set_power_state(TcoreHal *hal, gboolean flag);
-gboolean     tcore_hal_get_power_state(TcoreHal *hal);
+TcoreQueue *tcore_hal_ref_queue(TcoreHal *hal);
+TcorePlugin *tcore_hal_ref_plugin(TcoreHal *hal);
 
-TcoreQueue*  tcore_hal_ref_queue(TcoreHal *hal);
-TcorePlugin* tcore_hal_ref_plugin(TcoreHal *hal);
-
-TReturn      tcore_hal_setup_netif(TcoreHal *hal, CoreObject *co,
+TReturn tcore_hal_setup_netif(TcoreHal *hal, CoreObject *co,
 					TcoreHalSetupNetifCallback func,
 					void *user_data, unsigned int cid,
 					gboolean enable);
