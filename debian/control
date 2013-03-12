@@ -1,0 +1,27 @@
+Source: libtcore
+Section: libs
+Priority: extra
+Maintainer: Jongman Park <jman.park@samsung.com>
+Uploaders: Jayoung Gu <jygu@samsung.com>, Kyeongchul Kim <kyeongchul.kim@samsung.com>, Youngman Park <youngman.park@samsung.com>, Inho Oh <inho48.oh@samsung.com>,  DongHoo Park <donghoo.park@samsung.com>
+Build-Depends: debhelper (>= 5), libglib2.0-dev, dlog-dev
+Standards-Version: 0.0.0
+
+Package: libtcore-dev
+Section: libs
+Architecture: any
+Depends: libtcore (= ${Source-Version}),
+         libglib2.0-dev
+Description: telephony client API library (Development)
+
+Package: libtcore
+Section: libs
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends},
+Description: telephony client API library (Shared Object)
+
+Package: libtcore-dbg
+Section: debug
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, libtcore (= ${Source-Version})
+Description: telephony client API library (dbg package)
+
