@@ -139,7 +139,7 @@ static char *_server_enumerate_modem(TcorePlugin *plugin)
 
 	dbg("%s", filename);
 
-	return g_strdup_printf("%s_%d", filename, cp_counter++);
+	return g_strdup_printf("%s%d", filename, cp_counter++);
 }
 
 static TcoreModem *_server_find_modem(Server *s,
@@ -791,7 +791,7 @@ char **tcore_server_get_cp_name_list(Server *s)
 	}
 
 	/* (+1) is considered for NULL string to define the last string */
-	cp_name_list = g_try_new0(char *, list_count + 1);
+	cp_name_list = g_try_new0(char *, list_count);
 	if (cp_name_list == NULL) {
 		err("Failed to allocate memory");
 		return NULL;
