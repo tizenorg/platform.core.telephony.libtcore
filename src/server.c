@@ -122,7 +122,6 @@ static char *_server_enumerate_modem(TcorePlugin *plugin)
 {
 	static unsigned int cp_counter = 0;
 	char *filename;
-	char *name;
 
 	if (plugin == NULL)
 		return NULL;
@@ -138,10 +137,9 @@ static char *_server_enumerate_modem(TcorePlugin *plugin)
 	if (filename == NULL)
 		return NULL;
 
-	/* Stripping '.so' from 'filename' */
-	name = strtok(filename, ".so");
+	dbg("%s", filename);
 
-	return g_strdup_printf("%s_%d", name, cp_counter++);
+	return g_strdup_printf("%s_%d", filename, cp_counter++);
 }
 
 static TcoreModem *_server_find_modem(Server *s,
