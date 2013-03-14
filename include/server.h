@@ -74,7 +74,7 @@ gboolean tcore_server_register_modem(Server *s, TcorePlugin *modem_iface_plugin)
 void tcore_server_unregister_modem(Server *s, TcorePlugin *modem_iface_plugin);
 gboolean tcore_server_update_modem_plugin(TcorePlugin *modem_iface_plugin,
 							TcorePlugin *modem_plugin);
-char **tcore_server_get_cp_name_list(Server *s);
+GSList *tcore_server_get_cp_name_list(Server *s);
 const char *tcore_server_get_cp_name_by_plugin(TcorePlugin *plugin);
 
 gboolean tcore_server_add_cp_mapping_tbl_entry(TcorePlugin *modem_iface_plugin,
