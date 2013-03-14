@@ -105,7 +105,7 @@ static void _util_print_mapping_tbl_entry(object_mapping_table_t *tbl_entry)
 {
 	GSList *co_list;
 
-	dbg("Table Entry: [0x%x]", tbl_entry);
+	dbg("Table Entry - HAL: [0x%x]", tbl_entry->hal);
 
 	co_list = tbl_entry->object_type;
 	if (co_list == NULL) {
@@ -173,7 +173,7 @@ static object_mapping_table_t *_object_search_mapping_tbl_entry(GSList *mapping_
 		}
 	}
 
-	return tbl_entry;
+	return NULL;
 }
 
 static object_mapping_table_t *_object_search_mapping_tbl_entry_by_type(
@@ -784,8 +784,8 @@ void *tcore_object_add_mapping_tbl_entry(void *mapping_tbl,
 	 * to the Mapping Table.
 	 */
 	tbl_entry = _object_search_mapping_tbl_entry(mapping_tbl_list, hal);
-
 	if (tbl_entry == NULL) {
+		dbg("Creating New Table entry for HAL: [0x%x]", hal);
 		/*
 		 * If there is NO previously added Table entry for the 'hal' then
 		 * new Table entry is created
