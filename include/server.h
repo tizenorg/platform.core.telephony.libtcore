@@ -82,6 +82,9 @@ gboolean tcore_server_add_cp_mapping_tbl_entry(TcorePlugin *modem_iface_plugin,
 void tcore_server_remove_cp_mapping_tbl_entry(TcorePlugin *modem_iface_plugin,
 					TcoreHal *hal);
 void *tcore_server_get_cp_mapping_tbl(TcorePlugin *modem_plugin);
+
+void tcore_server_print_modems(TcorePlugin *plugin);
+
 TReturn tcore_server_load_modem_plugin(Server *s,
 					TcorePlugin *modem_if_plugin,
 					const char *name);

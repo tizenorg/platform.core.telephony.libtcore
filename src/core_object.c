@@ -101,6 +101,27 @@ struct tcore_object_mapping_tbl {
 	GSList *object_type;
 };
 
+static void _util_print_mapping_tbl_entry(object_mapping_table_t *tbl_entry)
+{
+	GSList *co_list;
+
+	dbg("Table Entry: [0x%x]", tbl_entry);
+
+	co_list = tbl_entry->object_type;
+	if (co_list == NULL) {
+		err("No Core Objects defined for this Mapping Table Entry");
+		continue;
+	}
+
+	/* Search all the Table entries with matching 'type' */
+	for ( ; co_list ; co_list = co_list->next) {
+		if (co_list->data == NULL)
+			continue;
+
+		dbg("Core Object type: [0x%x]", co_list->data);
+	}
+}
+
 static CoreObject *_object_new(TcorePlugin *plugin, unsigned int type)
 {
 	CoreObject *co;
@@ -744,17 +765,28 @@ TReturn tcore_object_emit_callback(CoreObject *co,
 	return TCORE_RETURN_SUCCESS;
 }
 
-gboolean tcore_object_add_mapping_tbl_entry(void *mapping_tbl,
+gboolean tcore_object_add_mapping_tbl_entry(void **mapping_tbl,
 						unsigned int object_type, TcoreHal *hal)
 {
 	GSList *mapping_tbl_list;
 	object_mapping_table_t *tbl_entry;
 
-	if ((mapping_tbl == NULL) || (hal == NULL))
+	if ((mapping_tbl == NULL) || (hal == NULL)) {
+		err("Mapping Table: [0x%x] HAL: [0x%x]", mapping_tbl, hal);
 		return FALSE;
+	}
+	mapping_tbl_list = *mapping_tbl;
 
-	mapping_tbl_list = mapping_tbl;
-
+	/*
+	 * Search 'hal' across all the Table entries of the Mapping Table
+	 *
+	 * Table entry MAY NOT be found as -
+	 *	1. Mapping Table is NOT yet created
+	 *	2. Table entry for corresponding 'hal' is NOT present
+	 *
+	 * In each of the above cases, the new Mapping Table entry should be added
+	 * to the Mapping Table.
+	 */
 	tbl_entry = _object_search_mapping_tbl_entry(mapping_tbl_list, hal);
 	if (tbl_entry == NULL) {
 		/*
@@ -768,31 +800,40 @@ gboolean tcore_object_add_mapping_tbl_entry(void *mapping_tbl,
 			err("Failed to allocate memory");
 			return FALSE;
 		}
+
+		/* Add the Mapping Table entry to Mapping Table */
+		mapping_tbl_list = g_slist_append(mapping_tbl_list, tbl_entry);
 	}
 
 	/*
 	 * Appending the Core Object type to the list of Core Objects types
 	 */
 	tbl_entry->object_type = g_slist_append(tbl_entry->object_type, (gpointer)object_type);
+	dbg("Added Mapping Table entry - HAL: [0x%x] Object type: [0x%x]", hal, object_type);
 
 	return TRUE;
 }
 
-void tcore_object_remove_mapping_tbl_entry(void *mapping_tbl, TcoreHal *hal)
+void tcore_object_remove_mapping_tbl_entry(void **mapping_tbl, TcoreHal *hal)
 {
 	GSList *mapping_tbl_list;
 	object_mapping_table_t *tbl_entry;
 
-	if (mapping_tbl == NULL)
+	if (mapping_tbl == NULL) {
+		err("Mapping Table is NULL");
 		return;
+	}
 
-	mapping_tbl_list = mapping_tbl;
+	mapping_tbl_list = *mapping_tbl;
 
 	tbl_entry = _object_search_mapping_tbl_entry(mapping_tbl_list, hal);
 	if (tbl_entry == NULL) {
 		err("Table entry is NOT available");
 		return;
 	}
+
+	dbg("Removing Mapping Table Entry - HAL: [0x%x]", hal);
+	_util_print_mapping_tbl_entry(tbl_entry);
 
 	/* Free Core Object types list */
 	g_slist_free(tbl_entry->object_type);
@@ -810,8 +851,10 @@ void tcore_object_remove_mapping_tbl_entry_by_type(void *mapping_tbl,
 	GSList *mapping_tbl_list;
 	object_mapping_table_t *tbl_entry;
 
-	if (mapping_tbl == NULL)
+	if (mapping_tbl == NULL) {
+		err("Mapping Table is NULL");
 		return;
+	}
 
 	mapping_tbl_list = mapping_tbl;
 
@@ -824,6 +867,32 @@ void tcore_object_remove_mapping_tbl_entry_by_type(void *mapping_tbl,
 
 	/* Remove the Core Object type from the list */
 	tbl_entry->object_type = g_slist_remove(tbl_entry->object_type, (gconstpointer)co_type);
+}
+
+void tcore_object_print_mapping_tbl(void *mapping_tbl)
+{
+	GSList *mapping_tbl_list;
+	object_mapping_table_t *tbl_entry = NULL;
+
+
+	if (mapping_tbl == NULL) {
+		err("Mapping Table is NULL");
+		return;
+	}
+
+	mapping_tbl_list = mapping_tbl;
+	if (mapping_tbl_list == NULL) {
+		err("No Mapping Table present");
+		return;
+	}
+
+	for ( ; mapping_tbl_list ; mapping_tbl_list = mapping_tbl_list->next) {
+		tbl_entry = mapping_tbl_list->data;
+		if (tbl_entry == NULL)
+			continue;
+
+		_util_print_mapping_tbl_entry(tbl_entry);
+	}
 }
 
 /* Initialize Core Objects */

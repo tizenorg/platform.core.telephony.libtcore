@@ -119,7 +119,6 @@ static TcorePlugin *_find_default_plugin(Server *s)
 static char *_server_enumerate_modem(TcorePlugin *plugin)
 {
 	static unsigned int cp_counter = 0;
-	char *cp_name;
 	char *filename;
 	char *name;
 
@@ -133,17 +132,14 @@ static char *_server_enumerate_modem(TcorePlugin *plugin)
 	 * For example, if Modem Interface Plug-in descriptor name is 'imcmodem' then,
 	 *	'name' would be enumerated as "imcmode_N", where N >= 0
 	 */
-	filename = tcore_plugin_get_filename(plugin);
+	filename = tcore_plugin_ref_plugin_name(plugin);
 	if (filename == NULL)
 		return NULL;
 
 	/* Stripping '.so' from 'filename' */
 	name = strtok(filename, ".so");
 
-	cp_name = g_strdup_printf("%s_%d", name, cp_counter++);
-	g_free(filename);
-
-	return cp_name;
+	return g_strdup_printf("%s_%d", name, cp_counter++);
 }
 
 static TcoreModem *_server_find_modem(Server *s,
@@ -151,6 +147,10 @@ static TcoreModem *_server_find_modem(Server *s,
 {
 	GSList *list;
 	TcoreModem *modem;
+
+	dbg("Modem Plug-in [0x%x][%s] Modem Interface Plug-in: [0x%x][%s]",
+			modem_plugin, tcore_plugin_ref_plugin_name(modem_plugin),
+			modem_iface_plugin, tcore_plugin_ref_plugin_name(modem_iface_plugin));
 
 	for (list = s->modems; list; list = list->next) {
 		modem = list->data;
@@ -167,8 +167,10 @@ static TcoreModem *_server_find_modem(Server *s,
 		 * Modem Interface Plug-in of 'modems' MUST be NULL
 		 */
 		if ((modem_iface_plugin == modem->modem_iface_plugin)
-			&& ((modem_plugin == NULL) && (modem->modem_plugin == NULL)))
+			&& ((modem_plugin == NULL) && (modem->modem_plugin == NULL))) {
+			dbg("'modem' found!!!")
 			return modem;
+		}
 
 		/*
 		 * Specifically for get Mapping Table -
@@ -178,8 +180,10 @@ static TcoreModem *_server_find_modem(Server *s,
 		 * Passed Modem Plug-in MUST match Modem Plug-of 'modems'
 		 */
 		if ((modem_iface_plugin == NULL)
-			&& (modem_plugin == modem->modem_plugin))
+			&& (modem_plugin == modem->modem_plugin)) {
+			dbg("'modem' found!!!")
 			return modem;
+		}
 
 		/*
 		 * Specifically for get CP name -
@@ -190,10 +194,13 @@ static TcoreModem *_server_find_modem(Server *s,
 		 */
 		if ((modem_iface_plugin == modem_plugin)
 				&& ((modem_iface_plugin == modem->modem_iface_plugin)
-					|| (modem_plugin == modem->modem_plugin)))
+					|| (modem_plugin == modem->modem_plugin))) {
+			dbg("'modem' found!!!")
 			return modem;
+		}
 	}
 
+	err("Failed to find 'modem'");
 	return NULL;
 }
 Server *tcore_server_new()
@@ -686,17 +693,23 @@ gboolean tcore_server_register_modem(Server *s, TcorePlugin *modem_iface_plugin)
 {
 	TcoreModem *modem;
 
-	if ((s == NULL) || (modem_iface_plugin == NULL))
+	if ((s == NULL) || (modem_iface_plugin == NULL)) {
+		err("server [0x%x] Modem Interface Plug-in: [0x%x]", s, modem_iface_plugin);
 		return FALSE;
+	}
 
 	modem = g_try_new0(TcoreModem, 1);
-	if (modem == NULL)
+	if (modem == NULL) {
+		err("Failed to allocate memory");
 		return FALSE;
+	}
 
 	modem->cp_name = _server_enumerate_modem(modem_iface_plugin);
 	modem->modem_iface_plugin = modem_iface_plugin;
 
 	s->modems = g_slist_append(s->modems, modem);
+	dbg("Added to 'modems' entry - CP Name: [%s] Modem Interface Plug-in: [%s]",
+					modem->cp_name, tcore_plugin_ref_plugin_name(modem_iface_plugin));
 
 	return TRUE;
 }
@@ -705,12 +718,17 @@ void tcore_server_unregister_modem(Server *s, TcorePlugin *modem_iface_plugin)
 {
 	TcoreModem *modem;
 
-	if ((s == NULL) || (modem_iface_plugin == NULL))
+	if ((s == NULL) || (modem_iface_plugin == NULL)) {
+		err("server [0x%x] Modem Interface Plug-in: [0x%x]", s, modem_iface_plugin);
 		return;
+	}
 
 	modem = _server_find_modem(s, modem_iface_plugin, NULL);
-	if (modem == NULL)
+	if (modem == NULL) {
+		err("Failed to find 'modem' for Modem Interface Plug-in: [%s]",
+					tcore_plugin_ref_plugin_name(modem_iface_plugin));
 		return;
+	}
 
 	s->modems = g_slist_remove(s->modems, modem);
 
@@ -724,18 +742,29 @@ gboolean tcore_server_update_modem_plugin(TcorePlugin *modem_iface_plugin,
 	Server *s;
 	TcoreModem *modem;
 
-	if ((modem_iface_plugin == NULL) || (modem_plugin == NULL))
+	if ((modem_iface_plugin == NULL) || (modem_plugin == NULL)) {
+		err("Modem Plug-in [0x%x] Modem Interface Plug-in: [0x%x]",
+									modem_plugin, modem_iface_plugin);
 		return FALSE;
+	}
 
 	s = tcore_plugin_ref_server(modem_iface_plugin);
-	if (s == NULL)
+	if (s == NULL) {
+		err("server is NULL");
 		return FALSE;
+	}
 
 	modem = _server_find_modem(s, modem_iface_plugin, NULL);
-	if (modem == NULL)
+	if (modem == NULL) {
+		err("Failed to find 'modem' for Modem Interface Plug-in: [%s]",
+					tcore_plugin_ref_plugin_name(modem_iface_plugin));
 		return FALSE;
+	}
 
 	modem->modem_plugin = modem_plugin;
+	dbg("Added to 'modems' pair - Modem Plug-in [%s] <---> Modem Interface Plug-in: [%s]",
+					tcore_plugin_ref_plugin_name(modem_plugin),
+					tcore_plugin_ref_plugin_name(modem_iface_plugin));
 
 	return TRUE;
 }
@@ -749,22 +778,30 @@ char **tcore_server_get_cp_name_list(Server *s)
 
 	int i = 0;
 
-	if (s == NULL)
+	if (s == NULL) {
+		err("server is NULL");
 		return NULL;
+	}
 
 	list_count = g_slist_length(s->modems);
-	if (list_count == 0)
+	if (list_count == 0) {
+		err("No entries in Modems list");
 		return NULL;
+	}
 
 	/* (+1) is considered for NULL string to define the last string */
 	cp_name_list = g_try_new0(char *, list_count + 1);
-	if (cp_name_list == NULL)
+	if (cp_name_list == NULL) {
+		err("Failed to allocate memory");
 		return NULL;
+	}
 
 	for (list = s->modems; list; list = list->next) {
 		modem = list->data;
-		if (modem == NULL)
+		if (modem == NULL) {
+			dbg("No modem - continue");
 			continue;
+		}
 
 		cp_name_list[i] = g_strdup(modem->cp_name);
 		dbg("CP Name[%d] = %s", i, cp_name_list[i]);
@@ -781,16 +818,23 @@ const char *tcore_server_get_cp_name_by_plugin(TcorePlugin *plugin)
 	Server *s;
 	TcoreModem *modem;
 
-	if (plugin == NULL)
+	if (plugin == NULL) {
+		err("plugin is NULL");
 		return NULL;
+	}
 
 	s = tcore_plugin_ref_server(plugin);
-	if (s == NULL)
+	if (s == NULL) {
+		err("server is NULL");
 		return NULL;
+	}
 
 	modem = _server_find_modem(s, plugin, plugin);
-	if (modem == NULL)
+	if (modem == NULL) {
+		err("Failed to find 'modem' for Plug-in: [%s]",
+					tcore_plugin_ref_plugin_name(plugin));
 		return NULL;
+	}
 
 	return (const char *)modem->cp_name;
 }
@@ -801,21 +845,28 @@ gboolean tcore_server_add_cp_mapping_tbl_entry(TcorePlugin *modem_iface_plugin,
 	Server *s;
 	TcoreModem *modem;
 
-	if (modem_iface_plugin == NULL)
+	if (modem_iface_plugin == NULL) {
+		err("Modem Interface is NULL");
 		return FALSE;
+	}
 
 	s = tcore_plugin_ref_server(modem_iface_plugin);
-	if (s == NULL)
+	if (s == NULL) {
+		err("server is NULL");
 		return FALSE;
+	}
 
 	modem = _server_find_modem(s, modem_iface_plugin, NULL);
-	if (modem == NULL)
+	if (modem == NULL) {
+		err("Failed to find 'modem' for Modem Interface Plug-in: [%s]",
+					tcore_plugin_ref_plugin_name(modem_iface_plugin));
 		return FALSE;
+	}
 
 	/*
 	 * Set the Mapping Table to the Modems list
 	 */
-	return tcore_object_add_mapping_tbl_entry(modem->mapping_tbl, co_type, hal);
+	return tcore_object_add_mapping_tbl_entry(&modem->mapping_tbl, co_type, hal);
 }
 
 void tcore_server_remove_cp_mapping_tbl_entry(TcorePlugin *modem_iface_plugin,
@@ -824,19 +875,26 @@ void tcore_server_remove_cp_mapping_tbl_entry(TcorePlugin *modem_iface_plugin,
 	Server *s;
 	TcoreModem *modem;
 
-	if (modem_iface_plugin == NULL)
+	if (modem_iface_plugin == NULL) {
+		err("Modem Interface is NULL");
 		return;
+	}
 
 	s = tcore_plugin_ref_server(modem_iface_plugin);
-	if (s == NULL)
+	if (s == NULL) {
+		err("server is NULL");
 		return;
+	}
 
 	modem = _server_find_modem(s, modem_iface_plugin, NULL);
-	if (modem == NULL)
+	if (modem == NULL) {
+		err("Failed to find 'modem' for Modem Interface Plug-in: [%s]",
+					tcore_plugin_ref_plugin_name(modem_iface_plugin));
 		return;
+	}
 
 	/* Removing the Mapping Table from the Modems list */
-	tcore_object_remove_mapping_tbl_entry(modem->mapping_tbl, hal);
+	tcore_object_remove_mapping_tbl_entry(&modem->mapping_tbl, hal);
 	modem->mapping_tbl = NULL;
 }
 
@@ -845,18 +903,56 @@ void *tcore_server_get_cp_mapping_tbl(TcorePlugin *modem_plugin)
 	Server *s;
 	TcoreModem *modem;
 
-	if (modem_plugin == NULL)
+	if (modem_plugin == NULL) {
+		err("Modem Interface is NULL");
 		return NULL;
+	}
 
 	s = tcore_plugin_ref_server(modem_plugin);
-	if (s == NULL)
+	if (s == NULL) {
+		err("server is NULL");
 		return NULL;
+	}
 
 	modem = _server_find_modem(s, NULL, modem_plugin);
-	if (modem == NULL)
+	if (modem == NULL) {
+		err("Failed to find 'modem' for Modem Plug-in: [%s]",
+					tcore_plugin_ref_plugin_name(modem_plugin));
 		return NULL;
+	}
 
 	return modem->mapping_tbl;
+}
+
+void tcore_server_print_modems(TcorePlugin *plugin)
+{
+	Server *s;
+	TcoreModem *modem;
+
+	if (plugin == NULL) {
+		err("Modem Interface is NULL");
+		return;
+	}
+
+	s = tcore_plugin_ref_server(plugin);
+	if (s == NULL) {
+		err("server is NULL");
+		return;
+	}
+
+	modem = _server_find_modem(s, plugin, plugin);
+	if (modem == NULL) {
+		err("Failed to find 'modem' for Plug-in: [%s]",
+					tcore_plugin_ref_plugin_name(plugin));
+		return;
+	}
+
+	dbg("Modem Plug-in [%s] Modem Interface Plug-in: [%s]",
+			tcore_plugin_ref_plugin_name(modem->modem_plugin),
+			tcore_plugin_ref_plugin_name(modem->modem_iface_plugin));
+	dbg("CP Name: [%s]", modem->cp_name);
+
+	tcore_object_print_mapping_tbl(modem->mapping_tbl);
 }
 
 TReturn tcore_server_load_modem_plugin(Server *s,

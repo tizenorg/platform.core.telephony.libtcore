@@ -130,11 +130,12 @@ TReturn tcore_object_del_callback(CoreObject *co, const char *event, tcore_objec
 TReturn tcore_object_override_callback(CoreObject *co, const char *event, tcore_object_callback callback, void *user_data);
 TReturn tcore_object_emit_callback(CoreObject *co, const char *event, const void *event_info);
 
-gboolean tcore_object_add_mapping_tbl_entry(void *mapping_tbl,
+gboolean tcore_object_add_mapping_tbl_entry(void **mapping_tbl,
 						unsigned int object_type, TcoreHal *hal);
-void tcore_object_remove_mapping_tbl_entry(void *mapping_tbl, TcoreHal *hal);
+void tcore_object_remove_mapping_tbl_entry(void **mapping_tbl, TcoreHal *hal);
 void tcore_object_remove_mapping_tbl_entry_by_type(void *mapping_tbl,
 														unsigned int co_type);
+void tcore_object_print_mapping_tbl(void *mapping_tbl);
 
 TReturn tcore_object_init_objects(TcorePlugin *plugin,
 						struct object_initializer *initializer_list);
