@@ -103,6 +103,7 @@ static void _clone_hook(CoreObject *src, CoreObject *dest)
 	}
 
 	dest_po->ops = src_po->ops;
+	dest_po->cops = src_po->cops;
 
 	tcore_object_link_object(dest, dest_po);
 }
@@ -188,8 +189,7 @@ static void _clone_call_control_operations(struct private_object_data *po,
 							struct tcore_call_control_operations *control_ops)
 {
 	if (control_ops->answer_hold_and_accept)
-		po->cops->answer_hold_and_accept =
-							control_ops->answer_hold_and_accept;
+		po->cops->answer_hold_and_accept = control_ops->answer_hold_and_accept;
 
 	if (control_ops->answer_replace)
 		po->cops->answer_replace = control_ops->answer_replace;
@@ -1058,7 +1058,7 @@ TReturn tcore_call_control_deflect(CoreObject *o, UserRequest *ur,
 }
 
 void tcore_call_control_set_operations(CoreObject *o,
-									struct tcore_call_control_operations *ops)
+				struct tcore_call_control_operations *ops)
 {
 	struct private_object_data *po;
 
