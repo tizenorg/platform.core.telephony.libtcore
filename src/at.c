@@ -994,6 +994,7 @@ TReturn tcore_prepare_and_send_at_request(CoreObject *co,
 		dbg("HAL is NULL");
 		return ret;
 	}
+	dbg("hal: [0x%x]", hal);
 
 	/* Create Pending Request */
 	pending = tcore_pending_new(co, 0);
@@ -1017,5 +1018,6 @@ TReturn tcore_prepare_and_send_at_request(CoreObject *co,
 	tcore_pending_link_user_request(pending, ur);
 
 	ret = tcore_hal_send_request(hal, pending);
+	dbg("ret: [0x%x]", ret);
 	return ret;
 }

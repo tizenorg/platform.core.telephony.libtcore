@@ -790,7 +790,6 @@ GSList *tcore_server_get_cp_name_list(Server *s)
 		return NULL;
 	}
 
-#if 1
 	for (list = s->modems; list; list = list->next) {
 		modem = list->data;
 		if (modem == NULL) {
@@ -801,27 +800,6 @@ GSList *tcore_server_get_cp_name_list(Server *s)
 		dbg("[%d] CP Name: [%s]", i++, modem->cp_name);
 		cp_name_list = g_slist_append(cp_name_list, g_strdup(modem->cp_name));
 	}
-#else
-	/* (+1) is considered for NULL string to define the last string */
-	cp_name_list = g_try_new0(char *, list_count);
-	if (cp_name_list == NULL) {
-		err("Failed to allocate memory");
-		return NULL;
-	}
-
-	for (list = s->modems; list; list = list->next) {
-		modem = list->data;
-		if (modem == NULL) {
-			dbg("No modem - continue");
-			continue;
-		}
-
-		cp_name_list[i] = g_strdup(modem->cp_name);
-		dbg("[%d] CP Name: [%s]", i, cp_name_list[i]);
-
-		i++;
-	}
-#endif
 
 	/* 'cp_name_list' would be freed by the calling function */
 	return cp_name_list;

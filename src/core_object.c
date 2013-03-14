@@ -44,7 +44,6 @@
 #include "co_gps.h"
 
 #define INIT_CORE_OBJECT(initializer, plugin, type, hal)	do { \
-	CoreObject *co; \
 	if (initializer != NULL) { \
 		co = tcore_object_clone_template_object(plugin, type); \
 		if (co == NULL) { \
@@ -118,7 +117,7 @@ static void _util_print_mapping_tbl_entry(object_mapping_table_t *tbl_entry)
 		if (co_list->data == NULL)
 			continue;
 
-		dbg("Core Object type: [0x%x]", co_list->data);
+		msg("		Core Object type: [0x%x]", co_list->data);
 	}
 }
 
@@ -206,12 +205,18 @@ static object_mapping_table_t *_object_search_mapping_tbl_entry_by_type(
 static gboolean _init_core_object_by_type(unsigned int type,
 	TcorePlugin *plugin, TcoreHal *hal, struct object_initializer *initializer_list)
 {
+	CoreObject *co;
 	gboolean ret = FALSE;
 
 	switch (type) {
 	case CORE_OBJECT_TYPE_MODEM:
 		INIT_CORE_OBJECT(initializer_list->modem_init,
 						plugin, type, hal);
+
+		/* Send Notification for MODEM ADDED */
+		if (ret == TRUE)
+			tcore_server_send_notification(tcore_plugin_ref_server(plugin),
+							co, TNOTI_MODEM_ADDED, 0, NULL);
 	break;
 
 	case CORE_OBJECT_TYPE_CALL:
@@ -517,6 +522,7 @@ TReturn tcore_object_set_hal(CoreObject *co, TcoreHal *hal)
 	TcoreAT *at;
 	struct callback_type *cb = NULL;
 	GSList *l = NULL;
+	dbg("Core Object Type: [0x%x] HAL: [0x%x]", co->type, hal);
 
 	if (co == NULL)
 		return TCORE_RETURN_EINVAL;

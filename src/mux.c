@@ -285,19 +285,19 @@ static tcore_cmux_object *_cmux_get_cmux_object(TcorePlugin *plugin)
 {
 	tcore_cmux_object *cmux_obj;
 	GSList *tmp_obj;
+	dbg("Entry");
 
 	/* Check across CMUX Objects list for specific CMUX Object */
-	tmp_obj = g_cmux_obj;
-	while (tmp_obj) {
+	for (tmp_obj = g_cmux_obj ; tmp_obj ; tmp_obj = tmp_obj->next) {
 		cmux_obj = tmp_obj->data;
-		tmp_obj = tmp_obj->next;
-
 		if (cmux_obj == NULL)
 			continue;
 
 		/* Check for matching 'plugin' */
-		if (plugin == cmux_obj->plugin)
+		if (plugin == cmux_obj->plugin) {
+			dbg("Found CMUX object");
 			return cmux_obj;
+		}
 	}
 
 	return NULL;
@@ -804,28 +804,33 @@ static TReturn _cmux_hal_send(TcoreHal *hal, unsigned int data_len, void *data)
 		return TCORE_RETURN_FAILURE;
 	}
 
-	channel_name = tcore_hal_get_name(hal);
-	dbg("HAL name: %s", channel_name);
-
 	/*
 	 * Get CMUX Object from Modem Interface Plug-in
 	 */
 	cmux_obj = _cmux_get_cmux_object(tcore_hal_ref_plugin(hal));
 	if (cmux_obj == NULL) {
-		/* Free memory */
-		g_free(channel_name);
-
+		err("Failed to find CMUX object");
 		return TCORE_RETURN_FAILURE;
 	}
 
 	channel_id = cmux_obj->max_cmux_channels + 1;
 
-	if (channel_name != NULL) {
-		int i = 0;
+	channel_name = tcore_hal_get_name(hal);
+	dbg("HAL name: %s", channel_name);
 
-		while (cmux_obj->max_cmux_channels > i) {
+	if (channel_name != NULL) {
+		int i;
+
+		/*
+		 * Channel 0 is dedicated to CMUX Control Channel,
+		 * hence starting from 1.
+		 */
+		for (i = 1 ; cmux_obj->max_cmux_channels > i ; i++) {
 			hal_name =
 				tcore_hal_get_name(cmux_obj->internal_mux.channel_info[i]->hal);
+			dbg("HAL name: %s", hal_name);
+			if (hal_name == NULL)
+				continue;
 
 			/*
 			 * Comparing all Logical HAL names with required HAL name.
@@ -842,9 +847,6 @@ static TReturn _cmux_hal_send(TcoreHal *hal, unsigned int data_len, void *data)
 
 			/* Free HAL name */
 			g_free(hal_name);
-
-			/* Increment to next Logical HAL */
-			i++;
 		}
 
 		/* Free memory */

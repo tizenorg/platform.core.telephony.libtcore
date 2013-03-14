@@ -281,6 +281,7 @@ TReturn tcore_hal_send_request(TcoreHal *hal, TcorePending *pending)
 {
 	int qlen = 0;
 	enum tcore_pending_priority priority;
+	dbg("HAL: [0x%x]", hal);
 
 	if ((hal == NULL) || (pending == NULL))
 		return TCORE_RETURN_EINVAL;
