@@ -110,7 +110,7 @@ static void _util_print_mapping_tbl_entry(object_mapping_table_t *tbl_entry)
 	co_list = tbl_entry->object_type;
 	if (co_list == NULL) {
 		err("No Core Objects defined for this Mapping Table Entry");
-		continue;
+		return;
 	}
 
 	/* Search all the Table entries with matching 'type' */
@@ -433,19 +433,14 @@ CoreObject *tcore_object_clone(CoreObject *src, TcorePlugin *new_parent)
 CoreObject *tcore_object_clone_template_object(TcorePlugin *p,
 				unsigned int co_type)
 {
-	CoreObject *co = NULL;
-	CoreObject *template_co = NULL;
+	CoreObject *template_co;
 
 	template_co = tcore_server_find_template_object(tcore_plugin_ref_server(p), co_type);
-	if(template_co == NULL) {
+	if(template_co == NULL)
 		return NULL;
 
-	co = tcore_object_clone(template_co, p);
-	if (co == NULL)
-		return NULL;
-	}
+	return tcore_object_clone(template_co, p);
 
-	return co;
 }
 
 TReturn tcore_object_set_free_hook(CoreObject *co,
@@ -503,6 +498,8 @@ TReturn tcore_object_set_type(CoreObject *co, unsigned int type)
 		return TCORE_RETURN_EINVAL;
 
 	co->type = type;
+
+	dbg("Set core_object to type: [0x%x])", type);
 
 	return TCORE_RETURN_SUCCESS;
 }
@@ -765,17 +762,16 @@ TReturn tcore_object_emit_callback(CoreObject *co,
 	return TCORE_RETURN_SUCCESS;
 }
 
-gboolean tcore_object_add_mapping_tbl_entry(void **mapping_tbl,
+void *tcore_object_add_mapping_tbl_entry(void *mapping_tbl,
 						unsigned int object_type, TcoreHal *hal)
 {
-	GSList *mapping_tbl_list;
+	GSList *mapping_tbl_list = mapping_tbl;
 	object_mapping_table_t *tbl_entry;
 
-	if ((mapping_tbl == NULL) || (hal == NULL)) {
+	if (hal == NULL) {
 		err("Mapping Table: [0x%x] HAL: [0x%x]", mapping_tbl, hal);
-		return FALSE;
+		return mapping_tbl;
 	}
-	mapping_tbl_list = *mapping_tbl;
 
 	/*
 	 * Search 'hal' across all the Table entries of the Mapping Table
@@ -788,17 +784,19 @@ gboolean tcore_object_add_mapping_tbl_entry(void **mapping_tbl,
 	 * to the Mapping Table.
 	 */
 	tbl_entry = _object_search_mapping_tbl_entry(mapping_tbl_list, hal);
+
 	if (tbl_entry == NULL) {
 		/*
 		 * If there is NO previously added Table entry for the 'hal' then
 		 * new Table entry is created
 		 */
+
 		tbl_entry = g_try_new0(object_mapping_table_t, 1);
 		if (tbl_entry != NULL)
 			tbl_entry->hal = hal;
 		else {
 			err("Failed to allocate memory");
-			return FALSE;
+			return mapping_tbl_list;
 		}
 
 		/* Add the Mapping Table entry to Mapping Table */
@@ -811,25 +809,23 @@ gboolean tcore_object_add_mapping_tbl_entry(void **mapping_tbl,
 	tbl_entry->object_type = g_slist_append(tbl_entry->object_type, (gpointer)object_type);
 	dbg("Added Mapping Table entry - HAL: [0x%x] Object type: [0x%x]", hal, object_type);
 
-	return TRUE;
+	return mapping_tbl_list;
 }
 
-void tcore_object_remove_mapping_tbl_entry(void **mapping_tbl, TcoreHal *hal)
+void *tcore_object_remove_mapping_tbl_entry(void *mapping_tbl, TcoreHal *hal)
 {
-	GSList *mapping_tbl_list;
+	GSList *mapping_tbl_list = mapping_tbl;
 	object_mapping_table_t *tbl_entry;
 
-	if (mapping_tbl == NULL) {
+	if (mapping_tbl_list == NULL) {
 		err("Mapping Table is NULL");
-		return;
+		return mapping_tbl;
 	}
-
-	mapping_tbl_list = *mapping_tbl;
 
 	tbl_entry = _object_search_mapping_tbl_entry(mapping_tbl_list, hal);
 	if (tbl_entry == NULL) {
 		err("Table entry is NOT available");
-		return;
+		return mapping_tbl_list;
 	}
 
 	dbg("Removing Mapping Table Entry - HAL: [0x%x]", hal);
@@ -843,10 +839,12 @@ void tcore_object_remove_mapping_tbl_entry(void **mapping_tbl, TcoreHal *hal)
 
 	/* Free Table entry */
 	g_free(tbl_entry);
+
+	return mapping_tbl_list;
 }
 
 void tcore_object_remove_mapping_tbl_entry_by_type(void *mapping_tbl,
-														unsigned int co_type)
+							unsigned int co_type)
 {
 	GSList *mapping_tbl_list;
 	object_mapping_table_t *tbl_entry;

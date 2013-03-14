@@ -40,6 +40,8 @@
 #include "udev.h"
 #include "util.h"
 
+#define MODEMS_PATH "/usr/lib/telephony/plugins/modems"
+
 struct tcore_server_type {
 	GMainLoop *mainloop;
 	GSList *plugins;
@@ -200,7 +202,8 @@ static TcoreModem *_server_find_modem(Server *s,
 		}
 	}
 
-	err("Failed to find 'modem'");
+	err("Modem not found");
+
 	return NULL;
 }
 Server *tcore_server_new()
@@ -866,7 +869,11 @@ gboolean tcore_server_add_cp_mapping_tbl_entry(TcorePlugin *modem_iface_plugin,
 	/*
 	 * Set the Mapping Table to the Modems list
 	 */
-	return tcore_object_add_mapping_tbl_entry(&modem->mapping_tbl, co_type, hal);
+	modem->mapping_tbl =
+			tcore_object_add_mapping_tbl_entry(modem->mapping_tbl,
+								co_type, hal);
+
+	return TRUE;
 }
 
 void tcore_server_remove_cp_mapping_tbl_entry(TcorePlugin *modem_iface_plugin,
@@ -894,8 +901,8 @@ void tcore_server_remove_cp_mapping_tbl_entry(TcorePlugin *modem_iface_plugin,
 	}
 
 	/* Removing the Mapping Table from the Modems list */
-	tcore_object_remove_mapping_tbl_entry(&modem->mapping_tbl, hal);
-	modem->mapping_tbl = NULL;
+	modem->mapping_tbl =
+		tcore_object_remove_mapping_tbl_entry(modem->mapping_tbl, hal);
 }
 
 void *tcore_server_get_cp_mapping_tbl(TcorePlugin *modem_plugin)
@@ -972,8 +979,7 @@ TReturn tcore_server_load_modem_plugin(Server *s,
 		goto out;
 	}
 
-	filename = g_build_filename("/usr/lib/telephny/plugins/modems",
-					name, NULL);
+	filename = g_build_filename(MODEMS_PATH, name, NULL);
 
 	handle = dlopen(filename, RTLD_NOW);
 	if (handle == NULL) {
