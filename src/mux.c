@@ -178,11 +178,11 @@ struct cmux_channel_object {
 struct cmux_channel_object cmux_channel_core_object[] = {
 	{"channel_0", {"control", NULL, NULL}},
 	{"channel_1", {"call", NULL, NULL}},
-	{"channel_2", {"sim", NULL, NULL}},
-	{"channel_3", {"sat", NULL, NULL}},
+	{"channel_2", {"sim", "phonebook", NULL}},
+	{"channel_3", {"sat", "sap", NULL}},
 	{"channel_4", {"umts_sms", NULL, NULL}},
 	{"channel_5", {"ss", NULL, NULL}},
-	{"channel_6", {"umts_network", NULL, NULL}},
+	{"channel_6", {"umts_network", "gps", NULL}},
 	{"channel_7", {"modem", "umts_ps", NULL}},
 };
 

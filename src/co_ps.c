@@ -136,7 +136,7 @@ static gboolean _ps_is_active_context(CoreObject *o, CoreObject *ps_context)
 
 				if (ps_context == s_context) {
 					dbg("find contexts(%p) in cid(%d)",
-						ps_context, idx_cid);
+							ps_context, idx_cid);
 					return TRUE;
 				}
 			}
@@ -463,7 +463,7 @@ TReturn tcore_ps_activate_context(CoreObject *o, CoreObject *ps_context, void *u
 	if (!po)
 		return TCORE_RETURN_EINVAL;
 
-	if (!po->online) {
+ 	if (!po->online) {
 		dbg("ps network is not online !");
 		return TCORE_RETURN_PS_NETWORK_NOT_READY;
 	}
@@ -480,7 +480,7 @@ TReturn tcore_ps_activate_context(CoreObject *o, CoreObject *ps_context, void *u
 
 	rv = _ps_is_duplicated_apn(o, ps_context);
 	if (rv) {
-		dbg("context activation is already requested for the same apn(%s)",
+		dbg("context activation is already requested for the same apn(%s)", 
 			tcore_context_get_apn(ps_context));
 		return TCORE_RETURN_SUCCESS;
 	}
@@ -548,6 +548,8 @@ TReturn tcore_ps_deactivate_context(CoreObject *o, CoreObject *ps_context, void 
 
 TReturn tcore_ps_deactivate_contexts(CoreObject *o)
 {
+	GSList *contexts = NULL;
+	CoreObject *context = NULL;
 	int index = 0;
 	struct private_object_data *po = NULL;
 
@@ -564,13 +566,11 @@ TReturn tcore_ps_deactivate_contexts(CoreObject *o)
 
 	for (index = 0; index < PS_MAX_CID; index++) {
 		if (po->cid[index].cid != 0) {
-			GSList *contexts = NULL;
 			contexts = po->cid[index].contexts;
 			if (contexts == NULL)
 				continue;
 
 			for (; contexts != NULL; contexts = g_slist_next(contexts)) {
-				CoreObject *context = NULL;
 				context = contexts->data;
 				if (context == NULL)
 					continue;

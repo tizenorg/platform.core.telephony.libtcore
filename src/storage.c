@@ -174,13 +174,13 @@ static void tcore_storage_vkey_callback_dispatcher(Storage *strg,
 	tmp = g_hash_table_lookup(strg->callback, key_gen);
 
 	if (tmp != NULL) {
-		GSList *cb_data = (GSList *) tmp;
+		GSList *cb_data = (GSList *)tmp;
 
-		for (; cb_data != NULL; cb_data = g_slist_next(cb_data)) {
+		do {
 			tmp_cb = cb_data->data;
 			tmp_cb->cb_fn(key, value, tmp_cb->user_data);
 			cb_data = g_slist_next(cb_data);
-		}
+		} while (cb_data != NULL);
 	}
 
 	g_free(key_gen);

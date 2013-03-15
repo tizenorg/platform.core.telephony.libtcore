@@ -307,7 +307,7 @@ TReturn tcore_object_set_hal(CoreObject *co, TcoreHal *hal)
 	}
 
 	co->hal = hal;
-	if (!hal)
+	if (hal == NULL)
 		return TCORE_RETURN_SUCCESS;
 
 	// register unsolicited callbacks
