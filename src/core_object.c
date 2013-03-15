@@ -104,7 +104,7 @@ static void _util_print_mapping_tbl_entry(object_mapping_table_t *tbl_entry)
 {
 	GSList *co_list;
 
-	dbg("Table Entry - HAL: [0x%x]", tbl_entry->hal);
+	msg("------> Table Entry - HAL: [0x%x]", tbl_entry->hal);
 
 	co_list = tbl_entry->object_type;
 	if (co_list == NULL) {

@@ -904,10 +904,10 @@ void tcore_server_print_modems(TcorePlugin *plugin)
 		return;
 	}
 
-	dbg("Modem Plug-in [%s] Modem Interface Plug-in: [%s]",
+	msg("Modem Plug-in: [%s] Modem Interface Plug-in: [%s]",
 			tcore_plugin_ref_plugin_name(modem->modem_plugin),
 			tcore_plugin_ref_plugin_name(modem->modem_iface_plugin));
-	dbg("CP Name: [%s]", modem->cp_name);
+	msg("CP Name: [%s]", modem->cp_name);
 
 	tcore_object_print_mapping_tbl(modem->mapping_tbl);
 }
