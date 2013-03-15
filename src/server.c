@@ -91,33 +91,6 @@ static gint _compare_priority(gconstpointer a, gconstpointer b)
 			tcore_plugin_get_description(plugin2)->priority;
 }
 
-static TcorePlugin *_find_default_plugin(Server *s)
-{
-	GSList *list;
-	TcorePlugin *p;
-	GSList *co_list;
-
-	if (s->default_plugin != NULL) {
-		return s->default_plugin;
-	}
-
-	for (list = s->plugins; list; list = list->next) {
-		p = list->data;
-		if (p == NULL)
-			continue;
-
-		co_list = tcore_plugin_get_core_objects_bytype(p, CORE_OBJECT_TYPE_MODEM);
-		if (co_list == NULL)
-			continue;
-
-		g_slist_free(co_list);
-		s->default_plugin = p;
-		return p;
-	}
-
-	return NULL;
-}
-
 static char *_server_enumerate_modem(TcorePlugin *plugin)
 {
 	static unsigned int cp_counter = 0;
@@ -204,6 +177,7 @@ static TcoreModem *_server_find_modem(Server *s,
 
 	return NULL;
 }
+
 Server *tcore_server_new()
 {
 	Server *s;
@@ -326,22 +300,18 @@ TReturn tcore_server_add_plugin(Server *s, TcorePlugin *plugin)
 TcorePlugin *tcore_server_find_plugin(Server *s, const char *name)
 {
 	GSList *list;
-	TcorePlugin *p;
+	TcoreModem *modem;
 
-	if (g_strcmp0(name, TCORE_PLUGIN_DEFAULT) == 0) {
-		return _find_default_plugin(s);
-	}
-
-	for (list = s->plugins; list; list = list->next) {
-		p = list->data;
-		if (p == NULL) {
+	for (list = s->modems; list; list = list->next) {
+		modem = list->data;
+		if (modem == NULL)
 			continue;
-		}
 
-		if (g_strcmp0(tcore_plugin_get_description(p)->name, name) == 0) {
-			return p;
-		}
+		if (g_strcmp0(modem->cp_name, name) == 0)
+			return modem->modem_plugin;
 	}
+
+	err("Modem plugin not found");
 
 	return NULL;
 }
@@ -504,7 +474,7 @@ TReturn tcore_server_dispatch_request(Server *s, UserRequest *ur)
 	char *modem = NULL;
 	TcorePlugin *p;
 	enum tcore_request_command command = 0;
-	GSList *list, *co_list=NULL;
+	GSList *list;
 	struct hook_request_type *hook;
 	int category;
 	CoreObject *co;
@@ -539,26 +509,17 @@ TReturn tcore_server_dispatch_request(Server *s, UserRequest *ur)
 
 	category = CORE_OBJECT_TYPE_DEFAULT | (command & 0x0FF00000);
 
-	co_list = tcore_plugin_get_core_objects_bytype(p, category);
-	if (co_list == NULL) {
+	co = tcore_plugin_ref_core_object(p, category);
+	if (co == NULL) {
 		warn("can't find 0x%x core_object", category);
 		return TCORE_RETURN_ENOSYS;
 	}
 
-	for (list = co_list; list; list = list->next) {
-		co = (CoreObject *) list->data;
-		if (co == NULL) {
-			warn("can't find 0x%x core_object", category);
-			continue;
-		}
-
-		if (tcore_object_dispatch_request(co, ur) == TCORE_RETURN_SUCCESS)
+	if (tcore_object_dispatch_request(co, ur) == TCORE_RETURN_SUCCESS)
 			ret = TCORE_RETURN_SUCCESS;
 		else
 			dbg("failed...");
-	}
 
-	g_slist_free(co_list);
 	return ret;
 }
 
