@@ -1168,10 +1168,10 @@ int tcore_util_pdu_encode(const unsigned char *sca, const unsigned char *tpdu,
 		converted_sca[i] = sca[i];
 
 out:
-	memcpy(pdu, converted_sca, sca_len);
-	memcpy(pdu + sca_len, tpdu, tpdu_len);
+	memcpy(pdu, converted_sca, sca_len + 1);
+	memcpy(pdu + sca_len + 1, tpdu, tpdu_len);
 
-	return sca_len + tpdu_len;
+	return sca_len + 1 + tpdu_len;
 }
 
 unsigned char *tcore_util_unpack_gsm7bit(const unsigned char *src, unsigned int src_len)
