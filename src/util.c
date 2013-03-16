@@ -1149,7 +1149,7 @@ int tcore_util_pdu_encode(const unsigned char *sca, const unsigned char *tpdu,
 
 	if (sca[0] == 0) {
 		converted_sca[0] = 0;
-		sca_len = 1;
+		sca_len = 0;
 
 		goto out;
 	}
