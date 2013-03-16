@@ -1011,6 +1011,7 @@ char *tcore_util_get_string_by_ip4type(union tcore_ip4_type ip)
 	char buf[16]; /* 'nnn'*4 + '.'*3 + '\0' */
 
 	snprintf(buf, 16, "%d.%d.%d.%d", ip.s[0], ip.s[1], ip.s[2], ip.s[3]);
+	dbg("IP Address: [%s]", buf);
 
 	return strdup(buf);
 }

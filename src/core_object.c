@@ -599,8 +599,10 @@ TReturn tcore_object_dispatch_request(CoreObject *co,
 	if ((co == NULL) || (ur == NULL))
 		return TCORE_RETURN_EINVAL;
 
-	if (co->dispatcher == NULL)
+	if (co->dispatcher == NULL) {
+		err("Dispatcher is NULL");
 		return TCORE_RETURN_ENOSYS;
+	}
 
 	return co->dispatcher(co, ur);
 }

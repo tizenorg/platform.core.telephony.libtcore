@@ -122,10 +122,10 @@ gboolean b_comprehensive = FALSE;
 
 static void _clone_sat_operations(struct private_object_data *po, struct tcore_sat_operations *sat_ops)
 {
-	if(sat_ops->envelope) {
+	if (sat_ops->envelope) {
 		po->ops->envelope = sat_ops->envelope;
 	}
-	if(sat_ops->terminal_response) {
+	if (sat_ops->terminal_response) {
 		po->ops->terminal_response = sat_ops->terminal_response;
 	}
 
@@ -222,21 +222,21 @@ static gboolean _check_file_for_refresh(enum tel_sim_file_id file_id)
 
 	dbg("[SAT] SAT PARSER - FILE ID=0x%04x", (unsigned int)file_id);
 
-	if( (file_id & 0x2F00) == 0x2F00 )
+	if ( (file_id & 0x2F00) == 0x2F00 )
 	{
 		dbg("[SAT] SAT PARSER - MF, EF=0x%04x",file_id);
-		for(i=0;i<3;i++){
-			if(file_id == ef_under_mf[i]){
+		for(i=0;i<3;i++) {
+			if (file_id == ef_under_mf[i]) {
 				dbg("[SAT] SAT PARSER - MATCH!");
 				return TRUE;
 			}
 		}
 	}
-	else if( (file_id & 0x6F00) == 0x6F00)
+	else if ( (file_id & 0x6F00) == 0x6F00)
 	{
 		dbg("[SAT] SAT PARSER - ADF_USIM EF=0x%04x",file_id);
-		for(i=0;i<29;i++){
-			if(file_id == ef_under_df[i]){
+		for(i=0;i<29;i++) {
+			if (file_id == ef_under_df[i]) {
 				dbg("[SAT] SAT PARSER - MATCH!");
 				return TRUE;
 			}
@@ -365,16 +365,16 @@ static void _sat_decode_ton_npi(unsigned char ton_npi, enum type_of_number *ton,
 	int ton_value = 0;
 	int npi_value = 0;
 
-	if(!ton || !npi)
+	if (!ton || !npi)
 		return;
 
 	ton_value = (ton_npi & 0x70) >> 4;
 	*ton = ton_value;
-	if(*ton > TON_NETWORK_SPECIFIC)
+	if (*ton > TON_NETWORK_SPECIFIC)
 		*ton = TON_UNKNOWN;
 
 	npi_value = (ton_npi & 0x0F);
-	switch(npi_value){
+	switch(npi_value) {
 		case NPI_ISDN_TEL:
 		case NPI_DATA_NUMBERING_PLAN:
 		case NPI_TELEX:
@@ -393,35 +393,35 @@ static void _sat_decode_ton_npi(unsigned char ton_npi, enum type_of_number *ton,
 
 static enum tel_sim_language_type _sat_decode_language(unsigned char byte1, unsigned char byte2)
 {
-	if((byte1 == 'e')&&(byte2 == 'n')){
+	if ((byte1 == 'e')&&(byte2 == 'n')) {
 		return SIM_LANG_ENGLISH;
-	} else if((byte1 == 'd')&&(byte2 == 'e')){
+	} else if ((byte1 == 'd')&&(byte2 == 'e')) {
 		return SIM_LANG_GERMAN;
-	} else if((byte1 == 'i')&&(byte2 == 't')){
+	} else if ((byte1 == 'i')&&(byte2 == 't')) {
 		return SIM_LANG_ITALIAN;
-	} else if((byte1 == 'f')&&(byte2 == 'r')){
+	} else if ((byte1 == 'f')&&(byte2 == 'r')) {
 		return SIM_LANG_FRENCH;
-	} else if((byte1 == 'e')&&(byte2 == 's')){
+	} else if ((byte1 == 'e')&&(byte2 == 's')) {
 		return SIM_LANG_SPANISH;
-	} else if((byte1 == 'n')&&(byte2 == 'l')){
+	} else if ((byte1 == 'n')&&(byte2 == 'l')) {
 		return SIM_LANG_DUTCH;
-	} else if((byte1 == 's')&&(byte2 == 'v')){
+	} else if ((byte1 == 's')&&(byte2 == 'v')) {
 		return SIM_LANG_SWEDISH;
-	} else if((byte1 == 'd')&&(byte2 == 'a')){
+	} else if ((byte1 == 'd')&&(byte2 == 'a')) {
 		return SIM_LANG_DANISH;
-	} else if((byte1 == 'p')&&(byte2 == 't')){
+	} else if ((byte1 == 'p')&&(byte2 == 't')) {
 		return SIM_LANG_PORTUGUESE;
-	} else if((byte1 == 'f')&&(byte2 == 'i')){
+	} else if ((byte1 == 'f')&&(byte2 == 'i')) {
 		return SIM_LANG_FINNISH;
-	} else if((byte1 == 'n')&&(byte2 == 'o')){
+	} else if ((byte1 == 'n')&&(byte2 == 'o')) {
 		return SIM_LANG_NORWEGIAN;
-	} else if((byte1 == 'e')&&(byte2 == 'l')){
+	} else if ((byte1 == 'e')&&(byte2 == 'l')) {
 		return SIM_LANG_GREEK;
-	} else if((byte1 == 't')&&(byte2 == 'r')){
+	} else if ((byte1 == 't')&&(byte2 == 'r')) {
 		return SIM_LANG_TURKISH;
-	} else if((byte1 == 'h')&&(byte2 == 'u')){
+	} else if ((byte1 == 'h')&&(byte2 == 'u')) {
 		return SIM_LANG_HUNGARIAN;
-	} else if((byte1 == 'p')&&(byte2 == 'i')){
+	} else if ((byte1 == 'p')&&(byte2 == 'i')) {
 		return SIM_LANG_POLISH;
 	} else	{
 		dbg("[SAT] SAT PARSER -  unknown language, default to english.");
@@ -459,7 +459,7 @@ static enum tcore_sat_result _sat_decode_address_tlv(unsigned char* tlv_str, int
 	}
 
 	//comprehensive required
-	if((src_data[index++] & 0x80))
+	if ((src_data[index++] & 0x80))
 		comprehensive_req = TRUE;
 
 	//length
@@ -478,19 +478,19 @@ static enum tcore_sat_result _sat_decode_address_tlv(unsigned char* tlv_str, int
 	}
 
 	address_obj->dialing_number_len = 0;
-	if(address_len > 1){
+	if (address_len > 1) {
 		char* str_ascii = NULL;
 		_sat_decode_ton_npi(src_data[index++], &address_obj->ton, &address_obj->npi);
 		str_ascii = tcore_util_convert_bcd2ascii((const char*)&src_data[index], address_len-1, SAT_DIALING_NUMBER_LEN_MAX);
-		if(str_ascii){
+		if (str_ascii) {
 			memcpy(address_obj->dialing_number, str_ascii, strlen(str_ascii));
 			address_obj->dialing_number_len = strlen(str_ascii);
 			g_free(str_ascii);
 		}
 	}
 
-	if(address_obj->dialing_number_len == 0){
-		if(comprehensive_req){
+	if (address_obj->dialing_number_len == 0) {
+		if (comprehensive_req) {
 			err("[SAT] SAT PARSER -  incorrect address");
 			return TCORE_SAT_REQUIRED_VALUE_MISSING;
 		}
@@ -529,7 +529,7 @@ static enum tcore_sat_result _sat_decode_subaddress_tlv(unsigned char* tlv_str, 
 	}
 
 	//comprehensive required
-	if((src_data[index++] & 0x80))
+	if ((src_data[index++] & 0x80))
 		comprehensive_req = TRUE;
 
 	//length
@@ -548,14 +548,14 @@ static enum tcore_sat_result _sat_decode_subaddress_tlv(unsigned char* tlv_str, 
 	}
 
 	//sub address
-	if(sub_address_len <= 0){
+	if (sub_address_len <= 0) {
 		dbg("[SAT] SAT PARSER - no sub address data");
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 	}
 
 	sub_address_obj->subaddress_len = sub_address_len;
-	if( sub_address_obj->subaddress_len > SAT_CCP_DATA_LEN_MAX){
-		if(comprehensive_req){
+	if ( sub_address_obj->subaddress_len > SAT_CCP_DATA_LEN_MAX) {
+		if (comprehensive_req) {
 			dbg("[SAT] SAT PARSER - sub address is too big");
 			return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 		}
@@ -664,7 +664,7 @@ static enum tcore_sat_result _sat_decode_sub_address_tlv(unsigned char* tlv_str,
 	}
 
 	//comprehensive required
-	if((src_data[index++] & 0x80))
+	if ((src_data[index++] & 0x80))
 		comprehension_req = TRUE;
 
 	//length
@@ -682,14 +682,14 @@ static enum tcore_sat_result _sat_decode_sub_address_tlv(unsigned char* tlv_str,
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 	}
 
-	if(sub_address_len <= 0){
+	if (sub_address_len <= 0) {
 		dbg("[SAT] SAT PARSER  -  no sub address");
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 	}
 
 	sub_address_obj->subaddress_len = sub_address_len;
-	if(sub_address_obj->subaddress_len > SAT_SUB_ADDR_LEN_MAX){
-		if(comprehension_req)
+	if (sub_address_obj->subaddress_len > SAT_SUB_ADDR_LEN_MAX) {
+		if (comprehension_req)
 			return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 		else
 			sub_address_obj->subaddress_len = 0;
@@ -734,7 +734,7 @@ static enum tcore_sat_result _sat_decode_ccp_tlv(unsigned char* tlv_str, int tlv
 	}
 
 	//comprehensive required
-	if((src_data[index++] & 0x80))
+	if ((src_data[index++] & 0x80))
 		comprehension_req = TRUE;
 
 	//length
@@ -752,14 +752,14 @@ static enum tcore_sat_result _sat_decode_ccp_tlv(unsigned char* tlv_str, int tlv
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 	}
 
-	if(ccp_len <= 0){
+	if (ccp_len <= 0) {
 		dbg("[SAT] SAT PARSER  -  no ccp data");
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 	}
 
 	ccp_obj->data_len = ccp_len;
-	if(ccp_obj->data_len > SAT_CCP_DATA_LEN_MAX){
-		if(comprehension_req)
+	if (ccp_obj->data_len > SAT_CCP_DATA_LEN_MAX) {
+		if (comprehension_req)
 			return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 		else
 			ccp_obj->data_len = 0;
@@ -808,7 +808,7 @@ static enum tcore_sat_result _sat_decode_device_identities_tlv(unsigned char* tl
 				if (i == 1) dev_id_obj->dest = tlv_str[index];
 				break;
 			default:{
-				if(tlv_str[index] >= 0x21 && tlv_str[index] <= 0x27){
+				if (tlv_str[index] >= 0x21 && tlv_str[index] <= 0x27) {
 					dbg("BIP channel id(0x%x)", tlv_str[index])
 					if (i == 0) dev_id_obj->src = tlv_str[index];
 					if (i == 1) dev_id_obj->dest = tlv_str[index];
@@ -883,69 +883,76 @@ static enum tcore_sat_result _sat_decode_item_tlv(unsigned char* tlv_str, int tl
 	int item_len =0;
 	unsigned char* src_data = NULL;
 
-	if(tlv_str == NULL || consumed_data_len == NULL || item_obj == NULL) {
-		dbg("[SAT] SAT PARSER -  tlv_str == NULL || consumed_data_len == NULL || item_obj == NULL");
+	if ((tlv_str == NULL)
+			|| (consumed_data_len == NULL)
+			|| (item_obj == NULL)) {
+		err("[SAT PARSER] TLV: [0x%x] Item Object: [0x%x] Consumed Data length(ptr): [0x%x]",
+				tlv_str, item_obj, consumed_data_len);
 		return TCORE_SAT_ERROR_FATAL;
 	}
 
-	if(tlv_len <= (curr_offset+1)) {
-		dbg("[SAT] SAT PARSER -  incorrect length original_command_len=%d", tlv_len);
+	if (tlv_len <= (curr_offset+1)) {
+		err("[SAT PARSER] SAT PARSER -  incorrect length original_command_len=%d", tlv_len);
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 	}
 
-	//tag
+	/* ITEM TAG - 0x0F */
 	index = curr_offset;
 	src_data = &tlv_str[0];
-	if((src_data[index++]&0x7F) != SATK_ITEM_TAG){
-		dbg("[SAT] SAT PARSER -  tag not found.=%d",src_data[index-1]);
+	if ((src_data[index++]&0x7F) != SATK_ITEM_TAG) {
+		err("[SAT PARSER] ITEM TAG not found: [0x%02x]", src_data[index-1]);
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 	}
 
-	//length
+	/* Item Length */
 	len_of_len = _get_length_filed_size(src_data[index]);
-	if(!len_of_len){
-		dbg("[SAT] SAT PARSER -  incorrect length");
+	if (!len_of_len) {
+		err("[SAT PARSER] Incorrect length");
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 	}
 	item_len = src_data[index+len_of_len-1];
 
-	index+=len_of_len; //index pointing to item.
-	if((index+item_len) > tlv_len){
-		dbg("[SAT] SAT PARSER -  incorrect length");
+	index+=len_of_len;		/* index pointing to item */
+	if ((index+item_len) > tlv_len) {
+		err("[SAT PARSER] Incorrect length");
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 	}
 
 	memset(item_obj->text, 0x00,(SAT_ITEM_TEXT_LEN_MAX+1));
-	if(item_len <= 0){
-		dbg("[SAT] SAT PARSER -  menu_text is NULL, remove the menu");
+	if (item_len <= 0) {
+		dbg("[SAT PARSER] Menu Text is NULL, remove the Menu");
 		*consumed_data_len = 1+len_of_len+item_len;
 		return TCORE_SAT_SUCCESS;
 	}
 
-	//item
+	/* Item */
 	item_obj->item_id = src_data[index++];
+	dbg("[SAT PARSER] Item ID: [%d]", item_obj->item_id);
 	// fix for orange SIM issue
 	// H0100078487 Strange Character display on SIM SAT
 	// The string length was less than its real length
 	// So garbage characters was displayed. To fix it, we would recalculate the real length.
-	for(i=0; i<item_len-1;i++){
-		dbg("[SAT] %d: %c", i, src_data[index+i]);
-		if(src_data[index+i] == 0xFF) break;
+	dbg("[SAT PARSER] Text");
+	for(i = 0 ; i < (item_len - 1) ; i++) {
+		msg("	[SAT PARSER] - [%d]: [%c]", i, src_data[index+i]);
+		if (src_data[index+i] == 0xFF)
+			break;
 	}
 	item_obj->text_len = i;
 
-	if(item_obj->text_len <= 0){
-		dbg("[SAT] SAT PARSER -  text len = 0");
+	if (item_obj->text_len <= 0) {
+		dbg("[SAT PARSER] Text length: [%d]", item_obj->text_len);
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 	}
 
-	if(item_obj->text_len > SAT_ITEM_TEXT_LEN_MAX)
+	if (item_obj->text_len > SAT_ITEM_TEXT_LEN_MAX)
 		item_obj->text_len = SAT_ITEM_TEXT_LEN_MAX;
 
 	memcpy(item_obj->text, &src_data[index], item_obj->text_len);
+	dbg("[SAT PARSER] Item Text: [%s]", item_obj->text);
 
-	dbg("[SAT] SAT PARSER -  item_text=%s", item_obj->text);
 	*consumed_data_len = 1+len_of_len+item_len;
+
 	return TCORE_SAT_SUCCESS;
 }
 
@@ -982,7 +989,7 @@ static enum tcore_sat_result _sat_decode_response_length_tlv(unsigned char* tlv_
 	dbg("[SAT] SAT PARSER  min length(%d), max length(%d)", response_obj->min, response_obj->max);
 
 	*consumed_data_len = 4;
-	if(response_obj->min > response_obj->max){
+	if (response_obj->min > response_obj->max) {
 		err("[SAT] SAT PARSER - : min length is larger than max length");
 		return TCORE_SAT_BEYOND_ME_CAPABILITY;
 	}
@@ -1016,19 +1023,19 @@ static enum tcore_sat_result _sat_decode_sms_tpdu_tlv(unsigned char* tlv_str, in
 
 	//length
 	len_of_len = _get_length_filed_size(src_data[index]);
-	if(!len_of_len){
+	if (!len_of_len) {
 		err("[SAT] parser: invalid length.");
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 	}
 	tpdu_len = src_data[index+len_of_len-1];
 	index += len_of_len;
 
-	if(tpdu_len <= 0)
+	if (tpdu_len <= 0)
 		return TCORE_SAT_REQUIRED_VALUE_MISSING;
 
 	//data len
 	sms_tpdu_obj->data_len = tpdu_len;
-	if(sms_tpdu_obj->data_len > SAT_SMS_TPDU_SMS_DATA_LEN_MAX){
+	if (sms_tpdu_obj->data_len > SAT_SMS_TPDU_SMS_DATA_LEN_MAX) {
 		sms_tpdu_obj->data_len = SAT_SMS_TPDU_SMS_DATA_LEN_MAX;
 	}
 
@@ -1101,12 +1108,12 @@ static enum tcore_sat_result _sat_decode_ss_string_tlv(unsigned char* tlv_str, i
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD; //send TR
 	}
 
-	if(src_data[index++]&0x80)
+	if (src_data[index++]&0x80)
 		comprehension_req = TRUE;
 
 	//length
 	len_of_len = _get_length_filed_size(src_data[index]);
-	if(!len_of_len){
+	if (!len_of_len) {
 		err("[SAT] parser: invalid length.");
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 	}
@@ -1118,12 +1125,12 @@ static enum tcore_sat_result _sat_decode_ss_string_tlv(unsigned char* tlv_str, i
 	ss_str_obj->string_len = 0;
 
 	//ss data
-	if(ss_len <= 1)
+	if (ss_len <= 1)
 		return TCORE_SAT_REQUIRED_VALUE_MISSING;
 
 	_sat_decode_ton_npi(src_data[index++], &ss_str_obj->ton, &ss_str_obj->npi);
 	str_ascii = tcore_util_convert_bcd2ascii((const char*)&src_data[index], ss_len-1, SAT_SS_STRING_LEN_MAX);
-	if(str_ascii){
+	if (str_ascii) {
 		memcpy(ss_str_obj->ss_string, str_ascii, strlen(str_ascii));
 		ss_str_obj->string_len = strlen(str_ascii);
 		g_free(str_ascii);
@@ -1147,7 +1154,7 @@ static enum tcore_sat_result _sat_decode_text_tlv(unsigned char* tlv_str, int tl
 		return TCORE_SAT_ERROR_FATAL;
 	}
 
-	if(tlv_len <= (curr_offset+1)){
+	if (tlv_len <= (curr_offset+1)) {
 		err("[SAT] parser: incorrect length");
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 	}
@@ -1155,17 +1162,17 @@ static enum tcore_sat_result _sat_decode_text_tlv(unsigned char* tlv_str, int tl
 	//tag
 	index = curr_offset;
 	src_data = &tlv_str[0];
-	if((src_data[index]&0x7F) != SATK_TEXT_STRING_TAG && (src_data[index]&0x7F) != SATK_DEFAULT_TEXT_TAG){
+	if ((src_data[index]&0x7F) != SATK_TEXT_STRING_TAG && (src_data[index]&0x7F) != SATK_DEFAULT_TEXT_TAG) {
 		err("[SAT] parser: text string tag missing, tag=0x%x",src_data[index]);
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 	}
 
-	if(src_data[index++]&0x80)
+	if (src_data[index++]&0x80)
 		comprehension_req = TRUE;
 
 	//length
 	len_of_len = _get_length_filed_size(src_data[index]);
-	if(!len_of_len){
+	if (!len_of_len) {
 		err("[SAT] parser: invalid length.");
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 	}
@@ -1177,7 +1184,7 @@ static enum tcore_sat_result _sat_decode_text_tlv(unsigned char* tlv_str, int tl
 	memset(text_obj->string, 0x00, SAT_TEXT_STRING_LEN_MAX);
 
 	//text
-	if(text_len <=1){
+	if (text_len <=1) {
 		text_obj->string_length = 0;
 	}else{
 		text_obj->string_length = text_len-1;
@@ -1198,12 +1205,12 @@ static enum tcore_sat_result _sat_decode_tone_tlv(unsigned char* tlv_str, int tl
 	unsigned char* src_data;
 	gboolean comprehension_req = FALSE;
 
-	if(tlv_str == NULL || consumed_data_len == NULL || tone_obj == NULL) {
+	if (tlv_str == NULL || consumed_data_len == NULL || tone_obj == NULL) {
 		dbg("[SAT] SAT PARSER -  tlv_str == NULL || consumed_data_len == NULL || tone_obj == NULL");
 		return TCORE_SAT_ERROR_FATAL;
 	}
 
-	if(tlv_len <= (curr_offset+1)) {
+	if (tlv_len <= (curr_offset+1)) {
 		dbg("[SAT] SAT PARSER - incorrect length original_command_len=%d", tlv_len);
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 	}
@@ -1211,12 +1218,12 @@ static enum tcore_sat_result _sat_decode_tone_tlv(unsigned char* tlv_str, int tl
 	//tag
 	index = curr_offset;
 	src_data = &tlv_str[0];
-	if((src_data[index]&0x7F) != SATK_TONE_TAG){
+	if ((src_data[index]&0x7F) != SATK_TONE_TAG) {
 		err("[SAT] parser: tone tag missing");
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 	}
 
-	if(src_data[index++]&0x80)
+	if (src_data[index++]&0x80)
 		comprehension_req = TRUE;
 
 	//length
@@ -1225,7 +1232,7 @@ static enum tcore_sat_result _sat_decode_tone_tlv(unsigned char* tlv_str, int tl
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD; //send TR
 	}
 
-	if((index+SATK_TONE_LENGTH) > tlv_len)
+	if ((index+SATK_TONE_LENGTH) > tlv_len)
 	{
 		err("[SAT] SAT PARSER -  incorrect cmd len, expected len = %d, orig_len=%d", (index+SATK_TONE_LENGTH),tlv_len);
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
@@ -1272,7 +1279,7 @@ static enum tcore_sat_result _sat_decode_tone_tlv(unsigned char* tlv_str, int tl
 		case TONE_TYPE_RESERVED:
 		default:
 			dbg("[SAT] SAT PARSER -  Reserved value of Tone =0x%x", src_data[index]);
-			if(comprehension_req)
+			if (comprehension_req)
 				return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 			break;
 	}
@@ -1306,12 +1313,12 @@ static enum tcore_sat_result _sat_decode_ussd_string_tlv(unsigned char* tlv_str,
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD; //send TR
 	}
 
-	if(src_data[index++]&0x80)
+	if (src_data[index++]&0x80)
 		comprehension_req = TRUE;
 
 	//length
 	len_of_len = _get_length_filed_size(src_data[index]);
-	if(!len_of_len){
+	if (!len_of_len) {
 		err("[SAT] parser: invalid length.");
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 	}
@@ -1323,7 +1330,7 @@ static enum tcore_sat_result _sat_decode_ussd_string_tlv(unsigned char* tlv_str,
 	ussd_str_obj->string_len = 0;
 
 	//ussd data
-	if(ussd_len <= 1)
+	if (ussd_len <= 1)
 		return TCORE_SAT_REQUIRED_VALUE_MISSING;
 
 	_sat_decode_dcs(src_data[index++], &ussd_str_obj->dsc);
@@ -1347,12 +1354,12 @@ static enum tcore_sat_result _sat_decode_file_list_tlv(unsigned char* tlv_str, i
 	int file_list_len = 0;
 	unsigned char* src_data;
 
-	if(tlv_str == NULL || consumed_data_len == NULL || file_list_obj == NULL) {
+	if (tlv_str == NULL || consumed_data_len == NULL || file_list_obj == NULL) {
 		dbg("[SAT] SAT PARSER -  tlv_str == NULL || consumed_data_len == NULL || file_list_obj == NULL");
 		return TCORE_SAT_ERROR_FATAL;
 	}
 
-	if(tlv_len <= (curr_offset+1)) {
+	if (tlv_len <= (curr_offset+1)) {
 		dbg("[SAT] SAT PARSER - incorrect length original_command_len=%d", tlv_len);
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 	}
@@ -1360,21 +1367,21 @@ static enum tcore_sat_result _sat_decode_file_list_tlv(unsigned char* tlv_str, i
 	//tag
 	index = curr_offset;
 	src_data = &tlv_str[0];
-	if((src_data[index]&0x7F) != SATK_FILE_LIST_TAG){
+	if ((src_data[index]&0x7F) != SATK_FILE_LIST_TAG) {
 		err("[SAT] parser: tag missing, tag=0x%x",src_data[index]);
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 	}
 
 	//length
 	len_of_len = _get_length_filed_size(src_data[index]);
-	if(!len_of_len){
+	if (!len_of_len) {
 		err("[SAT] parser: invalid length.");
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 	}
 	file_list_len = src_data[index+len_of_len-1];
 	index += len_of_len;
 
-	if((index+file_list_len) > tlv_len) {
+	if ((index+file_list_len) > tlv_len) {
 		dbg("[SAT] SAT PARSER - incorrect cmd len, expected len = %d, orig_len=%d", (index+file_list_len),tlv_len);
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 	}
@@ -1384,7 +1391,7 @@ static enum tcore_sat_result _sat_decode_file_list_tlv(unsigned char* tlv_str, i
 	file_list_obj->file_count = 0;
 	memset(file_list_obj->file_id, 0, SAT_FILE_ID_LIST_MAX_COUNT);
 
-	if(!tmp_cnt){
+	if (!tmp_cnt) {
 		dbg("file cnt = 0");
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 	}
@@ -1392,33 +1399,33 @@ static enum tcore_sat_result _sat_decode_file_list_tlv(unsigned char* tlv_str, i
 	f_count = 0;
 	do{
 		ef = 0x0000;
-		if( src_data[index] != 0x3F || src_data[index+1] != 0x00){
+		if ( src_data[index] != 0x3F || src_data[index+1] != 0x00) {
 			index++;
-			if(index > tlv_len) break;
+			if (index > tlv_len) break;
 			else continue;
 		}
 		index+=2; //MASTER FILE (DIR) 0x3F00
 
-		if(src_data[index] == 0x2F){
+		if (src_data[index] == 0x2F) {
 		//ELEMENTRY FILE (VALUE)
 			ef = src_data[index] << 8;
 			index++;
 			ef = ef | src_data[index];
 
-			if( _check_file_for_refresh((enum tel_sim_file_id)ef) ){//check file registered for refresh?
+			if ( _check_file_for_refresh((enum tel_sim_file_id)ef) ) {//check file registered for refresh?
 				file_list_obj->file_id[file_list_obj->file_count] = ef;
 				file_list_obj->file_count++;
 			}
 		}
-		else if(src_data[index] == 0x7F && src_data[index+1] == 0xFF){
+		else if (src_data[index] == 0x7F && src_data[index+1] == 0xFF) {
 		//USIM DIRECTORY FILE (DIR) 0x7FFF
 			index+=2;
-			if(src_data[index] == 0x6F){
+			if (src_data[index] == 0x6F) {
 				ef = 0x6A << 8;
 				index++;
 				ef = ef | src_data[index];
 
-				if( _check_file_for_refresh((enum tel_sim_file_id)ef) ){//check file registered for refresh?
+				if ( _check_file_for_refresh((enum tel_sim_file_id)ef) ) {//check file registered for refresh?
 					file_list_obj->file_id[file_list_obj->file_count] = ef;
 					file_list_obj->file_count++;
 				}
@@ -1427,15 +1434,15 @@ static enum tcore_sat_result _sat_decode_file_list_tlv(unsigned char* tlv_str, i
 				index++;
 			}
 		}
-		else if(src_data[index] == 0x7F && (src_data[index+1] == 0x10 || src_data[index+1] == 0x20) ){
+		else if (src_data[index] == 0x7F && (src_data[index+1] == 0x10 || src_data[index+1] == 0x20) ) {
 		//TELECOM DIRECTORY FILE 0x7F10 or GSM DIRECTORY FILE 0x7F20
 			index+=2;
-			if(src_data[index] == 0x6F){
+			if (src_data[index] == 0x6F) {
 				ef = src_data[index] << 8;
 				index++;
 				ef = ef | src_data[index];
 
-				if( _check_file_for_refresh((enum tel_sim_file_id)ef) ){//check file registered for refresh?
+				if ( _check_file_for_refresh((enum tel_sim_file_id)ef) ) {//check file registered for refresh?
 					file_list_obj->file_id[file_list_obj->file_count] = ef;
 					file_list_obj->file_count++;
 				}
@@ -1464,12 +1471,12 @@ static enum tcore_sat_result _sat_decode_item_next_action_indicator_tlv(unsigned
 	unsigned char* src_data;
 	gboolean comprehension_req = FALSE;
 
-	if(tlv_str == NULL || consumed_data_len == NULL || item_next_act_indi_obj == NULL) {
+	if (tlv_str == NULL || consumed_data_len == NULL || item_next_act_indi_obj == NULL) {
 		dbg("[SAT] SAT PARSER -  tlv_str == NULL || consumed_data_len == NULL || item_next_act_indi_obj == NULL");
 		return TCORE_SAT_ERROR_FATAL;
 	}
 
-	if(tlv_len <= (curr_offset+1)) {
+	if (tlv_len <= (curr_offset+1)) {
 		dbg("[SAT] SAT PARSER - incorrect length original_command_len=%d", tlv_len);
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 	}
@@ -1477,23 +1484,23 @@ static enum tcore_sat_result _sat_decode_item_next_action_indicator_tlv(unsigned
 	//tag
 	index = curr_offset;
 	src_data = &tlv_str[0];
-	if((src_data[index]&0x7F) != SATK_ITEMS_NEXT_ACTION_INDICATOR_TAG){
+	if ((src_data[index]&0x7F) != SATK_ITEMS_NEXT_ACTION_INDICATOR_TAG) {
 		dbg("[SAT] SAT PARSER - tag not found.=%d",src_data[index]);
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 	}
 
-	if((src_data[index++]&0x7F))
+	if ((src_data[index++]&0x7F))
 		comprehension_req = TRUE;
 
 	//item cnt
 	item_nai_len = item_next_act_indi_obj->cnt = src_data[index++];
-	if((index+item_nai_len) > tlv_len) {
+	if ((index+item_nai_len) > tlv_len) {
 		dbg("[SAT] SAT PARSER - incorrect cmd len, expected len = %d, orig_len=%d", (index+item_nai_len),tlv_len);
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 	}
 
-	if(item_next_act_indi_obj->cnt > SAT_ITEMS_NEXT_ACTION_INDI_LIST_MAX_COUNT) {
-		if(comprehension_req == TRUE) {
+	if (item_next_act_indi_obj->cnt > SAT_ITEMS_NEXT_ACTION_INDI_LIST_MAX_COUNT) {
+		if (comprehension_req == TRUE) {
 			dbg("[SAT] SAT PARSER - list count exceeds maximum allowed count=%d",item_next_act_indi_obj->cnt);
 			return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 		}
@@ -1501,7 +1508,7 @@ static enum tcore_sat_result _sat_decode_item_next_action_indicator_tlv(unsigned
 	}
 
 	memset(item_next_act_indi_obj->indicator_list, 0xFF, SAT_ITEMS_NEXT_ACTION_INDI_LIST_MAX_COUNT);
-	if(item_next_act_indi_obj->cnt > 0)
+	if (item_next_act_indi_obj->cnt > 0)
 		memcpy(item_next_act_indi_obj->indicator_list, &src_data[index], item_next_act_indi_obj->cnt);
 
 	*consumed_data_len = 1+1+item_nai_len;
@@ -1518,12 +1525,12 @@ static enum tcore_sat_result _sat_decode_event_list_tlv(unsigned char* tlv_str, 
 	unsigned char* src_data;
 	gboolean comprehension_req = FALSE;
 
-	if(tlv_str == NULL || consumed_data_len == NULL || event_list_obj == NULL) {
+	if (tlv_str == NULL || consumed_data_len == NULL || event_list_obj == NULL) {
 		dbg("[SAT] SAT PARSER -  tlv_str == NULL || consumed_data_len == NULL || event_list_obj == NULL");
 		return TCORE_SAT_ERROR_FATAL;
 	}
 
-	if(tlv_len <= (curr_offset+1)) {
+	if (tlv_len <= (curr_offset+1)) {
 		dbg("[SAT] SAT PARSER - incorrect length original_command_len=%d", tlv_len);
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 	}
@@ -1531,17 +1538,17 @@ static enum tcore_sat_result _sat_decode_event_list_tlv(unsigned char* tlv_str, 
 	//tag
 	index = curr_offset;
 	src_data = &tlv_str[0];
-	if((src_data[index]&0x7F) != SATK_EVENT_LIST_TAG){
+	if ((src_data[index]&0x7F) != SATK_EVENT_LIST_TAG) {
 		dbg("[SAT] SAT PARSER - tag not found.=%d",src_data[index]);
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 	}
 
-	if((src_data[index++]&0x80))
+	if ((src_data[index++]&0x80))
 		comprehension_req = TRUE;
 
 	//length
 	len_of_len = _get_length_filed_size(src_data[index]);
-	if(!len_of_len){
+	if (!len_of_len) {
 		err("[SAT] parser: invalid length.");
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 	}
@@ -1550,14 +1557,14 @@ static enum tcore_sat_result _sat_decode_event_list_tlv(unsigned char* tlv_str, 
 	dbg("[SAT] parser: evt_list_len=%d",evt_list_len);
 	index += len_of_len;
 
-	if((index+evt_list_len) > tlv_len) {
+	if ((index+evt_list_len) > tlv_len) {
 		dbg("[SAT] SAT PARSER - incorrect cmd len, expected len = %d, orig_len=%d", (index+evt_list_len),tlv_len);
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 	}
 
-	if(evt_list_len > SAT_EVENT_LIST_MAX){
+	if (evt_list_len > SAT_EVENT_LIST_MAX) {
 		dbg("[SAT] SAT PARSER - event list contains more items than it is supposed to have! len=%d", evt_list_len);
-		if(comprehension_req)
+		if (comprehension_req)
 			return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 		else
 			evt_list_len = SAT_EVENT_LIST_MAX;
@@ -1570,9 +1577,9 @@ static enum tcore_sat_result _sat_decode_event_list_tlv(unsigned char* tlv_str, 
 	memset(modem_event_list_obj->evt_list, 0xFF, SAT_EVENT_LIST_MAX);
 
 	//event list
-	for(i = 0; i < evt_list_len; i++){
+	for(i = 0; i < evt_list_len; i++) {
 		dbg("[SAT] SAT PARSER - event[%d]=0x%x", i, src_data[index]);
-		switch(src_data[index]){
+		switch(src_data[index]) {
 			/*PDA events*/
 			case EVENT_USER_ACTIVITY:
 			case EVENT_IDLE_SCREEN_AVAILABLE:
@@ -1594,7 +1601,7 @@ static enum tcore_sat_result _sat_decode_event_list_tlv(unsigned char* tlv_str, 
 				break;
 			case EVENT_UNKNOWN:
 			default:
-				if(comprehension_req)
+				if (comprehension_req)
 					return TCORE_SAT_BEYOND_ME_CAPABILITY;
 				break;
 		}
@@ -1612,12 +1619,12 @@ static enum tcore_sat_result _sat_decode_icon_identifier_tlv(unsigned char* tlv_
 	unsigned char* src_data;
 	int index = 0;
 
-	if(tlv_str == NULL || icon_id_obj == NULL ||consumed_data_len == NULL)	{
+	if (tlv_str == NULL || icon_id_obj == NULL ||consumed_data_len == NULL)	{
 		dbg("[SAT] SAT PARSER -  tlv_str == NULL || icon_id_obj == NULL ||consumed_data_len == NULL");
 		return TCORE_SAT_ERROR_FATAL;
 	}
 
-	if(tlv_len <= (curr_offset+1)) {//length of icon id tlv is 4
+	if (tlv_len <= (curr_offset+1)) {//length of icon id tlv is 4
 		dbg("[SAT] SAT PARSER -  incorrect length original_command_len=%d", tlv_len);
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 	}
@@ -1625,28 +1632,28 @@ static enum tcore_sat_result _sat_decode_icon_identifier_tlv(unsigned char* tlv_
 	//tag
 	index = curr_offset;
 	src_data = &tlv_str[0];
-	if((src_data[index++]&0x7F) != SATK_ICON_IDENTIFIER_TAG) {
+	if ((src_data[index++]&0x7F) != SATK_ICON_IDENTIFIER_TAG) {
 		dbg("[SAT] SAT PARSER -  icon identity tag missing.");
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD; //send TR
 	}
 
-	if(src_data[index++] != SATK_ICON_IDENTITY_LENGTH) {
+	if (src_data[index++] != SATK_ICON_IDENTITY_LENGTH) {
 		dbg("[SAT] SAT PARSER -  incorrect length value.");
 		return FALSE; //send TR
 	}
 
-	if((index+SATK_ICON_IDENTITY_LENGTH) > tlv_len) {
+	if ((index+SATK_ICON_IDENTITY_LENGTH) > tlv_len) {
 		dbg("[SAT] SAT PARSER -  incorrect cmd len, expected len = %d, orig_len=%d", (index+SATK_ICON_IDENTITY_LENGTH),tlv_len);
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 	}
 	icon_id_obj->is_exist = TRUE;
 
-	if((src_data[index++]&0x01))
+	if ((src_data[index++]&0x01))
 		icon_id_obj->icon_qualifer = ICON_QUALI_NOT_SELF_EXPLANATORY;
 	else
 		icon_id_obj->icon_qualifer = ICON_QUALI_SELF_EXPLANATORY;
 
-	if(src_data[index] > 0x00) {
+	if (src_data[index] > 0x00) {
 		icon_id_obj->icon_identifier = src_data[index];
 	}
 	else {
@@ -1668,12 +1675,12 @@ static enum tcore_sat_result _sat_decode_icon_identifier_list_tlv(unsigned char*
 	unsigned char* src_data;
 	gboolean comprehension_req = FALSE;
 
-	if(tlv_str == NULL || consumed_data_len == NULL || icon_list_obj == NULL) {
+	if (tlv_str == NULL || consumed_data_len == NULL || icon_list_obj == NULL) {
 		dbg("[SAT] SAT PARSER -  tlv_str == NULL || consumed_data_len == NULL || icon_list_obj == NULL");
 		return TCORE_SAT_ERROR_FATAL;
 	}
 
-	if(tlv_len <= (curr_offset+1)+1) {
+	if (tlv_len <= (curr_offset+1)+1) {
 		dbg("[SAT] SAT PARSER -  incorrect length original_command_len=%d", tlv_len);
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 	}
@@ -1681,24 +1688,24 @@ static enum tcore_sat_result _sat_decode_icon_identifier_list_tlv(unsigned char*
 	//tag
 	index = curr_offset;
 	src_data = &tlv_str[0];
-	if((src_data[index]&0x7F) != SATK_ITEM_ICON_IDENTIFIER_LIST_TAG) {
+	if ((src_data[index]&0x7F) != SATK_ITEM_ICON_IDENTIFIER_LIST_TAG) {
 		dbg("[SAT] SAT PARSER -  icon identity tag missing.");
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD; //send TR
 	}
 
 	icon_list_obj->is_exist = TRUE;
-	if(src_data[index++]&0x80)
+	if (src_data[index++]&0x80)
 		comprehension_req = TRUE;
 
 	len_value = src_data[index++];
-	if(src_data[index++]&0x01)
+	if (src_data[index++]&0x01)
 		icon_list_obj->icon_qualifer = ICON_QUALI_NOT_SELF_EXPLANATORY;
 	else
 		icon_list_obj->icon_qualifer = ICON_QUALI_SELF_EXPLANATORY;
 
 	icon_list_obj->icon_cnt = len_value-1;
-	if(icon_list_obj->icon_cnt > SAT_ICON_LIST_MAX_COUNT){
-		if(comprehension_req == TRUE) {
+	if (icon_list_obj->icon_cnt > SAT_ICON_LIST_MAX_COUNT) {
+		if (comprehension_req == TRUE) {
 			dbg("[SAT] SAT PARSER -  list count exceeds maximum allowed count=%d",icon_list_obj->icon_cnt);
 			return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 		}
@@ -1707,7 +1714,7 @@ static enum tcore_sat_result _sat_decode_icon_identifier_list_tlv(unsigned char*
 	else{
 
 		for(i=0;i<icon_list_obj->icon_cnt;i++) {
-			if(src_data[index] > 0x00) {
+			if (src_data[index] > 0x00) {
 				icon_list_obj->icon_id_list[i]= src_data[index++];
 			} else	{
 				dbg("[SAT] SAT PARSER -  incorrect icon identifier");
@@ -1750,12 +1757,12 @@ static enum tcore_sat_result _sat_decode_dtmf_string_tlv(unsigned char* tlv_str,
 	}
 
 	//comprehensive required
-	if((src_data[index++] & 0x80))
+	if ((src_data[index++] & 0x80))
 		comprehension_req = TRUE;
 
 	//length
 	len_of_len = _get_length_filed_size(src_data[index]);
-	if(!len_of_len){
+	if (!len_of_len) {
 		err("[SAT] parser: invalid length.");
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 	}
@@ -1770,9 +1777,9 @@ static enum tcore_sat_result _sat_decode_dtmf_string_tlv(unsigned char* tlv_str,
 
 	dtmf_string_obj->dtmf_length = 0;
 
-	if(dtmf_len > 0){
+	if (dtmf_len > 0) {
 		str_ascii = tcore_util_convert_bcd2ascii((const char*)&src_data[index], dtmf_len, SAT_DTMF_STRING_LEN_MAX);
-		if(str_ascii){
+		if (str_ascii) {
 			memcpy(dtmf_string_obj->dtmf_string, str_ascii, strlen(str_ascii));
 			dtmf_string_obj->dtmf_length = strlen(str_ascii);
 			g_free(str_ascii);
@@ -1794,7 +1801,7 @@ static enum tcore_sat_result _sat_decode_language_tlv(unsigned char* tlv_str, in
 	unsigned char* src_data;
 	int index = 0;
 
-	if(tlv_len <= (curr_offset+1)) {
+	if (tlv_len <= (curr_offset+1)) {
 		dbg("[SAT] SAT PARSER -  incorrect length original_command_len=%d", tlv_len);
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 	}
@@ -1802,16 +1809,16 @@ static enum tcore_sat_result _sat_decode_language_tlv(unsigned char* tlv_str, in
 	src_data = &tlv_str[0];
 	index = curr_offset;
 
-	if((src_data[index++]&0x7F) != SATK_LANGUAGE_TAG)	{
+	if ((src_data[index++]&0x7F) != SATK_LANGUAGE_TAG)	{
 		dbg("[SAT] SAT PARSER -  Language tag missing.");
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 	}
-	if(src_data[index++] != SATK_LANGUAGE_LENGTH) {
+	if (src_data[index++] != SATK_LANGUAGE_LENGTH) {
 		dbg("[SAT] SAT PARSER -  incorrect length value.");
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 	}
 
-	if((index+SATK_LANGUAGE_LENGTH) > tlv_len) {
+	if ((index+SATK_LANGUAGE_LENGTH) > tlv_len) {
 		dbg("[SAT] SAT PARSER -  incorrect cmd len, expected len = %d, orig_len=%d", (index+SATK_LANGUAGE_LENGTH),tlv_len);
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 	}
@@ -1888,19 +1895,19 @@ static enum tcore_sat_result _sat_decode_url_tlv(unsigned char* tlv_str, int tlv
 	}
 
 	src_data = &tlv_str[0];
-	if(tlv_len <= (curr_offset+1)) {
+	if (tlv_len <= (curr_offset+1)) {
 		dbg("[SAT] SAT PARSER -  incorrect length original_command_len=%d", tlv_len);
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 	}
 
-	if((src_data[index++]&0x7F) != SATK_URL_TAG) {
+	if ((src_data[index++]&0x7F) != SATK_URL_TAG) {
 		dbg("[SAT] SAT PARSER -  Browser URL tag missing.");
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD; //send TR
 	}
 
 	//length
 	len_of_len = _get_length_filed_size(src_data[index]);
-	if(!len_of_len){
+	if (!len_of_len) {
 		err("[SAT] parser: invalid length.");
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 	}
@@ -1908,8 +1915,8 @@ static enum tcore_sat_result _sat_decode_url_tlv(unsigned char* tlv_str, int tlv
 	url_len =  src_data[index+len_of_len-1];
 	index+=len_of_len; //index pointing to url.
 
-	if(url_len > 0) {
-		if(url_len > SAT_URL_LEN_MAX)
+	if (url_len > 0) {
+		if (url_len > SAT_URL_LEN_MAX)
 			return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 		else
 			memcpy(url->url, &src_data[index], url_len);
@@ -1948,7 +1955,7 @@ static enum tcore_sat_result _sat_decode_bearer_tlv(unsigned char* tlv_str, int 
 
 	//length
 	len_of_len = _get_length_filed_size(src_data[index]);
-	if(!len_of_len){
+	if (!len_of_len) {
 		err("[SAT] parser: invalid length.");
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 	}
@@ -2020,7 +2027,7 @@ static enum tcore_sat_result _sat_decode_provisioning_file_ref_tlv(unsigned char
 
 	//length
 	len_of_len = _get_length_filed_size(src_data[index]);
-	if(!len_of_len){
+	if (!len_of_len) {
 		err("[SAT] parser: invalid length.");
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 	}
@@ -2050,21 +2057,21 @@ static enum tcore_sat_result _sat_decode_bearer_description_tlv(unsigned char* t
 	int index, length=0;
 	unsigned char* src_data;
 
-	if(tlv_len <= (curr_offset+1)+1) {
+	if (tlv_len <= (curr_offset+1)+1) {
 		dbg("[SAT] SAT PARSER -  incorrect length original_command_len=%d", tlv_len);
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 	}
 
 	index = curr_offset;
 	src_data = &tlv_str[0];
-	while(1){
-		if(index >= tlv_len){
+	while(1) {
+		if (index >= tlv_len) {
 			dbg("bearer desc cannot find. UICC Server mode");
 			*consumed_data_len = 0;
 			return TCORE_SAT_SUCCESS;
 		}
 
-		if( (src_data[index]&0x7F) == SATK_BEARER_DISCRIPTION_TAG ){
+		if ( (src_data[index]&0x7F) == SATK_BEARER_DISCRIPTION_TAG ) {
 			dbg("find bearer description tag index(%d)", index);
 			index++;
 			break;
@@ -2077,7 +2084,7 @@ static enum tcore_sat_result _sat_decode_bearer_description_tlv(unsigned char* t
 	dbg("bearer description length (%d)", length);
 
 	//bearer parameter
-	switch(src_data[index++]){
+	switch(src_data[index++]) {
 		case BEARER_CSD:
 			bearer_desc_obj->bearer_type = BEARER_CSD;
 			bearer_desc_obj->bearer_parameter.cs_bearer_param.data_rate = src_data[index++];
@@ -2092,7 +2099,7 @@ static enum tcore_sat_result _sat_decode_bearer_description_tlv(unsigned char* t
 			bearer_desc_obj->bearer_parameter.ps_bearer_param.peak_throughput_class = src_data[index++];
 			bearer_desc_obj->bearer_parameter.ps_bearer_param.mean_throughput_class = src_data[index++];
 			bearer_desc_obj->bearer_parameter.ps_bearer_param.pdp_type = BIP_GPRS_PDP_TYPE_RESERVED;
-			if(src_data[index] == BIP_GPRS_PDP_TYPE_IP)
+			if (src_data[index] == BIP_GPRS_PDP_TYPE_IP)
 				bearer_desc_obj->bearer_parameter.ps_bearer_param.pdp_type = BIP_GPRS_PDP_TYPE_IP;
 			break;
 		case BEARER_DEFAULT_BEARER_FROM_TRANSPORT_LAYER:
@@ -2119,12 +2126,12 @@ static enum tcore_sat_result _sat_decode_channel_data_tlv(unsigned char* tlv_str
 	int len_of_len = 0, channel_data_len = 0;
 	unsigned char* src_data;
 
-	if(tlv_str == NULL || consumed_data_len == NULL || channel_data_obj == NULL) {
+	if (tlv_str == NULL || consumed_data_len == NULL || channel_data_obj == NULL) {
 		dbg("[SAT] SAT PARSER -  tlv_str == NULL || consumed_data_len == NULL || channel_data_obj == NULL");
 		return TCORE_SAT_ERROR_FATAL;
 	}
 
-	if(tlv_len <= (curr_offset+1)) {
+	if (tlv_len <= (curr_offset+1)) {
 		dbg("[SAT] SAT PARSER - incorrect length original_command_len=%d", tlv_len);
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 	}
@@ -2132,14 +2139,14 @@ static enum tcore_sat_result _sat_decode_channel_data_tlv(unsigned char* tlv_str
 	//tag
 	index = curr_offset;
 	src_data = &tlv_str[0];
-	if((src_data[index++]&0x7F) != SATK_CHANNEL_DATA_TAG){
+	if ((src_data[index++]&0x7F) != SATK_CHANNEL_DATA_TAG) {
 		dbg("[SAT] SAT PARSER - tag not found.=%d",src_data[index]);
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 	}
 
 	//length
 	len_of_len = _get_length_filed_size(src_data[index]);
-	if(!len_of_len){
+	if (!len_of_len) {
 		err("[SAT] parser: invalid length.");
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 	}
@@ -2148,7 +2155,7 @@ static enum tcore_sat_result _sat_decode_channel_data_tlv(unsigned char* tlv_str
 	dbg("[SAT] parser: channel_data_len=%d",channel_data_len);
 	index += len_of_len;
 
-	if((index+channel_data_len) > tlv_len) {
+	if ((index+channel_data_len) > tlv_len) {
 		dbg("[SAT] SAT PARSER - incorrect cmd len, expected len = %d, orig_len=%d", (index+channel_data_len),tlv_len);
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 	}
@@ -2168,7 +2175,7 @@ static enum tcore_sat_result _sat_decode_channel_data_length_tlv(unsigned char* 
 	int index;
 	unsigned char* src_data;
 
-	if(tlv_str == NULL || consumed_data_len == NULL || data_len_obj == NULL) {
+	if (tlv_str == NULL || consumed_data_len == NULL || data_len_obj == NULL) {
 		dbg("[SAT] SAT PARSER -  tlv_str == NULL || consumed_data_len == NULL || data_len_obj == NULL");
 		return TCORE_SAT_ERROR_FATAL;
 	}
@@ -2176,13 +2183,13 @@ static enum tcore_sat_result _sat_decode_channel_data_length_tlv(unsigned char* 
 	//tag
 	index = curr_offset;
 	src_data = &tlv_str[0];
-	if((src_data[index++]&0x7F) != SATK_CHANNEL_DATA_LEN_TAG) {
+	if ((src_data[index++]&0x7F) != SATK_CHANNEL_DATA_LEN_TAG) {
 		dbg("[SAT] SAT PARSER -  channel data tag missing.");
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD; //send TR
 	}
 
 	//length
-	if(src_data[index++] != SATK_CHANNEL_DATA_LENGTH_VALUE_LENGTH) {
+	if (src_data[index++] != SATK_CHANNEL_DATA_LENGTH_VALUE_LENGTH) {
 		dbg("[SAT] SAT PARSER -  incorrect length");
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD; //send TR
 	}
@@ -2201,12 +2208,12 @@ static enum tcore_sat_result _sat_decode_buffer_size_tlv(unsigned char* tlv_str,
 	int index;
 	unsigned char* src_data;
 
-	if(tlv_str == NULL || consumed_data_len == NULL || buffer_size_obj == NULL) {
+	if (tlv_str == NULL || consumed_data_len == NULL || buffer_size_obj == NULL) {
 		dbg("[SAT] SAT PARSER -  tlv_str == NULL || consumed_data_len == NULL || buffer_size_obj == NULL");
 		return TCORE_SAT_ERROR_FATAL;
 	}
 
-	if(tlv_len <= (curr_offset+1)+SATK_BUFFER_SIZE_LENGTH) {
+	if (tlv_len <= (curr_offset+1)+SATK_BUFFER_SIZE_LENGTH) {
 		dbg("[SAT] SAT PARSER -  incorrect length original_command_len=%d", tlv_len);
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 	}
@@ -2214,13 +2221,13 @@ static enum tcore_sat_result _sat_decode_buffer_size_tlv(unsigned char* tlv_str,
 	//tag
 	index = curr_offset;
 	src_data = &tlv_str[0];
-	if((src_data[index++]&0x7F) != SATK_BUFFER_SIZE_TAG) {
+	if ((src_data[index++]&0x7F) != SATK_BUFFER_SIZE_TAG) {
 		dbg("[SAT] SAT PARSER -  buffer size tag missing.");
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD; //send TR
 	}
 
 	//length
-	if(src_data[index++] != SATK_BUFFER_SIZE_LENGTH) {
+	if (src_data[index++] != SATK_BUFFER_SIZE_LENGTH) {
 		dbg("[SAT] SAT PARSER -  incorrect length");
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD; //send TR
 	}
@@ -2241,12 +2248,12 @@ static enum tcore_sat_result _sat_decode_other_address_tlv(unsigned char* tlv_st
 	int index, address_len;
 	unsigned char* src_data;
 
-	if(tlv_str == NULL || consumed_data_len == NULL || other_address_obj == NULL) {
+	if (tlv_str == NULL || consumed_data_len == NULL || other_address_obj == NULL) {
 		dbg("[SAT] SAT PARSER -  tlv_str == NULL || consumed_data_len == NULL || other_address_obj == NULL");
 		return TCORE_SAT_ERROR_FATAL;
 	}
 
-	if(tlv_len <= (curr_offset+1)) {
+	if (tlv_len <= (curr_offset+1)) {
 		dbg("[SAT] SAT PARSER -  incorrect length original_command_len=%d", tlv_len);
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 	}
@@ -2254,25 +2261,25 @@ static enum tcore_sat_result _sat_decode_other_address_tlv(unsigned char* tlv_st
 	//tag
 	index = curr_offset;
 	src_data = &tlv_str[0];
-	if((src_data[index++]&0x7F) != SATK_OTHER_ADDRESS_TAG) {
+	if ((src_data[index++]&0x7F) != SATK_OTHER_ADDRESS_TAG) {
 		dbg("[SAT] SAT PARSER -  other address tag missing.");
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD; //send TR
 	}
 
 	//length
 	address_len = src_data[index++];
-	if((index+address_len) > tlv_len) {
+	if ((index+address_len) > tlv_len) {
 		dbg("[SAT] SAT PARSER -  incorrect cmd len, expected len = %d, orig_len=%d", (index+address_len),tlv_len);
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 	}
 
-	if(address_len-1 > SAT_OTHER_ADDR_LEN_MAX){
+	if (address_len-1 > SAT_OTHER_ADDR_LEN_MAX) {
 		dbg("[SAT] SAT PARSER - address is longer than capability");
 		return TCORE_SAT_BEYOND_ME_CAPABILITY;
 	}
 
 	//other address type
-	switch(src_data[index++]){
+	switch(src_data[index++]) {
 		case ADDR_TYPE_IPv4:{
 			other_address_obj->address_type = ADDR_TYPE_IPv4;
 			address = g_strdup_printf("%d.%d.%d.%d", src_data[index], src_data[index+1], src_data[index+2], src_data[index+3]);
@@ -2295,7 +2302,7 @@ static enum tcore_sat_result _sat_decode_other_address_tlv(unsigned char* tlv_st
 	memcpy(other_address_obj->address, address, strlen(address));
 	other_address_obj->address_len = strlen(address);
 
-	if(address)
+	if (address)
 		g_free(address);
 
 	dbg("destination address(%s)", other_address_obj->address);
@@ -2310,12 +2317,12 @@ static enum tcore_sat_result _sat_decode_uicc_terminal_interface_tlv(unsigned ch
 	int index;
 	unsigned char* src_data;
 
-	if(tlv_str == NULL || consumed_data_len == NULL || level_obj == NULL) {
+	if (tlv_str == NULL || consumed_data_len == NULL || level_obj == NULL) {
 		dbg("[SAT] SAT PARSER -  tlv_str == NULL || consumed_data_len == NULL || level_obj == NULL");
 		return TCORE_SAT_ERROR_FATAL;
 	}
 
-	if(tlv_len <= (curr_offset+1)+SATK_UICC_ME_TRANS_INTERFACE_LEVEL_LENGTH) {
+	if (tlv_len <= (curr_offset+1)+SATK_UICC_ME_TRANS_INTERFACE_LEVEL_LENGTH) {
 		dbg("[SAT] SAT PARSER -  incorrect length original_command_len=%d", tlv_len);
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 	}
@@ -2323,13 +2330,13 @@ static enum tcore_sat_result _sat_decode_uicc_terminal_interface_tlv(unsigned ch
 	//tag
 	index = curr_offset;
 	src_data = &tlv_str[0];
-	if((src_data[index++]&0x7F) != SATK_USIM_ME_INTERFACE_TRANSPORT_LEVEL_TAG) {
+	if ((src_data[index++]&0x7F) != SATK_USIM_ME_INTERFACE_TRANSPORT_LEVEL_TAG) {
 		dbg("[SAT] SAT PARSER - UICC/TERMINAL Interface transport level tag missing.");
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD; //send TR
 	}
 
 	//length
-	if(src_data[index++] != SATK_UICC_ME_TRANS_INTERFACE_LEVEL_LENGTH) {
+	if (src_data[index++] != SATK_UICC_ME_TRANS_INTERFACE_LEVEL_LENGTH) {
 		dbg("[SAT] SAT PARSER -  incorrect length");
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD; //send TR
 	}
@@ -2351,12 +2358,12 @@ static enum tcore_sat_result _sat_decode_remote_entity_address_tlv(unsigned char
 	int len_of_len = 0, remote_data_len = 0;
 	unsigned char* src_data;
 
-	if(tlv_str == NULL || consumed_data_len == NULL || remote_address_obj == NULL) {
+	if (tlv_str == NULL || consumed_data_len == NULL || remote_address_obj == NULL) {
 		dbg("[SAT] SAT PARSER -  tlv_str == NULL || consumed_data_len == NULL || remote_address_obj == NULL");
 		return TCORE_SAT_ERROR_FATAL;
 	}
 
-	if(tlv_len <= (curr_offset+1)) {
+	if (tlv_len <= (curr_offset+1)) {
 		dbg("[SAT] SAT PARSER - incorrect length original_command_len=%d", tlv_len);
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 	}
@@ -2364,14 +2371,14 @@ static enum tcore_sat_result _sat_decode_remote_entity_address_tlv(unsigned char
 	//tag
 	index = curr_offset;
 	src_data = &tlv_str[0];
-	if((src_data[index]&0x7F) != SATK_REMOTE_ENTITY_ADDRESS_TAG){
+	if ((src_data[index]&0x7F) != SATK_REMOTE_ENTITY_ADDRESS_TAG) {
 		dbg("[SAT] SAT PARSER - tag not found.=%d",src_data[index]);
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 	}
 
 	//length
 	len_of_len = _get_length_filed_size(src_data[index]);
-	if(!len_of_len){
+	if (!len_of_len) {
 		err("[SAT] parser: invalid length.");
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 	}
@@ -2381,7 +2388,7 @@ static enum tcore_sat_result _sat_decode_remote_entity_address_tlv(unsigned char
 	index += len_of_len;
 
 	//data
-	switch(src_data[index++]){
+	switch(src_data[index++]) {
 		case REMOTE_ENTITY_ADDR_CODING_TYPE_IEEE802_48BIT:
 			remote_address_obj->coding_type = REMOTE_ENTITY_ADDR_CODING_TYPE_IEEE802_48BIT;
 			break;
@@ -2407,12 +2414,12 @@ static enum tcore_sat_result _sat_decode_network_access_name_tlv(unsigned char* 
 	int index, idx, name_idx, name_length;
 	unsigned char* src_data;
 
-	if(tlv_str == NULL || consumed_data_len == NULL || access_name_obj == NULL) {
+	if (tlv_str == NULL || consumed_data_len == NULL || access_name_obj == NULL) {
 		dbg("[SAT] SAT PARSER -  tlv_str == NULL || consumed_data_len == NULL || access_name_obj == NULL");
 		return TCORE_SAT_ERROR_FATAL;
 	}
 
-	if(tlv_len <= (curr_offset+1)) {
+	if (tlv_len <= (curr_offset+1)) {
 		dbg("[SAT] SAT PARSER -  incorrect length original_command_len=%d", tlv_len);
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 	}
@@ -2420,35 +2427,35 @@ static enum tcore_sat_result _sat_decode_network_access_name_tlv(unsigned char* 
 	//tag
 	index = curr_offset;
 	src_data = &tlv_str[0];
-	if((src_data[index++]&0x7F) != SATK_NETWORK_ACCESS_TAG) {
+	if ((src_data[index++]&0x7F) != SATK_NETWORK_ACCESS_TAG) {
 		dbg("[SAT] SAT PARSER -  network access name tag missing.");
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD; //send TR
 	}
 
 	//length
 	name_length = src_data[index++];
-	if((index+name_length) > tlv_len) {
+	if ((index+name_length) > tlv_len) {
 		dbg("[SAT] SAT PARSER -  incorrect cmd len, expected len = %d, orig_len=%d", (index+name_length),tlv_len);
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 	}
 
 	access_name_obj->length = name_length;
-	if(access_name_obj->length > SAT_NET_ACC_NAM_LEN_MAX){
+	if (access_name_obj->length > SAT_NET_ACC_NAM_LEN_MAX) {
 		dbg("[SAT] SAT PARSER - network access name is longer than capability");
 		return TCORE_SAT_BEYOND_ME_CAPABILITY;
 	}
 
 	name_idx = 0;
-	for(idx = 0; idx < access_name_obj->length; idx++){
+	for(idx = 0; idx < access_name_obj->length; idx++) {
 		dbg("data (%c) Bool(%d)",src_data[index], g_ascii_isalpha(src_data[index]) );
 
-		if( g_ascii_isalpha(src_data[index]) ){
+		if ( g_ascii_isalpha(src_data[index]) ) {
 			access_name_obj->network_access_name[name_idx] = src_data[index];
 			name_idx++;
 		}
 		else{
 
-			if(src_data[index] == 0x02){//02 convert to "."
+			if (src_data[index] == 0x02) {//02 convert to "."
 				access_name_obj->network_access_name[name_idx] = '.';
 				name_idx++;
 			}
@@ -2474,7 +2481,7 @@ static enum tcore_sat_result _sat_decode_display_text(unsigned char* o_cmd_data,
 	unsigned char* cmd_data = NULL;
 	enum tcore_sat_result rv = TCORE_SAT_SUCCESS;
 
-	if(o_cmd_data == NULL){
+	if (o_cmd_data == NULL) {
 		dbg("[SAT] SAT PARSER -  o_cmd_data == NULL");
 		return TCORE_SAT_ERROR_FATAL;
 	}
@@ -2510,15 +2517,15 @@ static enum tcore_sat_result _sat_decode_display_text(unsigned char* o_cmd_data,
 	index++;
 	memcpy(dev_id,&cmd_data[index],4);
 	rv = _sat_decode_device_identities_tlv(dev_id, &sat_cmd_ind_data->data.display_text.device_id);
-	if(rv != TCORE_SAT_SUCCESS)
+	if (rv != TCORE_SAT_SUCCESS)
 		return rv;
 
 	index+=4;
 	rv = _sat_decode_text_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.display_text.text, &data_len_consumed);
-	if(rv != TCORE_SAT_SUCCESS)
+	if (rv != TCORE_SAT_SUCCESS)
 		return rv;
 
-	if(sat_cmd_ind_data->data.display_text.text.string_length <= 0){
+	if (sat_cmd_ind_data->data.display_text.text.string_length <= 0) {
 		err("[SAT] SAT PARSER - :string length is 0");
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 	}
@@ -2526,26 +2533,26 @@ static enum tcore_sat_result _sat_decode_display_text(unsigned char* o_cmd_data,
 	dbg("[SAT] SAT PARSER  text(%s)",sat_cmd_ind_data->data.display_text.text.string);
 	dbg("[SAT] SAT PARSER o_len(%d) index(%d) data_len_consumed(%d)",o_length , index, data_len_consumed);
 
-	if(index+data_len_consumed > o_length){
+	if (index+data_len_consumed > o_length) {
 		err("[SAT] SAT PARSER - Wrong String TLV");
 		return TCORE_SAT_BEYOND_ME_CAPABILITY;
 	}
-	else if(index+data_len_consumed == o_length){
+	else if (index+data_len_consumed == o_length) {
 		dbg("[SAT] SAT PARSER - :no more TLVs to decode.");
 		return TCORE_SAT_SUCCESS;
 	}
 
 	//icon identifier
 	index+=data_len_consumed;
-	if((cmd_data[index]&0x7F) == SATK_ICON_IDENTIFIER_TAG){
+	if ((cmd_data[index]&0x7F) == SATK_ICON_IDENTIFIER_TAG) {
 		data_len_consumed = 0;
 		rv = _sat_decode_icon_identifier_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.display_text.icon_id, &data_len_consumed);
 
-		if(rv != TCORE_SAT_SUCCESS){
+		if (rv != TCORE_SAT_SUCCESS) {
 			return TCORE_SAT_COMMAND_NOT_UNDERSTOOD; //SEND TR
 		}
 
-		if(index+data_len_consumed >= o_length){
+		if (index+data_len_consumed >= o_length) {
 			dbg("[SAT] SAT PARSER - no more TLVs to decode.");
 			return TCORE_SAT_SUCCESS;
 		}
@@ -2555,21 +2562,21 @@ static enum tcore_sat_result _sat_decode_display_text(unsigned char* o_cmd_data,
 
 	//immediate response
 	sat_cmd_ind_data->data.display_text.immediate_response_requested = FALSE;
-	if((cmd_data[index]&0x7F) == SATK_IMMEDIATE_RESPONSE_TAG){
+	if ((cmd_data[index]&0x7F) == SATK_IMMEDIATE_RESPONSE_TAG) {
 		dbg("[SAT] SAT PARSER - :immediate response required.");
 		sat_cmd_ind_data->data.display_text.immediate_response_requested = TRUE;
 		index+=2;
 	}
 
-	if(index >= o_length){
+	if (index >= o_length) {
 		dbg("[SAT] SAT PARSER - :no more TLVs to decode.");
 		return TCORE_SAT_SUCCESS;
 	}
 
 	//time duration
-	if((cmd_data[index]&0x7F)==SATK_DURATION_TAG){
+	if ((cmd_data[index]&0x7F)==SATK_DURATION_TAG) {
 		rv =_sat_decode_duration_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.display_text.duration, &data_len_consumed);
-		if(rv != TCORE_SAT_SUCCESS){
+		if (rv != TCORE_SAT_SUCCESS) {
 			return rv; //SEND TR
 		}
 	}
@@ -2588,7 +2595,7 @@ static enum tcore_sat_result _sat_decode_get_inkey(unsigned char* o_cmd_data, in
 	unsigned char* cmd_data = NULL;
 	enum tcore_sat_result rv = TCORE_SAT_SUCCESS;
 
-	if(o_cmd_data == NULL){
+	if (o_cmd_data == NULL) {
 		dbg("[SAT] SAT PARSER -  o_cmd_data == NULL");
 		return TCORE_SAT_ERROR_FATAL;
 	}
@@ -2604,7 +2611,7 @@ static enum tcore_sat_result _sat_decode_get_inkey(unsigned char* o_cmd_data, in
 		dbg("[SAT] SAT PARSER - Alphabet set");
 	}
 
-	if(cmd_data[index]&0x02){
+	if (cmd_data[index]&0x02) {
 		sat_cmd_ind_data->data.get_inkey.command_detail.cmd_qualifier.get_inkey.alphabet_type = INPUT_ALPHABET_TYPE_UCS2;
 		dbg("[SAT] SAT PARSER -  INPUT_ALPHABET_TYPE_UCS2");
 	}
@@ -2613,7 +2620,7 @@ static enum tcore_sat_result _sat_decode_get_inkey(unsigned char* o_cmd_data, in
 		dbg("[SAT] SAT PARSER -  INPUT_ALPHABET_TYPE_SMS_DEFAULT");
 	}
 
-	if(cmd_data[index]&0x04){
+	if (cmd_data[index]&0x04) {
 		sat_cmd_ind_data->data.get_inkey.command_detail.cmd_qualifier.get_inkey.inkey_type = INKEY_TYPE_YES_NO_REQUESTED;
 		dbg("[SAT] SAT PARSER -  INKEY_TYPE_YES_NO_REQUESTED");
 	}
@@ -2622,7 +2629,7 @@ static enum tcore_sat_result _sat_decode_get_inkey(unsigned char* o_cmd_data, in
 		dbg("[SAT] SAT PARSER -  INKEY_TYPE_YES_NO_REQUESTED");
 	}
 
-	if(cmd_data[index]&0x08){
+	if (cmd_data[index]&0x08) {
 		sat_cmd_ind_data->data.get_inkey.command_detail.cmd_qualifier.get_inkey.immediate_rsp_required = TRUE;
 		dbg("[SAT] SAT PARSER -  immediate response requested");
 	}
@@ -2636,16 +2643,16 @@ static enum tcore_sat_result _sat_decode_get_inkey(unsigned char* o_cmd_data, in
 	index++;
 	memcpy(dev_id,&cmd_data[index],4);
 	rv = _sat_decode_device_identities_tlv(dev_id, &sat_cmd_ind_data->data.get_inkey.device_id);
-	if(rv != TCORE_SAT_SUCCESS)
+	if (rv != TCORE_SAT_SUCCESS)
 		return rv;
 
 	//text
 	index+=4;
 	rv = _sat_decode_text_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.get_inkey.text, &data_len_consumed);
-	if(rv != TCORE_SAT_SUCCESS)
+	if (rv != TCORE_SAT_SUCCESS)
 		return rv;
 
-	if(sat_cmd_ind_data->data.get_inkey.text.string_length <= 0){
+	if (sat_cmd_ind_data->data.get_inkey.text.string_length <= 0) {
 		err("[SAT] SAT PARSER - :string length is 0");
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 	}
@@ -2653,26 +2660,26 @@ static enum tcore_sat_result _sat_decode_get_inkey(unsigned char* o_cmd_data, in
 	dbg("[SAT] SAT PARSER  text(%s)",sat_cmd_ind_data->data.get_inkey.text.string);
 	dbg("[SAT] SAT PARSER o_len(%d) index(%d) data_len_consumed(%d)",o_length , index, data_len_consumed);
 
-	if(index+data_len_consumed > o_length){
+	if (index+data_len_consumed > o_length) {
 		err("[SAT] SAT PARSER - Wrong String TLV");
 		return TCORE_SAT_BEYOND_ME_CAPABILITY;
 	}
-	else if(index+data_len_consumed == o_length){
+	else if (index+data_len_consumed == o_length) {
 		dbg("[SAT] SAT PARSER - :no more TLVs to decode.");
 		return TCORE_SAT_SUCCESS;
 	}
 
 	//icon identifier
 	index+=data_len_consumed;
-	if((cmd_data[index]&0x7F) == SATK_ICON_IDENTIFIER_TAG){
+	if ((cmd_data[index]&0x7F) == SATK_ICON_IDENTIFIER_TAG) {
 		data_len_consumed = 0;
 		rv = _sat_decode_icon_identifier_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.get_inkey.icon_id, &data_len_consumed);
 
-		if(rv != TCORE_SAT_SUCCESS){
+		if (rv != TCORE_SAT_SUCCESS) {
 			return TCORE_SAT_COMMAND_NOT_UNDERSTOOD; //SEND TR
 		}
 
-		if(index+data_len_consumed >= o_length){
+		if (index+data_len_consumed >= o_length) {
 			dbg("[SAT] SAT PARSER - no more TLVs to decode.");
 			return TCORE_SAT_SUCCESS;
 		}
@@ -2681,9 +2688,9 @@ static enum tcore_sat_result _sat_decode_get_inkey(unsigned char* o_cmd_data, in
 	}
 
 	//time duration
-	if((cmd_data[index]&0x7F)==SATK_DURATION_TAG){
+	if ((cmd_data[index]&0x7F)==SATK_DURATION_TAG) {
 		rv =_sat_decode_duration_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.get_inkey.duration, &data_len_consumed);
-		if(rv != TCORE_SAT_SUCCESS){
+		if (rv != TCORE_SAT_SUCCESS) {
 			return rv; //SEND TR
 		}
 	}
@@ -2702,7 +2709,7 @@ static enum tcore_sat_result _sat_decode_get_input(unsigned char* o_cmd_data, in
 	unsigned char* cmd_data = NULL;
 	enum tcore_sat_result rv = TCORE_SAT_SUCCESS;
 
-	if(o_cmd_data == NULL){
+	if (o_cmd_data == NULL) {
 		dbg("[SAT] SAT PARSER -  o_cmd_data == NULL");
 		return TCORE_SAT_ERROR_FATAL;
 	}
@@ -2722,7 +2729,7 @@ static enum tcore_sat_result _sat_decode_get_input(unsigned char* o_cmd_data, in
 		dbg("[SAT] SAT PARSER - Numeric info");
 	}
 
-	if(cmd_data[index]&0x02){
+	if (cmd_data[index]&0x02) {
 		sat_cmd_ind_data->data.get_input.command_detail.cmd_qualifier.get_input.alphabet_type = INPUT_ALPHABET_TYPE_UCS2;
 		dbg("[SAT] SAT PARSER -  INPUT_ALPHABET_TYPE_UCS2");
 	}
@@ -2731,7 +2738,7 @@ static enum tcore_sat_result _sat_decode_get_input(unsigned char* o_cmd_data, in
 		dbg("[SAT] SAT PARSER -  INPUT_ALPHABET_TYPE_SMS_DEFAULT");
 	}
 
-	if(cmd_data[index]&0x04){
+	if (cmd_data[index]&0x04) {
 		sat_cmd_ind_data->data.get_input.command_detail.cmd_qualifier.get_input.me_echo_user_input = FALSE;
 		dbg("[SAT] SAT PARSER -  user input not be revealed");
 	}
@@ -2740,7 +2747,7 @@ static enum tcore_sat_result _sat_decode_get_input(unsigned char* o_cmd_data, in
 		dbg("[SAT] SAT PARSER -  Me echo user input");
 	}
 
-	if(cmd_data[index]&0x08){
+	if (cmd_data[index]&0x08) {
 		sat_cmd_ind_data->data.get_input.command_detail.cmd_qualifier.get_input.user_input_unpacked_format = FALSE;
 		dbg("[SAT] SAT PARSER - packing required");
 	}
@@ -2758,16 +2765,16 @@ static enum tcore_sat_result _sat_decode_get_input(unsigned char* o_cmd_data, in
 	index++;
 	memcpy(dev_id,&cmd_data[index],4);
 	rv = _sat_decode_device_identities_tlv(dev_id, &sat_cmd_ind_data->data.get_input.device_id);
-	if(rv != TCORE_SAT_SUCCESS)
+	if (rv != TCORE_SAT_SUCCESS)
 		return rv;
 
 	//text
 	index+=4;
 	rv = _sat_decode_text_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.get_input.text, &data_len_consumed);
-	if(rv != TCORE_SAT_SUCCESS)
+	if (rv != TCORE_SAT_SUCCESS)
 		return rv;
 
-	if(sat_cmd_ind_data->data.get_input.text.string_length <= 0){
+	if (sat_cmd_ind_data->data.get_input.text.string_length <= 0) {
 		err("[SAT] SAT PARSER - :string length is 0");
 	}
 	dbg("[SAT] SAT PARSER  text(%s)",sat_cmd_ind_data->data.get_input.text.string);
@@ -2775,22 +2782,22 @@ static enum tcore_sat_result _sat_decode_get_input(unsigned char* o_cmd_data, in
 	//response length
 	index+=data_len_consumed;
 	rv = _sat_decode_response_length_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.get_input.rsp_len, &data_len_consumed);
-	if(rv != TCORE_SAT_SUCCESS)
+	if (rv != TCORE_SAT_SUCCESS)
 		return rv;
 
-	if(index+data_len_consumed >= o_length){
+	if (index+data_len_consumed >= o_length) {
 		err("[SAT] SAT PARSER - no more TLVs");
 		return TCORE_SAT_SUCCESS;
 	}
 
 	//default text
 	index+=data_len_consumed;
-	if((o_cmd_data[index]&0x7F) == SATK_DEFAULT_TEXT_TAG){
+	if ((o_cmd_data[index]&0x7F) == SATK_DEFAULT_TEXT_TAG) {
 		rv = _sat_decode_text_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.get_input.default_text, &data_len_consumed);
-		if(rv != TCORE_SAT_SUCCESS)
+		if (rv != TCORE_SAT_SUCCESS)
 			return rv;
 
-		if(sat_cmd_ind_data->data.get_input.default_text.string_length <= 0){
+		if (sat_cmd_ind_data->data.get_input.default_text.string_length <= 0) {
 			err("[SAT] SAT PARSER - :string length is 0");
 		}
 		dbg("[SAT] SAT PARSER default text(%s)",sat_cmd_ind_data->data.get_input.default_text.string);
@@ -2798,15 +2805,15 @@ static enum tcore_sat_result _sat_decode_get_input(unsigned char* o_cmd_data, in
 	}
 
 	//icon identifier
-	if((cmd_data[index]&0x7F) == SATK_ICON_IDENTIFIER_TAG){
+	if ((cmd_data[index]&0x7F) == SATK_ICON_IDENTIFIER_TAG) {
 		data_len_consumed = 0;
 		rv = _sat_decode_icon_identifier_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.display_text.icon_id, &data_len_consumed);
 
-		if(rv != TCORE_SAT_SUCCESS){
+		if (rv != TCORE_SAT_SUCCESS) {
 			return TCORE_SAT_COMMAND_NOT_UNDERSTOOD; //SEND TR
 		}
 
-		if(index+data_len_consumed >= o_length){
+		if (index+data_len_consumed >= o_length) {
 			dbg("[SAT] SAT PARSER - no more TLVs to decode.");
 			return TCORE_SAT_SUCCESS;
 		}
@@ -2827,7 +2834,7 @@ static enum tcore_sat_result _sat_decode_more_time(unsigned char* o_cmd_data, in
 	unsigned char* cmd_data = NULL;
 	enum tcore_sat_result rv = TCORE_SAT_SUCCESS;
 
-	if(o_cmd_data == NULL){
+	if (o_cmd_data == NULL) {
 		dbg("[SAT] SAT PARSER -  o_cmd_data == NULL");
 		return TCORE_SAT_ERROR_FATAL;
 	}
@@ -2842,7 +2849,7 @@ static enum tcore_sat_result _sat_decode_more_time(unsigned char* o_cmd_data, in
 	index++;
 	memcpy(dev_id,&cmd_data[index],4);
 	rv = _sat_decode_device_identities_tlv(dev_id, &sat_cmd_ind_data->data.setup_event_list.device_id);
-	if(rv != TCORE_SAT_SUCCESS)
+	if (rv != TCORE_SAT_SUCCESS)
 		return rv;
 
 	index+=4;
@@ -2859,7 +2866,7 @@ static enum tcore_sat_result _sat_decode_play_tone(unsigned char* o_cmd_data, in
 	unsigned char* cmd_data = NULL;
 	enum tcore_sat_result rv = TCORE_SAT_SUCCESS;
 
-	if(o_cmd_data == NULL){
+	if (o_cmd_data == NULL) {
 		dbg("[SAT] SAT PARSER -  o_cmd_data == NULL");
 		return TCORE_SAT_ERROR_FATAL;
 	}
@@ -2880,19 +2887,19 @@ static enum tcore_sat_result _sat_decode_play_tone(unsigned char* o_cmd_data, in
 	index++;
 	memcpy(dev_id,&cmd_data[index],4);
 	rv = _sat_decode_device_identities_tlv(dev_id, &sat_cmd_ind_data->data.play_tone.device_id);
-	if(rv != TCORE_SAT_SUCCESS)
+	if (rv != TCORE_SAT_SUCCESS)
 		return rv;
 
 	//alpha id - optional
 	index+=4;
-	if((cmd_data[index]&0x7F) == SATK_ALPHA_IDENTIFIER_TAG){
+	if ((cmd_data[index]&0x7F) == SATK_ALPHA_IDENTIFIER_TAG) {
 		rv = _sat_decode_alpha_identifier_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.play_tone.alpha_id, &data_len_consumed);
-		if(rv != TCORE_SAT_SUCCESS) {
+		if (rv != TCORE_SAT_SUCCESS) {
 			return rv;
 		}
 
 		index+=data_len_consumed;
-		if(index >= o_length){
+		if (index >= o_length) {
 			dbg("[SAT] SAT PARSER - no more TLVs to decode.");
 			dbg("[SAT] SAT PARSER - default value is set - tone type, duration");
 			sat_cmd_ind_data->data.play_tone.tone.tone_type = GENERAL_BEEP;
@@ -2903,9 +2910,9 @@ static enum tcore_sat_result _sat_decode_play_tone(unsigned char* o_cmd_data, in
 	}
 
 	//tone - optional
-	if((cmd_data[index]&0x7F) == SATK_TONE_TAG){
+	if ((cmd_data[index]&0x7F) == SATK_TONE_TAG) {
 		rv = _sat_decode_tone_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.play_tone.tone, &data_len_consumed);
-		if(rv != TCORE_SAT_SUCCESS) {
+		if (rv != TCORE_SAT_SUCCESS) {
 			return rv;
 		}
 		index+=data_len_consumed;
@@ -2915,14 +2922,14 @@ static enum tcore_sat_result _sat_decode_play_tone(unsigned char* o_cmd_data, in
 	}
 
 	//time duration - optional
-	if((cmd_data[index]&0x7F)==SATK_DURATION_TAG){
+	if ((cmd_data[index]&0x7F)==SATK_DURATION_TAG) {
 		rv =_sat_decode_duration_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.play_tone.duration, &data_len_consumed);
-		if(rv != TCORE_SAT_SUCCESS){
+		if (rv != TCORE_SAT_SUCCESS) {
 			return rv; //SEND TR
 		}
 
 		index+=data_len_consumed;
-		if(index >= o_length){
+		if (index >= o_length) {
 			dbg("[SAT] SAT PARSER - no more TLVs to decode.");
 			return TCORE_SAT_SUCCESS;
 		}
@@ -2934,15 +2941,15 @@ static enum tcore_sat_result _sat_decode_play_tone(unsigned char* o_cmd_data, in
 	}
 
 	//icon identifier
-	if((cmd_data[index]&0x7F) == SATK_ICON_IDENTIFIER_TAG){
+	if ((cmd_data[index]&0x7F) == SATK_ICON_IDENTIFIER_TAG) {
 		data_len_consumed = 0;
 		rv = _sat_decode_icon_identifier_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.play_tone.icon_id, &data_len_consumed);
 
-		if(rv != TCORE_SAT_SUCCESS){
+		if (rv != TCORE_SAT_SUCCESS) {
 			return TCORE_SAT_COMMAND_NOT_UNDERSTOOD; //SEND TR
 		}
 
-		if(index+data_len_consumed >= o_length){
+		if (index+data_len_consumed >= o_length) {
 			dbg("[SAT] SAT PARSER - no more TLVs to decode.");
 			return TCORE_SAT_SUCCESS;
 		}
@@ -2964,7 +2971,7 @@ static enum tcore_sat_result _sat_decode_refresh(unsigned char* o_cmd_data, int 
 	unsigned char* cmd_data = NULL;
 	enum tcore_sat_result rv = TCORE_SAT_SUCCESS;
 
-	if(o_cmd_data == NULL){
+	if (o_cmd_data == NULL) {
 		dbg("[SAT] SAT PARSER -  o_cmd_data == NULL");
 		return TCORE_SAT_ERROR_FATAL;
 	}
@@ -2976,7 +2983,7 @@ static enum tcore_sat_result _sat_decode_refresh(unsigned char* o_cmd_data, int 
 	sat_cmd_ind_data->data.refresh.command_detail.cmd_type = cmd_data[index++];
 
 	/* ******decode command qualifier****** */
-	switch(cmd_data[index]){
+	switch(cmd_data[index]) {
 		case REFRESH_SIM_INIT_AND_FULL_FCN:
 		case REFRESH_FCN:
 		case REFRESH_SIM_INIT_AND_FCN:
@@ -2999,16 +3006,16 @@ static enum tcore_sat_result _sat_decode_refresh(unsigned char* o_cmd_data, int 
 	index++;
 	memcpy(dev_id,&cmd_data[index],4);
 	rv = _sat_decode_device_identities_tlv(dev_id, &sat_cmd_ind_data->data.refresh.device_id);
-	if(rv != TCORE_SAT_SUCCESS)
+	if (rv != TCORE_SAT_SUCCESS)
 		return rv;
 
 	//check file list
 	index+=4;
-	if( (sat_cmd_ind_data->data.refresh.command_detail.cmd_qualifier.refresh.refresh == REFRESH_FCN)
-		|| (sat_cmd_ind_data->data.refresh.command_detail.cmd_qualifier.refresh.refresh == REFRESH_SIM_INIT_AND_FCN) ){
+	if ( (sat_cmd_ind_data->data.refresh.command_detail.cmd_qualifier.refresh.refresh == REFRESH_FCN)
+		|| (sat_cmd_ind_data->data.refresh.command_detail.cmd_qualifier.refresh.refresh == REFRESH_SIM_INIT_AND_FCN) ) {
 
 		rv = _sat_decode_file_list_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.refresh.file_list, &data_len_consumed);
-		if(rv != TCORE_SAT_SUCCESS)
+		if (rv != TCORE_SAT_SUCCESS)
 			return rv;
 	}
 	else
@@ -3087,7 +3094,7 @@ static enum tcore_sat_result _sat_decode_setup_menu(unsigned char* tlv_str, int 
 	dbg("[SAT] SAT PARSER - :index=%d",index);
 	rv = _sat_decode_alpha_identifier_tlv(src_data, tlv_len, index,
 			&pactive_cmd_ind_obj->data.setup_menu.alpha_id, &data_len_consumed);
-	if(rv != TCORE_SAT_SUCCESS) {
+	if (rv != TCORE_SAT_SUCCESS) {
 		return rv;
 	}
 
@@ -3097,16 +3104,16 @@ static enum tcore_sat_result _sat_decode_setup_menu(unsigned char* tlv_str, int 
 	pactive_cmd_ind_obj->data.setup_menu.menu_item_cnt = 0;
 	do{
 		data_len_consumed=0;
-		if((src_data[index]&0x7F) == SATK_ITEM_TAG) {
+		if ((src_data[index]&0x7F) == SATK_ITEM_TAG) {
 			rv = _sat_decode_item_tlv(src_data, tlv_len, index,
 						&pactive_cmd_ind_obj->data.setup_menu.menu_item[pactive_cmd_ind_obj->data.setup_menu.menu_item_cnt],
 						&data_len_consumed);
 
-			if(rv != TCORE_SAT_SUCCESS)
+			if (rv != TCORE_SAT_SUCCESS)
 				return rv;
 		}
 		else {
-			if(pactive_cmd_ind_obj->data.setup_menu.menu_item_cnt == 0) {
+			if (pactive_cmd_ind_obj->data.setup_menu.menu_item_cnt == 0) {
 				dbg("menu item is not exist.");
 				return TCORE_SAT_REQUIRED_VALUE_MISSING;
 			}
@@ -3116,25 +3123,25 @@ static enum tcore_sat_result _sat_decode_setup_menu(unsigned char* tlv_str, int 
 		pactive_cmd_ind_obj->data.setup_menu.menu_item_cnt++;
 		index += data_len_consumed;
 
-		if(index >= tlv_len)
+		if (index >= tlv_len)
 			break;
 	}while(pactive_cmd_ind_obj->data.setup_menu.menu_item_cnt < SAT_MENU_ITEM_COUNT_MAX);
 
 	dbg("[SAT] SAT PARSER - :setup menu item_count=%d",pactive_cmd_ind_obj->data.setup_menu.menu_item_cnt);
-	if(index >= tlv_len){
+	if (index >= tlv_len) {
 		dbg("[SAT] SAT PARSER - :no more TLVs to decode.");
 		//send TR in SatkProcessProactiveCmdInd()
 		return TCORE_SAT_SUCCESS;
 	}
 
 //[6] (optional TLV) decode ITEMS NEXT ACTION INDICATOR TLV
-	if((src_data[index]&0x7F) == SATK_ITEMS_NEXT_ACTION_INDICATOR_TAG) {
+	if ((src_data[index]&0x7F) == SATK_ITEMS_NEXT_ACTION_INDICATOR_TAG) {
 		data_len_consumed = 0;
 		rv = _sat_decode_item_next_action_indicator_tlv(tlv_str, tlv_len, index,
 				&pactive_cmd_ind_obj->data.setup_menu.next_act_ind_list, &data_len_consumed);
-		if(rv!=TCORE_SAT_SUCCESS) return rv;
+		if (rv!=TCORE_SAT_SUCCESS) return rv;
 
-		if(index+data_len_consumed >= tlv_len) {
+		if (index+data_len_consumed >= tlv_len) {
 			dbg("[SAT] SAT PARSER - no more TLVs to decode.");
 			//send the data to Noti manager.
 			return TCORE_SAT_SUCCESS;
@@ -3147,13 +3154,13 @@ static enum tcore_sat_result _sat_decode_setup_menu(unsigned char* tlv_str, int 
 	}
 
 //[7] (optional TLV) decode ICON IDENTIFIER TLV
-	if((src_data[index]&0x7F) == SATK_ICON_IDENTIFIER_TAG) {
+	if ((src_data[index]&0x7F) == SATK_ICON_IDENTIFIER_TAG) {
 		data_len_consumed = 0;
 		rv = _sat_decode_icon_identifier_tlv(tlv_str, tlv_len, index,
 				&pactive_cmd_ind_obj->data.setup_menu.icon_id, &data_len_consumed);
-		if(rv !=TCORE_SAT_SUCCESS) return rv;
+		if (rv !=TCORE_SAT_SUCCESS) return rv;
 
-		if(index+data_len_consumed >= tlv_len) {
+		if (index+data_len_consumed >= tlv_len) {
 			dbg("[SAT] SAT PARSER - no more TLVs to decode.");
 			//send the data to Noti manager.
 			return TCORE_SAT_SUCCESS;
@@ -3166,13 +3173,13 @@ static enum tcore_sat_result _sat_decode_setup_menu(unsigned char* tlv_str, int 
 	}
 
 //[8] (optional TLV) decode ICON IDENTIFIER LIST TLV
-	if((src_data[index]&0x7F) == SATK_ITEM_ICON_IDENTIFIER_LIST_TAG) {
+	if ((src_data[index]&0x7F) == SATK_ITEM_ICON_IDENTIFIER_LIST_TAG) {
 		data_len_consumed = 0;
 		rv = _sat_decode_icon_identifier_list_tlv(tlv_str, tlv_len, index,
 				&pactive_cmd_ind_obj->data.setup_menu.icon_list, &data_len_consumed);
-		if(rv !=TCORE_SAT_SUCCESS) return rv; //SEND TR
+		if (rv !=TCORE_SAT_SUCCESS) return rv; //SEND TR
 
-		if(index+data_len_consumed >= tlv_len){
+		if (index+data_len_consumed >= tlv_len) {
 			dbg("[SAT] SAT PARSER - no more TLVs to decode.");
 			//send the data to Noti manager.
 			return TCORE_SAT_SUCCESS;
@@ -3199,7 +3206,7 @@ static enum tcore_sat_result _sat_decode_select_item(unsigned char* o_cmd_data, 
 	unsigned char* cmd_data = NULL;
 	enum tcore_sat_result rv = TCORE_SAT_SUCCESS;
 
-	if(o_cmd_data == NULL){
+	if (o_cmd_data == NULL) {
 		dbg("[SAT] SAT PARSER -  o_cmd_data == NULL");
 		return TCORE_SAT_ERROR_FATAL;
 	}
@@ -3243,14 +3250,14 @@ static enum tcore_sat_result _sat_decode_select_item(unsigned char* o_cmd_data, 
 	index++;
 	memcpy(dev_id,&cmd_data[index],4);
 	rv = _sat_decode_device_identities_tlv(dev_id, &sat_cmd_ind_data->data.select_item.device_id);
-	if(rv != TCORE_SAT_SUCCESS)
+	if (rv != TCORE_SAT_SUCCESS)
 		return rv;
 
 	//alpha identifier
 	index+=4;
-	if((cmd_data[index]&0x7F) == SATK_ALPHA_IDENTIFIER_TAG){
+	if ((cmd_data[index]&0x7F) == SATK_ALPHA_IDENTIFIER_TAG) {
 		rv = _sat_decode_alpha_identifier_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.select_item.alpha_id, &data_len_consumed);
-		if(rv != TCORE_SAT_SUCCESS) {
+		if (rv != TCORE_SAT_SUCCESS) {
 			return rv;
 		}
 		index+=data_len_consumed;
@@ -3261,16 +3268,16 @@ static enum tcore_sat_result _sat_decode_select_item(unsigned char* o_cmd_data, 
 	do{
 		data_len_consumed=0;
 
-		if((cmd_data[index]&0x7F) == SATK_ITEM_TAG) {
+		if ((cmd_data[index]&0x7F) == SATK_ITEM_TAG) {
 			rv = _sat_decode_item_tlv(o_cmd_data, o_length, index,
 				&sat_cmd_ind_data->data.select_item.menu_item[sat_cmd_ind_data->data.select_item.menu_item_cnt],
 				&data_len_consumed);
 
-			if(rv != TCORE_SAT_SUCCESS)
+			if (rv != TCORE_SAT_SUCCESS)
 				return rv;
 		}
 		else {
-			if(sat_cmd_ind_data->data.select_item.menu_item_cnt == 0) {
+			if (sat_cmd_ind_data->data.select_item.menu_item_cnt == 0) {
 				dbg("menu item is not exist.");
 				return TCORE_SAT_REQUIRED_VALUE_MISSING;
 			}
@@ -3280,26 +3287,26 @@ static enum tcore_sat_result _sat_decode_select_item(unsigned char* o_cmd_data, 
 		sat_cmd_ind_data->data.select_item.menu_item_cnt++;
 		index += data_len_consumed;
 
-		if(index >= o_length)
+		if (index >= o_length)
 			break;
 
 	}while(sat_cmd_ind_data->data.select_item.menu_item_cnt < SAT_MENU_ITEM_COUNT_MAX);
 
 	dbg("[SAT] SAT PARSER - select menu item_count=%d",sat_cmd_ind_data->data.select_item.menu_item_cnt);
-	if(index >= o_length){
+	if (index >= o_length) {
 		dbg("[SAT] SAT PARSER - :no more TLVs to decode.");
 		return TCORE_SAT_SUCCESS;
 	}
 
 	//item next action indicator
-	if((cmd_data[index]&0x7F) == SATK_ITEMS_NEXT_ACTION_INDICATOR_TAG) {
+	if ((cmd_data[index]&0x7F) == SATK_ITEMS_NEXT_ACTION_INDICATOR_TAG) {
 		data_len_consumed = 0;
 		rv = _sat_decode_item_next_action_indicator_tlv(o_cmd_data, o_length, index,
 				&sat_cmd_ind_data->data.select_item.item_next_act_ind_list, &data_len_consumed);
-		if(rv!=TCORE_SAT_SUCCESS)
+		if (rv!=TCORE_SAT_SUCCESS)
 			return rv;
 
-		if(index+data_len_consumed >= o_length) {
+		if (index+data_len_consumed >= o_length) {
 			dbg("[SAT] SAT PARSER - no more TLVs to decode.");
 			return TCORE_SAT_SUCCESS;
 		}
@@ -3308,14 +3315,14 @@ static enum tcore_sat_result _sat_decode_select_item(unsigned char* o_cmd_data, 
 	}
 
 	//item identifier
-	if((cmd_data[index]&0x7F) == SATK_ITEM_IDENTIFIER_TAG) {
+	if ((cmd_data[index]&0x7F) == SATK_ITEM_IDENTIFIER_TAG) {
 		data_len_consumed = 0;
 		rv = _sat_decode_item_identifier_tlv(o_cmd_data, o_length, index,
 				&sat_cmd_ind_data->data.select_item.item_identifier, &data_len_consumed);
-		if(rv !=TCORE_SAT_SUCCESS)
+		if (rv !=TCORE_SAT_SUCCESS)
 			return rv;
 
-		if(index+data_len_consumed >= o_length) {
+		if (index+data_len_consumed >= o_length) {
 			dbg("[SAT] SAT PARSER - no more TLVs to decode.");
 			return TCORE_SAT_SUCCESS;
 		}
@@ -3324,16 +3331,16 @@ static enum tcore_sat_result _sat_decode_select_item(unsigned char* o_cmd_data, 
 	}
 
 	//icon identifier
-	if((cmd_data[index]&0x7F) == SATK_ICON_IDENTIFIER_TAG){
+	if ((cmd_data[index]&0x7F) == SATK_ICON_IDENTIFIER_TAG) {
 		data_len_consumed = 0;
 		rv = _sat_decode_icon_identifier_tlv(o_cmd_data, o_length, index,
 				&sat_cmd_ind_data->data.select_item.icon_id, &data_len_consumed);
 
-		if(rv != TCORE_SAT_SUCCESS){
+		if (rv != TCORE_SAT_SUCCESS) {
 			return TCORE_SAT_COMMAND_NOT_UNDERSTOOD; //SEND TR
 		}
 
-		if(index+data_len_consumed >= o_length){
+		if (index+data_len_consumed >= o_length) {
 			dbg("[SAT] SAT PARSER - no more TLVs to decode.");
 			return TCORE_SAT_SUCCESS;
 		}
@@ -3341,14 +3348,14 @@ static enum tcore_sat_result _sat_decode_select_item(unsigned char* o_cmd_data, 
 		index+=data_len_consumed; //index pointing to the Tag of next TLV
 	}
 
-	if((cmd_data[index]&0x7F) == SATK_ITEM_ICON_IDENTIFIER_LIST_TAG) {
+	if ((cmd_data[index]&0x7F) == SATK_ITEM_ICON_IDENTIFIER_LIST_TAG) {
 		data_len_consumed = 0;
 		rv = _sat_decode_icon_identifier_list_tlv(o_cmd_data, o_length, index,
 				&sat_cmd_ind_data->data.select_item.icon_list, &data_len_consumed);
-		if(rv !=TCORE_SAT_SUCCESS)
+		if (rv !=TCORE_SAT_SUCCESS)
 			return rv; //SEND TR
 
-		if(index+data_len_consumed >= o_length){
+		if (index+data_len_consumed >= o_length) {
 			dbg("[SAT] SAT PARSER - no more TLVs to decode.");
 			return TCORE_SAT_SUCCESS;
 		}
@@ -3369,7 +3376,7 @@ static enum tcore_sat_result _sat_decode_send_sms(unsigned char* o_cmd_data, int
 	unsigned char* cmd_data = NULL;
 	enum tcore_sat_result rv = TCORE_SAT_SUCCESS;
 
-	if(o_cmd_data == NULL){
+	if (o_cmd_data == NULL) {
 		dbg("[SAT] SAT PARSER -  o_cmd_data == NULL");
 		return TCORE_SAT_ERROR_FATAL;
 	}
@@ -3392,25 +3399,25 @@ static enum tcore_sat_result _sat_decode_send_sms(unsigned char* o_cmd_data, int
 	index++;
 	memcpy(dev_id,&cmd_data[index],4);
 	rv = _sat_decode_device_identities_tlv(dev_id, &sat_cmd_ind_data->data.send_sms.device_id);
-	if(rv != TCORE_SAT_SUCCESS)
+	if (rv != TCORE_SAT_SUCCESS)
 		return rv;
 
 	//alpha identifier
 	index+=4;
-	if((cmd_data[index]&0x7F) == SATK_ALPHA_IDENTIFIER_TAG){
+	if ((cmd_data[index]&0x7F) == SATK_ALPHA_IDENTIFIER_TAG) {
 		data_len_consumed = 0;
 		rv = _sat_decode_alpha_identifier_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.send_sms.alpha_id, &data_len_consumed);
-		if(rv != TCORE_SAT_SUCCESS) {
+		if (rv != TCORE_SAT_SUCCESS) {
 			return rv;
 		}
 		index+=data_len_consumed;
 	}
 
 	//address
-	if((cmd_data[index]&0x7F) == SATK_ADDRESS_TAG){
+	if ((cmd_data[index]&0x7F) == SATK_ADDRESS_TAG) {
 		data_len_consumed = 0;
 		rv = _sat_decode_address_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.send_sms.address, &data_len_consumed);
-		if(rv != TCORE_SAT_SUCCESS) {
+		if (rv != TCORE_SAT_SUCCESS) {
 			return rv;
 		}
 		index+=data_len_consumed;
@@ -3419,26 +3426,26 @@ static enum tcore_sat_result _sat_decode_send_sms(unsigned char* o_cmd_data, int
 	//SMS-TPDU
 	data_len_consumed = 0;
 	rv = _sat_decode_sms_tpdu_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.send_sms.sms_tpdu, &data_len_consumed);
-	if(rv != TCORE_SAT_SUCCESS)
+	if (rv != TCORE_SAT_SUCCESS)
 		return rv;
 
-	if(index+data_len_consumed >= o_length){
+	if (index+data_len_consumed >= o_length) {
 		dbg("[SAT] SAT PARSER - no more TLVs to decode.");
 		return TCORE_SAT_SUCCESS;
 	}
 
 	//icon identifier
 	index+=data_len_consumed;
-	if((cmd_data[index]&0x7F) == SATK_ICON_IDENTIFIER_TAG){
+	if ((cmd_data[index]&0x7F) == SATK_ICON_IDENTIFIER_TAG) {
 		data_len_consumed = 0;
 		rv = _sat_decode_icon_identifier_tlv(o_cmd_data, o_length, index,
 				&sat_cmd_ind_data->data.select_item.icon_id, &data_len_consumed);
 
-		if(rv != TCORE_SAT_SUCCESS){
+		if (rv != TCORE_SAT_SUCCESS) {
 			return TCORE_SAT_COMMAND_NOT_UNDERSTOOD; //SEND TR
 		}
 
-		if(index+data_len_consumed >= o_length){
+		if (index+data_len_consumed >= o_length) {
 			dbg("[SAT] SAT PARSER - no more TLVs to decode.");
 			return TCORE_SAT_SUCCESS;
 		}
@@ -3459,7 +3466,7 @@ static enum tcore_sat_result _sat_decode_send_ss(unsigned char* o_cmd_data, int 
 	unsigned char* cmd_data = NULL;
 	enum tcore_sat_result rv = TCORE_SAT_SUCCESS;
 
-	if(o_cmd_data == NULL || sat_cmd_ind_data == NULL){
+	if (o_cmd_data == NULL || sat_cmd_ind_data == NULL) {
 		dbg("[SAT] SAT PARSER -  o_cmd_data == NULL");
 		return TCORE_SAT_ERROR_FATAL;
 	}
@@ -3475,14 +3482,14 @@ static enum tcore_sat_result _sat_decode_send_ss(unsigned char* o_cmd_data, int 
 	//device identities
 	memcpy(dev_id,&cmd_data[index],4);
 	rv = _sat_decode_device_identities_tlv(dev_id, &sat_cmd_ind_data->data.send_ss.device_id);
-	if(rv != TCORE_SAT_SUCCESS)
+	if (rv != TCORE_SAT_SUCCESS)
 		return rv;
 
 	//alpha identifier - optional
 	index += 4;
-	if((cmd_data[index]&0x7F) == SATK_ALPHA_IDENTIFIER_TAG){
+	if ((cmd_data[index]&0x7F) == SATK_ALPHA_IDENTIFIER_TAG) {
 		rv = _sat_decode_alpha_identifier_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.send_ss.alpha_id, &data_len_consumed);
-		if(rv != TCORE_SAT_SUCCESS) {
+		if (rv != TCORE_SAT_SUCCESS) {
 			return rv;
 		}
 		index+=data_len_consumed;
@@ -3490,16 +3497,16 @@ static enum tcore_sat_result _sat_decode_send_ss(unsigned char* o_cmd_data, int 
 
 	//ss string
 	rv = _sat_decode_ss_string_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.send_ss.ss_string, &data_len_consumed);
-	if(rv != TCORE_SAT_SUCCESS)
+	if (rv != TCORE_SAT_SUCCESS)
 		return rv;
 
 	//icon identifier- optional
 	index+=data_len_consumed;
-	if((cmd_data[index]&0x7F) == SATK_ICON_IDENTIFIER_TAG){
+	if ((cmd_data[index]&0x7F) == SATK_ICON_IDENTIFIER_TAG) {
 		data_len_consumed = 0;
 
 		rv = _sat_decode_icon_identifier_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.send_ss.icon_id, &data_len_consumed);
-		if(rv != TCORE_SAT_SUCCESS){
+		if (rv != TCORE_SAT_SUCCESS) {
 			return TCORE_SAT_COMMAND_NOT_UNDERSTOOD; //SEND TR
 		}
 
@@ -3518,7 +3525,7 @@ static enum tcore_sat_result _sat_decode_send_ussd(unsigned char* o_cmd_data, in
 	unsigned char* cmd_data = NULL;
 	enum tcore_sat_result rv = TCORE_SAT_SUCCESS;
 
-	if(o_cmd_data == NULL || sat_cmd_ind_data == NULL){
+	if (o_cmd_data == NULL || sat_cmd_ind_data == NULL) {
 		dbg("[SAT] SAT PARSER -  o_cmd_data == NULL");
 		return TCORE_SAT_ERROR_FATAL;
 	}
@@ -3534,14 +3541,14 @@ static enum tcore_sat_result _sat_decode_send_ussd(unsigned char* o_cmd_data, in
 	//device identities
 	memcpy(dev_id,&cmd_data[index],4);
 	rv = _sat_decode_device_identities_tlv(dev_id, &sat_cmd_ind_data->data.send_ussd.device_id);
-	if(rv != TCORE_SAT_SUCCESS)
+	if (rv != TCORE_SAT_SUCCESS)
 		return rv;
 
 	//alpha identifier - optional
 	index += 4;
-	if((cmd_data[index]&0x7F) == SATK_ALPHA_IDENTIFIER_TAG){
+	if ((cmd_data[index]&0x7F) == SATK_ALPHA_IDENTIFIER_TAG) {
 		rv = _sat_decode_alpha_identifier_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.send_ussd.alpha_id, &data_len_consumed);
-		if(rv != TCORE_SAT_SUCCESS) {
+		if (rv != TCORE_SAT_SUCCESS) {
 			return rv;
 		}
 		index+=data_len_consumed;
@@ -3549,16 +3556,16 @@ static enum tcore_sat_result _sat_decode_send_ussd(unsigned char* o_cmd_data, in
 
 	//ussd string
 	rv = _sat_decode_ussd_string_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.send_ussd.ussd_string, &data_len_consumed);
-	if(rv != TCORE_SAT_SUCCESS)
+	if (rv != TCORE_SAT_SUCCESS)
 		return rv;
 
 	//icon identifier- optional
 	index+=data_len_consumed;
-	if((cmd_data[index]&0x7F) == SATK_ICON_IDENTIFIER_TAG){
+	if ((cmd_data[index]&0x7F) == SATK_ICON_IDENTIFIER_TAG) {
 		data_len_consumed = 0;
 
 		rv = _sat_decode_icon_identifier_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.send_ussd.icon_id, &data_len_consumed);
-		if(rv != TCORE_SAT_SUCCESS){
+		if (rv != TCORE_SAT_SUCCESS) {
 			return TCORE_SAT_COMMAND_NOT_UNDERSTOOD; //SEND TR
 		}
 
@@ -3577,7 +3584,7 @@ static enum tcore_sat_result _sat_decode_setup_call(unsigned char* o_cmd_data, i
 	unsigned char* cmd_data = NULL;
 	enum tcore_sat_result rv = TCORE_SAT_SUCCESS;
 
-	if(o_cmd_data == NULL || sat_cmd_ind_data == NULL){
+	if (o_cmd_data == NULL || sat_cmd_ind_data == NULL) {
 		dbg("[SAT] SAT PARSER -  o_cmd_data == NULL");
 		return TCORE_SAT_ERROR_FATAL;
 	}
@@ -3589,7 +3596,7 @@ static enum tcore_sat_result _sat_decode_setup_call(unsigned char* o_cmd_data, i
 	sat_cmd_ind_data->data.setup_call.command_detail.cmd_type = cmd_data[index++];
 
 	/* ******decode command qualifier****** */
-	switch(cmd_data[index]){
+	switch(cmd_data[index]) {
 		case SETUP_CALL_IF_ANOTHER_CALL_NOT_BUSY:
 		case SETUP_CALL_IF_ANOTHER_CALL_NOT_BUSY_WITH_REDIAL:
 		case SETUP_CALL_PUT_ALL_OTHER_CALLS_ON_HOLD:
@@ -3610,14 +3617,14 @@ static enum tcore_sat_result _sat_decode_setup_call(unsigned char* o_cmd_data, i
 	index++;
 	memcpy(dev_id,&cmd_data[index],4);
 	rv = _sat_decode_device_identities_tlv(dev_id, &sat_cmd_ind_data->data.setup_call.device_id);
-	if(rv != TCORE_SAT_SUCCESS)
+	if (rv != TCORE_SAT_SUCCESS)
 		return rv;
 
 	//alpha identifier (user confirmation) - optional
 	index+=4;
-	if((cmd_data[index]&0x7F) == SATK_ALPHA_IDENTIFIER_TAG){
+	if ((cmd_data[index]&0x7F) == SATK_ALPHA_IDENTIFIER_TAG) {
 		rv = _sat_decode_alpha_identifier_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.setup_call.user_confirm_alpha_id, &data_len_consumed);
-		if(rv != TCORE_SAT_SUCCESS) {
+		if (rv != TCORE_SAT_SUCCESS) {
 			return rv;
 		}
 		index+=data_len_consumed;
@@ -3625,99 +3632,99 @@ static enum tcore_sat_result _sat_decode_setup_call(unsigned char* o_cmd_data, i
 
 	//address
 	rv = _sat_decode_address_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.setup_call.address, &data_len_consumed);
-	if(rv != TCORE_SAT_SUCCESS) {
+	if (rv != TCORE_SAT_SUCCESS) {
 		return rv;
 	}
 
 	index+=data_len_consumed;
-	if(index >= o_length){
+	if (index >= o_length) {
 		dbg("[SAT] SAT PARSER - no more TLVs to decode.");
 		return TCORE_SAT_SUCCESS;
 	}
 
 	//capability configuration parameter - optional
-	if((cmd_data[index]&0x7F)==SATK_CAPABILITY_CONFIGURATION_PARAMETERS_TAG){
+	if ((cmd_data[index]&0x7F)==SATK_CAPABILITY_CONFIGURATION_PARAMETERS_TAG) {
 		rv =_sat_decode_ccp_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.setup_call.ccp, &data_len_consumed);
-		if(rv != TCORE_SAT_SUCCESS){
+		if (rv != TCORE_SAT_SUCCESS) {
 			return rv; //SEND TR
 		}
 
 		index+=data_len_consumed;
-		if(index >= o_length){
+		if (index >= o_length) {
 			dbg("[SAT] SAT PARSER - no more TLVs to decode.");
 			return TCORE_SAT_SUCCESS;
 		}
 	}
 
 	//sub address - optional
-	if((cmd_data[index]&0x7F)==SATK_SUB_ADDRESS_TAG){
+	if ((cmd_data[index]&0x7F)==SATK_SUB_ADDRESS_TAG) {
 		rv =_sat_decode_sub_address_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.setup_call.subaddress, &data_len_consumed);
-		if(rv != TCORE_SAT_SUCCESS){
+		if (rv != TCORE_SAT_SUCCESS) {
 			return rv; //SEND TR
 		}
 
 		index+=data_len_consumed;
-		if(index >= o_length){
+		if (index >= o_length) {
 			dbg("[SAT] SAT PARSER - no more TLVs to decode.");
 			return TCORE_SAT_SUCCESS;
 		}
 	}
 
 	//time duration - optional
-	if((cmd_data[index]&0x7F)==SATK_DURATION_TAG){
+	if ((cmd_data[index]&0x7F)==SATK_DURATION_TAG) {
 		rv =_sat_decode_duration_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.setup_call.duration, &data_len_consumed);
-		if(rv != TCORE_SAT_SUCCESS){
+		if (rv != TCORE_SAT_SUCCESS) {
 			return rv; //SEND TR
 		}
 
 		index+=data_len_consumed;
-		if(index >= o_length){
+		if (index >= o_length) {
 			dbg("[SAT] SAT PARSER - no more TLVs to decode.");
 			return TCORE_SAT_SUCCESS;
 		}
 	}
 
 	//icon identifier (user confirmation) - optional
-	if((cmd_data[index]&0x7F) == SATK_ICON_IDENTIFIER_TAG){
+	if ((cmd_data[index]&0x7F) == SATK_ICON_IDENTIFIER_TAG) {
 		data_len_consumed = 0;
 		rv = _sat_decode_icon_identifier_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.setup_call.user_confirm_icon_id, &data_len_consumed);
 
-		if(rv != TCORE_SAT_SUCCESS){
+		if (rv != TCORE_SAT_SUCCESS) {
 			return TCORE_SAT_COMMAND_NOT_UNDERSTOOD; //SEND TR
 		}
 
 		index+=data_len_consumed;
-		if(index >= o_length){
+		if (index >= o_length) {
 			dbg("[SAT] SAT PARSER - no more TLVs to decode.");
 			return TCORE_SAT_SUCCESS;
 		}
 	}
 
 	//alpha identifier (call setup) - optional
-	if((cmd_data[index]&0x7F) == SATK_ALPHA_IDENTIFIER_TAG){
+	if ((cmd_data[index]&0x7F) == SATK_ALPHA_IDENTIFIER_TAG) {
 		rv = _sat_decode_alpha_identifier_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.setup_call.call_setup_alpha_id, &data_len_consumed);
-		if(rv != TCORE_SAT_SUCCESS) {
+		if (rv != TCORE_SAT_SUCCESS) {
 			return rv;
 		}
 
 		index+=data_len_consumed;
-		if(index >= o_length){
+		if (index >= o_length) {
 			dbg("[SAT] SAT PARSER - no more TLVs to decode.");
 			return TCORE_SAT_SUCCESS;
 		}
 	}
 
 	//icon identifier (call setup) - optional
-	if((cmd_data[index]&0x7F) == SATK_ICON_IDENTIFIER_TAG){
+	if ((cmd_data[index]&0x7F) == SATK_ICON_IDENTIFIER_TAG) {
 		data_len_consumed = 0;
 		rv = _sat_decode_icon_identifier_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.setup_call.call_setup_icon_id, &data_len_consumed);
 
-		if(rv != TCORE_SAT_SUCCESS){
+		if (rv != TCORE_SAT_SUCCESS) {
 			return TCORE_SAT_COMMAND_NOT_UNDERSTOOD; //SEND TR
 		}
 
 		index+=data_len_consumed;
-		if(index >= o_length){
+		if (index >= o_length) {
 			dbg("[SAT] SAT PARSER - no more TLVs to decode.");
 			return TCORE_SAT_SUCCESS;
 		}
@@ -3738,7 +3745,7 @@ static enum tcore_sat_result _sat_decode_provide_local_info(unsigned char* o_cmd
 	unsigned char* cmd_data = NULL;
 	enum tcore_sat_result rv = TCORE_SAT_SUCCESS;
 
-	if(o_cmd_data == NULL){
+	if (o_cmd_data == NULL) {
 		dbg("[SAT] SAT PARSER -  o_cmd_data == NULL");
 		return TCORE_SAT_ERROR_FATAL;
 	}
@@ -3750,7 +3757,7 @@ static enum tcore_sat_result _sat_decode_provide_local_info(unsigned char* o_cmd
 	sat_cmd_ind_data->data.setup_event_list.command_detail.cmd_type = cmd_data[index++];
 
 	/* ******decode command qualifier****** */
-	switch(cmd_data[index]){
+	switch(cmd_data[index]) {
 		case LOCAL_INFO_DATE_TIME_AND_TIMEZONE:
 		case LOCAL_INFO_LANGUAGE:
 			sat_cmd_ind_data->data.setup_event_list.command_detail.cmd_qualifier.provide_local_info.provide_local_info = cmd_data[index];
@@ -3765,7 +3772,7 @@ static enum tcore_sat_result _sat_decode_provide_local_info(unsigned char* o_cmd
 	index++;
 	memcpy(dev_id,&cmd_data[index],4);
 	rv = _sat_decode_device_identities_tlv(dev_id, &sat_cmd_ind_data->data.setup_event_list.device_id);
-	if(rv != TCORE_SAT_SUCCESS)
+	if (rv != TCORE_SAT_SUCCESS)
 		return rv;
 
 	//TODO - UTRAN Measurement Qualifier
@@ -3783,7 +3790,7 @@ static enum tcore_sat_result _sat_decode_setup_event_list(unsigned char* o_cmd_d
 	unsigned char* cmd_data = NULL;
 	enum tcore_sat_result rv = TCORE_SAT_SUCCESS;
 
-	if(o_cmd_data == NULL){
+	if (o_cmd_data == NULL) {
 		dbg("[SAT] SAT PARSER -  o_cmd_data == NULL");
 		return TCORE_SAT_ERROR_FATAL;
 	}
@@ -3798,7 +3805,7 @@ static enum tcore_sat_result _sat_decode_setup_event_list(unsigned char* o_cmd_d
 	index++;
 	memcpy(dev_id,&cmd_data[index],4);
 	rv = _sat_decode_device_identities_tlv(dev_id, &sat_cmd_ind_data->data.setup_event_list.device_id);
-	if(rv != TCORE_SAT_SUCCESS)
+	if (rv != TCORE_SAT_SUCCESS)
 		return rv;
 
 	//event list
@@ -3820,7 +3827,7 @@ static enum tcore_sat_result _sat_decode_setup_idle_mode_text(unsigned char* o_c
 	unsigned char* cmd_data = NULL;
 	enum tcore_sat_result rv = TCORE_SAT_SUCCESS;
 
-	if(o_cmd_data == NULL){
+	if (o_cmd_data == NULL) {
 		dbg("[SAT] SAT PARSER -  o_cmd_data == NULL");
 		return TCORE_SAT_ERROR_FATAL;
 	}
@@ -3835,16 +3842,16 @@ static enum tcore_sat_result _sat_decode_setup_idle_mode_text(unsigned char* o_c
 	index++;
 	memcpy(dev_id,&cmd_data[index],4);
 	rv = _sat_decode_device_identities_tlv(dev_id, &sat_cmd_ind_data->data.setup_idle_mode_text.device_id);
-	if(rv != TCORE_SAT_SUCCESS)
+	if (rv != TCORE_SAT_SUCCESS)
 		return rv;
 
 	//text string
 	index+=4;
 	rv = _sat_decode_text_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.setup_idle_mode_text.text, &data_len_consumed);
-	if(rv != TCORE_SAT_SUCCESS)
+	if (rv != TCORE_SAT_SUCCESS)
 		return rv;
 
-	if(sat_cmd_ind_data->data.setup_idle_mode_text.text.string_length <= 0){
+	if (sat_cmd_ind_data->data.setup_idle_mode_text.text.string_length <= 0) {
 		err("[SAT] SAT PARSER - :string length is 0");
 		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 	}
@@ -3852,26 +3859,26 @@ static enum tcore_sat_result _sat_decode_setup_idle_mode_text(unsigned char* o_c
 	dbg("[SAT] SAT PARSER  text(%s)",sat_cmd_ind_data->data.setup_idle_mode_text.text.string);
 	dbg("[SAT] SAT PARSER o_len(%d) index(%d) data_len_consumed(%d)",o_length , index, data_len_consumed);
 
-	if(index+data_len_consumed > o_length){
+	if (index+data_len_consumed > o_length) {
 		err("[SAT] SAT PARSER - Wrong String TLV");
 		return TCORE_SAT_BEYOND_ME_CAPABILITY;
 	}
-	else if(index+data_len_consumed == o_length){
+	else if (index+data_len_consumed == o_length) {
 		dbg("[SAT] SAT PARSER - :no more TLVs to decode.");
 		return TCORE_SAT_SUCCESS;
 	}
 
 	//icon identifier
 	index+=data_len_consumed;
-	if((cmd_data[index]&0x7F) == SATK_ICON_IDENTIFIER_TAG){
+	if ((cmd_data[index]&0x7F) == SATK_ICON_IDENTIFIER_TAG) {
 		data_len_consumed = 0;
 		rv = _sat_decode_icon_identifier_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.setup_idle_mode_text.icon_id, &data_len_consumed);
 
-		if(rv != TCORE_SAT_SUCCESS){
+		if (rv != TCORE_SAT_SUCCESS) {
 			return TCORE_SAT_COMMAND_NOT_UNDERSTOOD; //SEND TR
 		}
 
-		if(index+data_len_consumed >= o_length){
+		if (index+data_len_consumed >= o_length) {
 			dbg("[SAT] SAT PARSER - no more TLVs to decode.");
 			return TCORE_SAT_SUCCESS;
 		}
@@ -3893,7 +3900,7 @@ static enum tcore_sat_result _sat_decode_send_dtmf(unsigned char* o_cmd_data, in
 	unsigned char* cmd_data = NULL;
 	enum tcore_sat_result rv = TCORE_SAT_SUCCESS;
 
-	if(o_cmd_data == NULL){
+	if (o_cmd_data == NULL) {
 		dbg("[SAT] SAT PARSER -  o_cmd_data == NULL");
 		return TCORE_SAT_ERROR_FATAL;
 	}
@@ -3908,14 +3915,14 @@ static enum tcore_sat_result _sat_decode_send_dtmf(unsigned char* o_cmd_data, in
 	index++;
 	memcpy(dev_id,&cmd_data[index],4);
 	rv = _sat_decode_device_identities_tlv(dev_id, &sat_cmd_ind_data->data.send_dtmf.device_id);
-	if(rv != TCORE_SAT_SUCCESS)
+	if (rv != TCORE_SAT_SUCCESS)
 		return rv;
 
 	//alpha identifier - optional
 	index+=4;
-	if((cmd_data[index]&0x7F) == SATK_ALPHA_IDENTIFIER_TAG){
+	if ((cmd_data[index]&0x7F) == SATK_ALPHA_IDENTIFIER_TAG) {
 		rv = _sat_decode_alpha_identifier_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.send_dtmf.alpha_id, &data_len_consumed);
-		if(rv != TCORE_SAT_SUCCESS) {
+		if (rv != TCORE_SAT_SUCCESS) {
 			return rv;
 		}
 		index+=data_len_consumed;
@@ -3970,7 +3977,7 @@ static enum tcore_sat_result _sat_decode_language_notification(unsigned char* o_
 	unsigned char* cmd_data = NULL;
 	enum tcore_sat_result rv = TCORE_SAT_SUCCESS;
 
-	if(o_cmd_data == NULL){
+	if (o_cmd_data == NULL) {
 		dbg("[SAT] SAT PARSER -  o_cmd_data == NULL");
 		return TCORE_SAT_ERROR_FATAL;
 	}
@@ -3982,7 +3989,7 @@ static enum tcore_sat_result _sat_decode_language_notification(unsigned char* o_
 	sat_cmd_ind_data->data.language_notification.command_detail.cmd_type = cmd_data[index++];
 
 	/* ******decode command qualifier****** */
-	if(cmd_data[index]&0x01)
+	if (cmd_data[index]&0x01)
 		sat_cmd_ind_data->data.language_notification.command_detail.cmd_qualifier.language_notification.specific_language = TRUE;
 	else
 		sat_cmd_ind_data->data.language_notification.command_detail.cmd_qualifier.language_notification.specific_language = FALSE;
@@ -3991,15 +3998,15 @@ static enum tcore_sat_result _sat_decode_language_notification(unsigned char* o_
 	index++;
 	memcpy(dev_id,&cmd_data[index],4);
 	rv = _sat_decode_device_identities_tlv(dev_id, &sat_cmd_ind_data->data.language_notification.device_id);
-	if(rv != TCORE_SAT_SUCCESS)
+	if (rv != TCORE_SAT_SUCCESS)
 		return rv;
 
 	//language - conditional
 	index+=4;
 	if (sat_cmd_ind_data->data.language_notification.command_detail.cmd_qualifier.language_notification.specific_language == TRUE) {
-		if((cmd_data[index]&0x7F) == SATK_LANGUAGE_TAG) {
+		if ((cmd_data[index]&0x7F) == SATK_LANGUAGE_TAG) {
 			rv = _sat_decode_language_tlv(cmd_data, o_length, index, &sat_cmd_ind_data->data.language_notification.language);
-			if(rv != TCORE_SAT_SUCCESS)
+			if (rv != TCORE_SAT_SUCCESS)
 				return rv;
 		} else	{
 			dbg("[SAT] SAT PARSER -  Language TLV is required but missing.");
@@ -4023,7 +4030,7 @@ static enum tcore_sat_result _sat_decode_launch_browser(unsigned char* o_cmd_dat
 	unsigned char* cmd_data = NULL;
 	enum tcore_sat_result rv = TCORE_SAT_SUCCESS;
 
-	if(o_cmd_data == NULL){
+	if (o_cmd_data == NULL) {
 		dbg("[SAT] SAT PARSER -  o_cmd_data == NULL");
 		return TCORE_SAT_ERROR_FATAL;
 	}
@@ -4066,7 +4073,7 @@ static enum tcore_sat_result _sat_decode_launch_browser(unsigned char* o_cmd_dat
 	index++;
 	memcpy(dev_id,&cmd_data[index],4);
 	rv = _sat_decode_device_identities_tlv(dev_id, &sat_cmd_ind_data->data.language_notification.device_id);
-	if(rv != TCORE_SAT_SUCCESS)
+	if (rv != TCORE_SAT_SUCCESS)
 		return rv;
 
 	index += 4;
@@ -4074,7 +4081,7 @@ static enum tcore_sat_result _sat_decode_launch_browser(unsigned char* o_cmd_dat
 	//Browser Identity TLV - Optional
 	if ((cmd_data[index] & 0x7F) == SATK_BROWSER_IDENTITY_TAG) {
 		rv = _sat_decode_browser_identity_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.launch_browser.browser_id, &data_len_consumed);
-		if(rv != TCORE_SAT_SUCCESS)
+		if (rv != TCORE_SAT_SUCCESS)
 			return rv;
 		index += data_len_consumed;
 	} else {
@@ -4084,7 +4091,7 @@ static enum tcore_sat_result _sat_decode_launch_browser(unsigned char* o_cmd_dat
 	//URL TLV - Mandatory
 	if ((cmd_data[index] & 0x7F) == SATK_URL_TAG) {
 		rv = _sat_decode_url_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.launch_browser.url, &data_len_consumed);
-		if(rv != TCORE_SAT_SUCCESS)
+		if (rv != TCORE_SAT_SUCCESS)
 			return rv;
 
 		if (index + data_len_consumed >= o_length) {
@@ -4102,7 +4109,7 @@ static enum tcore_sat_result _sat_decode_launch_browser(unsigned char* o_cmd_dat
 	//bearer - optional
 	if ((cmd_data[index] & 0x7F) == SATK_BEARER_TAG) {
 		rv = _sat_decode_bearer_tlv(o_cmd_data, o_length, index,	&sat_cmd_ind_data->data.launch_browser.bearer, &data_len_consumed);
-		if(rv != TCORE_SAT_SUCCESS)
+		if (rv != TCORE_SAT_SUCCESS)
 			return rv;
 
 		if (index + data_len_consumed >= o_length) {
@@ -4129,7 +4136,7 @@ static enum tcore_sat_result _sat_decode_launch_browser(unsigned char* o_cmd_dat
 								index,
 								&sat_cmd_ind_data->data.launch_browser.file_list[sat_cmd_ind_data->data.launch_browser.file_ref_count],
 								&data_len_consumed);
-		if(rv != TCORE_SAT_SUCCESS) {
+		if (rv != TCORE_SAT_SUCCESS) {
 			return rv;
 		} else {
 			sat_cmd_ind_data->data.launch_browser.file_ref_count++;
@@ -4146,7 +4153,7 @@ static enum tcore_sat_result _sat_decode_launch_browser(unsigned char* o_cmd_dat
 	//text string(gateway/proxy identity) - optional
 	if ((cmd_data[index] & 0x7F) == SATK_TEXT_STRING_TAG) {
 		rv = _sat_decode_text_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.launch_browser.gateway_proxy_text, &data_len_consumed);
-		if(rv != TCORE_SAT_SUCCESS)
+		if (rv != TCORE_SAT_SUCCESS)
 			return rv;
 
 		if (index + data_len_consumed >= o_length) {
@@ -4158,9 +4165,9 @@ static enum tcore_sat_result _sat_decode_launch_browser(unsigned char* o_cmd_dat
 	}
 
 	//alpha identifier - optional
-	if((cmd_data[index]&0x7F) == SATK_ALPHA_IDENTIFIER_TAG){
+	if ((cmd_data[index]&0x7F) == SATK_ALPHA_IDENTIFIER_TAG) {
 		rv = _sat_decode_alpha_identifier_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.launch_browser.user_confirm_alpha_id, &data_len_consumed);
-		if(rv != TCORE_SAT_SUCCESS) {
+		if (rv != TCORE_SAT_SUCCESS) {
 			return rv;
 		}
 		if (index + data_len_consumed >= o_length) {
@@ -4205,7 +4212,7 @@ static enum tcore_sat_result _sat_decode_open_channel(unsigned char* o_cmd_data,
 	unsigned char* cmd_data = NULL;
 	enum tcore_sat_result rv = TCORE_SAT_SUCCESS;
 
-	if(o_cmd_data == NULL){
+	if (o_cmd_data == NULL) {
 		dbg("[SAT] SAT PARSER -  o_cmd_data == NULL");
 		return TCORE_SAT_ERROR_FATAL;
 	}
@@ -4220,17 +4227,17 @@ static enum tcore_sat_result _sat_decode_open_channel(unsigned char* o_cmd_data,
 	sat_cmd_ind_data->data.open_channel.command_detail.cmd_qualifier.open_channel.automatic_reconnection = FALSE;
 	sat_cmd_ind_data->data.open_channel.command_detail.cmd_qualifier.open_channel.background_mode = FALSE;
 
-	if(cmd_data[index]&0x01){
+	if (cmd_data[index]&0x01) {
 		sat_cmd_ind_data->data.open_channel.command_detail.cmd_qualifier.open_channel.immediate_link = TRUE;
 		dbg("[SAT] SAT PARSER - Immediate Link Establishment");
 	}
 
-	if(cmd_data[index]&0x02){
+	if (cmd_data[index]&0x02) {
 		sat_cmd_ind_data->data.open_channel.command_detail.cmd_qualifier.open_channel.automatic_reconnection = TRUE;
 		dbg("[SAT] SAT PARSER - Auto Reconnection");
 	}
 
-	if(cmd_data[index]&0x04){
+	if (cmd_data[index]&0x04) {
 		sat_cmd_ind_data->data.open_channel.command_detail.cmd_qualifier.open_channel.background_mode = TRUE;
 		dbg("[SAT] SAT PARSER - Background mode");
 	}
@@ -4239,24 +4246,24 @@ static enum tcore_sat_result _sat_decode_open_channel(unsigned char* o_cmd_data,
 	index++;
 	memcpy(dev_id,&cmd_data[index],4);
 	rv = _sat_decode_device_identities_tlv(dev_id, &sat_cmd_ind_data->data.open_channel.device_id);
-	if(rv != TCORE_SAT_SUCCESS)
+	if (rv != TCORE_SAT_SUCCESS)
 		return rv;
 
 	//alpha identifier - optional
 	index += 4;
-	if((cmd_data[index]&0x7F) == SATK_ALPHA_IDENTIFIER_TAG){
+	if ((cmd_data[index]&0x7F) == SATK_ALPHA_IDENTIFIER_TAG) {
 		rv = _sat_decode_alpha_identifier_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.open_channel.alpha_id, &data_len_consumed);
-		if(rv != TCORE_SAT_SUCCESS) {
+		if (rv != TCORE_SAT_SUCCESS) {
 			return rv;
 		}
 		index+=data_len_consumed;
 	}
 
 	//icon id - optional
-	if((cmd_data[index]&0x7F) == SATK_ICON_IDENTIFIER_TAG){
+	if ((cmd_data[index]&0x7F) == SATK_ICON_IDENTIFIER_TAG) {
 		data_len_consumed = 0;
 		rv = _sat_decode_icon_identifier_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.open_channel.icon_id, &data_len_consumed);
-		if(rv != TCORE_SAT_SUCCESS){
+		if (rv != TCORE_SAT_SUCCESS) {
 			return rv; //SEND TR
 		}
 		index+=data_len_consumed; //index pointing to the Tag of next TLV
@@ -4265,35 +4272,35 @@ static enum tcore_sat_result _sat_decode_open_channel(unsigned char* o_cmd_data,
 	//bearer description
 	rv =_sat_decode_bearer_description_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.open_channel.bearer_desc, &data_len_consumed);
 	bearer_desc_len = data_len_consumed;
-	if(rv != TCORE_SAT_SUCCESS)
+	if (rv != TCORE_SAT_SUCCESS)
 		return rv;
 	//TODO UICC SERVER MODE
 
-	switch(sat_cmd_ind_data->data.open_channel.bearer_desc.bearer_type){
+	switch(sat_cmd_ind_data->data.open_channel.bearer_desc.bearer_type) {
 		case BEARER_CSD:
 
 			//address
 			rv = _sat_decode_address_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.open_channel.bearer_detail.cs_bearer.address, &data_len_consumed);
-			if(rv != TCORE_SAT_SUCCESS) {
+			if (rv != TCORE_SAT_SUCCESS) {
 				return rv;
 			}
 			index+=data_len_consumed;
 
 			//sub address - optional
-			if((cmd_data[index]&0x7F) == SATK_SUB_ADDRESS_TAG){
+			if ((cmd_data[index]&0x7F) == SATK_SUB_ADDRESS_TAG) {
 				data_len_consumed = 0;
 				rv = _sat_decode_subaddress_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.open_channel.bearer_detail.cs_bearer.subaddress, &data_len_consumed);
-				if(rv != TCORE_SAT_SUCCESS) {
+				if (rv != TCORE_SAT_SUCCESS) {
 					return rv;
 				}
 				index+=data_len_consumed;
 			}
 
 			//time duration 1- optional
-			if((cmd_data[index]&0x7F)==SATK_DURATION_TAG){
+			if ((cmd_data[index]&0x7F)==SATK_DURATION_TAG) {
 				data_len_consumed = 0;
 				rv =_sat_decode_duration_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.open_channel.bearer_detail.cs_bearer.duration1, &data_len_consumed);
-				if(rv != TCORE_SAT_SUCCESS){
+				if (rv != TCORE_SAT_SUCCESS) {
 					return rv; //SEND TR
 				}
 				index+=data_len_consumed;
@@ -4301,16 +4308,16 @@ static enum tcore_sat_result _sat_decode_open_channel(unsigned char* o_cmd_data,
 			}
 
 			//time duration 2- optional
-			if((cmd_data[index]&0x7F)==SATK_DURATION_TAG){
+			if ((cmd_data[index]&0x7F)==SATK_DURATION_TAG) {
 
-				if(!b_1st_duration){
+				if (!b_1st_duration) {
 					dbg("duration 1 does not present!");
 					return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 				}
 
 				data_len_consumed = 0;
 				rv =_sat_decode_duration_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.open_channel.bearer_detail.cs_bearer.duration2, &data_len_consumed);
-				if(rv != TCORE_SAT_SUCCESS){
+				if (rv != TCORE_SAT_SUCCESS) {
 					return rv; //SEND TR
 				}
 				index+=data_len_consumed;
@@ -4321,83 +4328,83 @@ static enum tcore_sat_result _sat_decode_open_channel(unsigned char* o_cmd_data,
 
 			//buffer size
 			rv =_sat_decode_buffer_size_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.open_channel.buffer_size, &data_len_consumed);
-			if(rv != TCORE_SAT_SUCCESS){
+			if (rv != TCORE_SAT_SUCCESS) {
 				return rv; //SEND TR
 			}
 
 			index+=data_len_consumed;
-			if(index >= o_length){
+			if (index >= o_length) {
 				dbg("[SAT] SAT PARSER - no more TLVs to decode.");
 				return TCORE_SAT_SUCCESS;
 			}
 
 			//other address - optional
-			if((cmd_data[index]&0x7F)==SATK_OTHER_ADDRESS_TAG){
+			if ((cmd_data[index]&0x7F)==SATK_OTHER_ADDRESS_TAG) {
 				data_len_consumed = 0;
 				rv =_sat_decode_other_address_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.open_channel.bearer_detail.cs_bearer.other_address, &data_len_consumed);
-				if(rv != TCORE_SAT_SUCCESS){
+				if (rv != TCORE_SAT_SUCCESS) {
 					return rv; //SEND TR
 				}
 
 				index+=data_len_consumed;
-				if(index >= o_length){
+				if (index >= o_length) {
 					dbg("[SAT] SAT PARSER - no more TLVs to decode.");
 					return TCORE_SAT_SUCCESS;
 				}
 			}
 
 			//text string - user login - optional
-			if((cmd_data[index]&0x7F)==SATK_TEXT_STRING_TAG){
+			if ((cmd_data[index]&0x7F)==SATK_TEXT_STRING_TAG) {
 				data_len_consumed = 0;
 				rv = _sat_decode_text_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.open_channel.bearer_detail.cs_bearer.text_user_login, &data_len_consumed);
-				if(rv != TCORE_SAT_SUCCESS)
+				if (rv != TCORE_SAT_SUCCESS)
 					return rv;
 
 				index+=data_len_consumed;
-				if(index >= o_length){
+				if (index >= o_length) {
 					dbg("[SAT] SAT PARSER - no more TLVs to decode.");
 					return TCORE_SAT_SUCCESS;
 				}
 			}
 
 			//text string - user password - optional
-			if((cmd_data[index]&0x7F)==SATK_TEXT_STRING_TAG){
+			if ((cmd_data[index]&0x7F)==SATK_TEXT_STRING_TAG) {
 				data_len_consumed = 0;
 				rv = _sat_decode_text_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.open_channel.bearer_detail.cs_bearer.text_user_pwd, &data_len_consumed);
-				if(rv != TCORE_SAT_SUCCESS)
+				if (rv != TCORE_SAT_SUCCESS)
 					return rv;
 
 				index+=data_len_consumed;
-				if(index >= o_length){
+				if (index >= o_length) {
 					dbg("[SAT] SAT PARSER - no more TLVs to decode.");
 					return TCORE_SAT_SUCCESS;
 				}
 			}
 
 			//UICC/TERMINAL interface transport level - optional
-			if((cmd_data[index]&0x7F)==SATK_USIM_ME_INTERFACE_TRANSPORT_LEVEL_TAG){
+			if ((cmd_data[index]&0x7F)==SATK_USIM_ME_INTERFACE_TRANSPORT_LEVEL_TAG) {
 				data_len_consumed = 0;
 				rv = _sat_decode_uicc_terminal_interface_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.open_channel.interface_transport_level, &data_len_consumed);
-				if(rv != TCORE_SAT_SUCCESS)
+				if (rv != TCORE_SAT_SUCCESS)
 					return rv;
 
 				index+=data_len_consumed;
-				if(index >= o_length){
+				if (index >= o_length) {
 					dbg("[SAT] SAT PARSER - no more TLVs to decode.");
 					return TCORE_SAT_SUCCESS;
 				}
 			}
 
 			//destination address - optional
-			if((cmd_data[index]&0x7F)==SATK_OTHER_ADDRESS_TAG){
+			if ((cmd_data[index]&0x7F)==SATK_OTHER_ADDRESS_TAG) {
 				data_len_consumed = 0;
 				rv =_sat_decode_other_address_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.open_channel.data_destination_address, &data_len_consumed);
-				if(rv != TCORE_SAT_SUCCESS){
+				if (rv != TCORE_SAT_SUCCESS) {
 					return rv; //SEND TR
 				}
 
 				index+=data_len_consumed;
-				if(index >= o_length){
+				if (index >= o_length) {
 					dbg("[SAT] SAT PARSER - no more TLVs to decode.");
 					return TCORE_SAT_SUCCESS;
 				}
@@ -4410,83 +4417,83 @@ static enum tcore_sat_result _sat_decode_open_channel(unsigned char* o_cmd_data,
 
 			//buffer size
 			rv =_sat_decode_buffer_size_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.open_channel.buffer_size, &data_len_consumed);
-			if(rv != TCORE_SAT_SUCCESS){
+			if (rv != TCORE_SAT_SUCCESS) {
 				return rv; //SEND TR
 			}
 
 			index+=data_len_consumed;
-			if(index >= o_length){
+			if (index >= o_length) {
 				dbg("[SAT] SAT PARSER - no more TLVs to decode.");
 				return TCORE_SAT_SUCCESS;
 			}
 
 			//Network Access Name - optional
-			if((cmd_data[index]&0x7F)==SATK_NETWORK_ACCESS_TAG){
+			if ((cmd_data[index]&0x7F)==SATK_NETWORK_ACCESS_TAG) {
 				data_len_consumed = 0;
 				rv =_sat_decode_network_access_name_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.open_channel.bearer_detail.ps_bearer.network_access_name, &data_len_consumed);
-				if(rv != TCORE_SAT_SUCCESS){
+				if (rv != TCORE_SAT_SUCCESS) {
 					return rv; //SEND TR
 				}
 
 				index+=data_len_consumed;
-				if(index >= o_length){
+				if (index >= o_length) {
 					dbg("[SAT] SAT PARSER - no more TLVs to decode.");
 					return TCORE_SAT_SUCCESS;
 				}
 			}
 
 			//other address - optional
-			if((cmd_data[index]&0x7F)==SATK_OTHER_ADDRESS_TAG){
+			if ((cmd_data[index]&0x7F)==SATK_OTHER_ADDRESS_TAG) {
 				data_len_consumed = 0;
 				rv =_sat_decode_other_address_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.open_channel.bearer_detail.ps_bearer.other_address, &data_len_consumed);
-				if(rv != TCORE_SAT_SUCCESS){
+				if (rv != TCORE_SAT_SUCCESS) {
 					return rv; //SEND TR
 				}
 
 				index+=data_len_consumed;
-				if(index >= o_length){
+				if (index >= o_length) {
 					dbg("[SAT] SAT PARSER - no more TLVs to decode.");
 					return TCORE_SAT_SUCCESS;
 				}
 			}
 
 			//text string - user login - optional
-			if((cmd_data[index]&0x7F)==SATK_TEXT_STRING_TAG){
+			if ((cmd_data[index]&0x7F)==SATK_TEXT_STRING_TAG) {
 				data_len_consumed = 0;
 				rv = _sat_decode_text_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.open_channel.bearer_detail.ps_bearer.text_user_login, &data_len_consumed);
-				if(rv != TCORE_SAT_SUCCESS)
+				if (rv != TCORE_SAT_SUCCESS)
 					return rv;
 
 				index+=data_len_consumed;
-				if(index >= o_length){
+				if (index >= o_length) {
 					dbg("[SAT] SAT PARSER - no more TLVs to decode.");
 					return TCORE_SAT_SUCCESS;
 				}
 			}
 
 			//text string - user password - optional
-			if((cmd_data[index]&0x7F)==SATK_TEXT_STRING_TAG){
+			if ((cmd_data[index]&0x7F)==SATK_TEXT_STRING_TAG) {
 				data_len_consumed = 0;
 				rv = _sat_decode_text_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.open_channel.bearer_detail.ps_bearer.text_user_pwd, &data_len_consumed);
-				if(rv != TCORE_SAT_SUCCESS)
+				if (rv != TCORE_SAT_SUCCESS)
 					return rv;
 
 				index+=data_len_consumed;
-				if(index >= o_length){
+				if (index >= o_length) {
 					dbg("[SAT] SAT PARSER - no more TLVs to decode.");
 					return TCORE_SAT_SUCCESS;
 				}
 			}
 
 			//UICC/TERMINAL interface transport level - optional
-			if((cmd_data[index]&0x7F)==SATK_USIM_ME_INTERFACE_TRANSPORT_LEVEL_TAG){
+			if ((cmd_data[index]&0x7F)==SATK_USIM_ME_INTERFACE_TRANSPORT_LEVEL_TAG) {
 				data_len_consumed = 0;
 				rv = _sat_decode_uicc_terminal_interface_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.open_channel.interface_transport_level, &data_len_consumed);
-				if(rv != TCORE_SAT_SUCCESS)
+				if (rv != TCORE_SAT_SUCCESS)
 					return rv;
 
 				index+=data_len_consumed;
-				if(index >= o_length){
+				if (index >= o_length) {
 					dbg("[SAT] SAT PARSER - no more TLVs to decode.");
 					return TCORE_SAT_SUCCESS;
 				}
@@ -4495,15 +4502,15 @@ static enum tcore_sat_result _sat_decode_open_channel(unsigned char* o_cmd_data,
 			dbg("the value (0x%x) after interface transport level", cmd_data[index]&0x7F);
 
 			//destination address - optional
-			if((cmd_data[index]&0x7F)==SATK_OTHER_ADDRESS_TAG){
+			if ((cmd_data[index]&0x7F)==SATK_OTHER_ADDRESS_TAG) {
 				data_len_consumed = 0;
 				rv =_sat_decode_other_address_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.open_channel.data_destination_address, &data_len_consumed);
-				if(rv != TCORE_SAT_SUCCESS){
+				if (rv != TCORE_SAT_SUCCESS) {
 					return rv; //SEND TR
 				}
 
 				index+=data_len_consumed;
-				if(index >= o_length){
+				if (index >= o_length) {
 					dbg("[SAT] SAT PARSER - no more TLVs to decode.");
 					return TCORE_SAT_SUCCESS;
 				}
@@ -4516,83 +4523,83 @@ static enum tcore_sat_result _sat_decode_open_channel(unsigned char* o_cmd_data,
 
 			//buffer size
 			rv =_sat_decode_buffer_size_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.open_channel.buffer_size, &data_len_consumed);
-			if(rv != TCORE_SAT_SUCCESS){
+			if (rv != TCORE_SAT_SUCCESS) {
 				return rv; //SEND TR
 			}
 
 			index+=data_len_consumed;
-			if(index >= o_length){
+			if (index >= o_length) {
 				dbg("[SAT] SAT PARSER - no more TLVs to decode.");
 				return TCORE_SAT_SUCCESS;
 			}
 
 			//other address - optional
-			if((cmd_data[index]&0x7F)==SATK_OTHER_ADDRESS_TAG){
+			if ((cmd_data[index]&0x7F)==SATK_OTHER_ADDRESS_TAG) {
 				data_len_consumed = 0;
 				rv =_sat_decode_other_address_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.open_channel.bearer_detail.default_bearer.other_address, &data_len_consumed);
-				if(rv != TCORE_SAT_SUCCESS){
+				if (rv != TCORE_SAT_SUCCESS) {
 					return rv; //SEND TR
 				}
 
 				index+=data_len_consumed;
-				if(index >= o_length){
+				if (index >= o_length) {
 					dbg("[SAT] SAT PARSER - no more TLVs to decode.");
 					return TCORE_SAT_SUCCESS;
 				}
 			}
 
 			//text string - user login - optional
-			if((cmd_data[index]&0x7F)==SATK_TEXT_STRING_TAG){
+			if ((cmd_data[index]&0x7F)==SATK_TEXT_STRING_TAG) {
 				data_len_consumed = 0;
 				rv = _sat_decode_text_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.open_channel.bearer_detail.default_bearer.text_user_login, &data_len_consumed);
-				if(rv != TCORE_SAT_SUCCESS)
+				if (rv != TCORE_SAT_SUCCESS)
 					return rv;
 
 				index+=data_len_consumed;
-				if(index >= o_length){
+				if (index >= o_length) {
 					dbg("[SAT] SAT PARSER - no more TLVs to decode.");
 					return TCORE_SAT_SUCCESS;
 				}
 			}
 
 			//text string - user password - optional
-			if((cmd_data[index]&0x7F)==SATK_TEXT_STRING_TAG){
+			if ((cmd_data[index]&0x7F)==SATK_TEXT_STRING_TAG) {
 				data_len_consumed = 0;
 				rv = _sat_decode_text_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.open_channel.bearer_detail.default_bearer.text_user_pwd, &data_len_consumed);
-				if(rv != TCORE_SAT_SUCCESS)
+				if (rv != TCORE_SAT_SUCCESS)
 					return rv;
 
 				index+=data_len_consumed;
-				if(index >= o_length){
+				if (index >= o_length) {
 					dbg("[SAT] SAT PARSER - no more TLVs to decode.");
 					return TCORE_SAT_SUCCESS;
 				}
 			}
 
 			//UICC/TERMINAL interface transport level - optional
-			if((cmd_data[index]&0x7F)==SATK_USIM_ME_INTERFACE_TRANSPORT_LEVEL_TAG){
+			if ((cmd_data[index]&0x7F)==SATK_USIM_ME_INTERFACE_TRANSPORT_LEVEL_TAG) {
 				data_len_consumed = 0;
 				rv = _sat_decode_uicc_terminal_interface_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.open_channel.interface_transport_level, &data_len_consumed);
-				if(rv != TCORE_SAT_SUCCESS)
+				if (rv != TCORE_SAT_SUCCESS)
 					return rv;
 
 				index+=data_len_consumed;
-				if(index >= o_length){
+				if (index >= o_length) {
 					dbg("[SAT] SAT PARSER - no more TLVs to decode.");
 					return TCORE_SAT_SUCCESS;
 				}
 			}
 
 			//destination address - optional
-			if((cmd_data[index]&0x7F)==SATK_OTHER_ADDRESS_TAG){
+			if ((cmd_data[index]&0x7F)==SATK_OTHER_ADDRESS_TAG) {
 				data_len_consumed = 0;
 				rv =_sat_decode_other_address_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.open_channel.data_destination_address, &data_len_consumed);
-				if(rv != TCORE_SAT_SUCCESS){
+				if (rv != TCORE_SAT_SUCCESS) {
 					return rv; //SEND TR
 				}
 
 				index+=data_len_consumed;
-				if(index >= o_length){
+				if (index >= o_length) {
 					dbg("[SAT] SAT PARSER - no more TLVs to decode.");
 					return TCORE_SAT_SUCCESS;
 				}
@@ -4602,10 +4609,10 @@ static enum tcore_sat_result _sat_decode_open_channel(unsigned char* o_cmd_data,
 		case BEARER_LOCAL_LINK_TECHNOLOGY_INDEPENDENT:
 
 			//time duration 1- optional
-			if((cmd_data[index]&0x7F)==SATK_DURATION_TAG){
+			if ((cmd_data[index]&0x7F)==SATK_DURATION_TAG) {
 				data_len_consumed = 0;
 				rv =_sat_decode_duration_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.open_channel.bearer_detail.local_bearer.duration1, &data_len_consumed);
-				if(rv != TCORE_SAT_SUCCESS){
+				if (rv != TCORE_SAT_SUCCESS) {
 					return rv; //SEND TR
 				}
 				index+=data_len_consumed;
@@ -4613,16 +4620,16 @@ static enum tcore_sat_result _sat_decode_open_channel(unsigned char* o_cmd_data,
 			}
 
 			//time duration 2- optional
-			if((cmd_data[index]&0x7F)==SATK_DURATION_TAG){
+			if ((cmd_data[index]&0x7F)==SATK_DURATION_TAG) {
 
-				if(!b_1st_duration){
+				if (!b_1st_duration) {
 					dbg("duration 1 does not present!");
 					return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
 				}
 
 				data_len_consumed = 0;
 				rv =_sat_decode_duration_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.open_channel.bearer_detail.local_bearer.duration2, &data_len_consumed);
-				if(rv != TCORE_SAT_SUCCESS){
+				if (rv != TCORE_SAT_SUCCESS) {
 					return rv; //SEND TR
 				}
 				index+=data_len_consumed;
@@ -4633,69 +4640,69 @@ static enum tcore_sat_result _sat_decode_open_channel(unsigned char* o_cmd_data,
 
 			//buffer size
 			rv =_sat_decode_buffer_size_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.open_channel.buffer_size, &data_len_consumed);
-			if(rv != TCORE_SAT_SUCCESS){
+			if (rv != TCORE_SAT_SUCCESS) {
 				return rv; //SEND TR
 			}
 
 			index+=data_len_consumed;
-			if(index >= o_length){
+			if (index >= o_length) {
 				dbg("[SAT] SAT PARSER - no more TLVs to decode.");
 				return TCORE_SAT_SUCCESS;
 			}
 
 			//text string - user password - optional
-			if((cmd_data[index]&0x7F)==SATK_TEXT_STRING_TAG){
+			if ((cmd_data[index]&0x7F)==SATK_TEXT_STRING_TAG) {
 				data_len_consumed = 0;
 				rv = _sat_decode_text_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.open_channel.bearer_detail.local_bearer.text_user_pwd, &data_len_consumed);
-				if(rv != TCORE_SAT_SUCCESS)
+				if (rv != TCORE_SAT_SUCCESS)
 					return rv;
 
 				index+=data_len_consumed;
-				if(index >= o_length){
+				if (index >= o_length) {
 					dbg("[SAT] SAT PARSER - no more TLVs to decode.");
 					return TCORE_SAT_SUCCESS;
 				}
 			}
 
 			//UICC/TERMINAL interface transport level - optional
-			if((cmd_data[index]&0x7F)==SATK_USIM_ME_INTERFACE_TRANSPORT_LEVEL_TAG){
+			if ((cmd_data[index]&0x7F)==SATK_USIM_ME_INTERFACE_TRANSPORT_LEVEL_TAG) {
 				data_len_consumed = 0;
 				rv = _sat_decode_uicc_terminal_interface_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.open_channel.interface_transport_level, &data_len_consumed);
-				if(rv != TCORE_SAT_SUCCESS)
+				if (rv != TCORE_SAT_SUCCESS)
 					return rv;
 
 				index+=data_len_consumed;
-				if(index >= o_length){
+				if (index >= o_length) {
 					dbg("[SAT] SAT PARSER - no more TLVs to decode.");
 					return TCORE_SAT_SUCCESS;
 				}
 			}
 
 			//destination address - optional
-			if((cmd_data[index]&0x7F)==SATK_OTHER_ADDRESS_TAG){
+			if ((cmd_data[index]&0x7F)==SATK_OTHER_ADDRESS_TAG) {
 				data_len_consumed = 0;
 				rv =_sat_decode_other_address_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.open_channel.data_destination_address, &data_len_consumed);
-				if(rv != TCORE_SAT_SUCCESS){
+				if (rv != TCORE_SAT_SUCCESS) {
 					return rv; //SEND TR
 				}
 
 				index+=data_len_consumed;
-				if(index >= o_length){
+				if (index >= o_length) {
 					dbg("[SAT] SAT PARSER - no more TLVs to decode.");
 					return TCORE_SAT_SUCCESS;
 				}
 			}
 
 			//remote entity address - optional
-			if((cmd_data[index]&0x7F)==SATK_REMOTE_ENTITY_ADDRESS_TAG){
+			if ((cmd_data[index]&0x7F)==SATK_REMOTE_ENTITY_ADDRESS_TAG) {
 				data_len_consumed = 0;
 				rv =_sat_decode_remote_entity_address_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.open_channel.bearer_detail.local_bearer.remote_entity_address, &data_len_consumed);
-				if(rv != TCORE_SAT_SUCCESS){
+				if (rv != TCORE_SAT_SUCCESS) {
 					return rv; //SEND TR
 				}
 
 				index+=data_len_consumed;
-				if(index >= o_length){
+				if (index >= o_length) {
 					dbg("[SAT] SAT PARSER - no more TLVs to decode.");
 					return TCORE_SAT_SUCCESS;
 				}
@@ -4720,7 +4727,7 @@ static enum tcore_sat_result _sat_decode_close_channel(unsigned char* o_cmd_data
 	unsigned char* cmd_data = NULL;
 	enum tcore_sat_result rv = TCORE_SAT_SUCCESS;
 
-	if(o_cmd_data == NULL){
+	if (o_cmd_data == NULL) {
 		dbg("[SAT] SAT PARSER -  o_cmd_data == NULL");
 		return TCORE_SAT_ERROR_FATAL;
 	}
@@ -4736,24 +4743,24 @@ static enum tcore_sat_result _sat_decode_close_channel(unsigned char* o_cmd_data
 	//device identities
 	memcpy(dev_id,&cmd_data[index],4);
 	rv = _sat_decode_device_identities_tlv(dev_id, &sat_cmd_ind_data->data.close_channel.device_id);
-	if(rv != TCORE_SAT_SUCCESS)
+	if (rv != TCORE_SAT_SUCCESS)
 		return rv;
 
 	//alpha identifier - optional
 	index += 4;
-	if((cmd_data[index]&0x7F) == SATK_ALPHA_IDENTIFIER_TAG){
+	if ((cmd_data[index]&0x7F) == SATK_ALPHA_IDENTIFIER_TAG) {
 		rv = _sat_decode_alpha_identifier_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.close_channel.alpha_id, &data_len_consumed);
-		if(rv != TCORE_SAT_SUCCESS) {
+		if (rv != TCORE_SAT_SUCCESS) {
 			return rv;
 		}
 		index+=data_len_consumed;
 	}
 
 	//icon id - optional
-	if((cmd_data[index]&0x7F) == SATK_ICON_IDENTIFIER_TAG){
+	if ((cmd_data[index]&0x7F) == SATK_ICON_IDENTIFIER_TAG) {
 		data_len_consumed = 0;
 		rv = _sat_decode_icon_identifier_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.close_channel.icon_id, &data_len_consumed);
-		if(rv != TCORE_SAT_SUCCESS){
+		if (rv != TCORE_SAT_SUCCESS) {
 			return rv; //SEND TR
 		}
 		index+=data_len_consumed; //index pointing to the Tag of next TLV
@@ -4775,7 +4782,7 @@ static enum tcore_sat_result _sat_decode_receive_data(unsigned char* o_cmd_data,
 	unsigned char* cmd_data = NULL;
 	enum tcore_sat_result rv = TCORE_SAT_SUCCESS;
 
-	if(o_cmd_data == NULL){
+	if (o_cmd_data == NULL) {
 		dbg("[SAT] SAT PARSER -  o_cmd_data == NULL");
 		return TCORE_SAT_ERROR_FATAL;
 	}
@@ -4791,24 +4798,24 @@ static enum tcore_sat_result _sat_decode_receive_data(unsigned char* o_cmd_data,
 	//device identities
 	memcpy(dev_id,&cmd_data[index],4);
 	rv = _sat_decode_device_identities_tlv(dev_id, &sat_cmd_ind_data->data.receive_data.device_id);
-	if(rv != TCORE_SAT_SUCCESS)
+	if (rv != TCORE_SAT_SUCCESS)
 		return rv;
 
 	//alpha identifier - optional
 	index += 4;
-	if((cmd_data[index]&0x7F) == SATK_ALPHA_IDENTIFIER_TAG){
+	if ((cmd_data[index]&0x7F) == SATK_ALPHA_IDENTIFIER_TAG) {
 		rv = _sat_decode_alpha_identifier_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.receive_data.alpha_id, &data_len_consumed);
-		if(rv != TCORE_SAT_SUCCESS) {
+		if (rv != TCORE_SAT_SUCCESS) {
 			return rv;
 		}
 		index+=data_len_consumed;
 	}
 
 	//icon id - optional
-	if((cmd_data[index]&0x7F) == SATK_ICON_IDENTIFIER_TAG){
+	if ((cmd_data[index]&0x7F) == SATK_ICON_IDENTIFIER_TAG) {
 		data_len_consumed = 0;
 		rv = _sat_decode_icon_identifier_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.receive_data.icon_id, &data_len_consumed);
-		if(rv != TCORE_SAT_SUCCESS){
+		if (rv != TCORE_SAT_SUCCESS) {
 			return rv; //SEND TR
 		}
 		index+=data_len_consumed; //index pointing to the Tag of next TLV
@@ -4816,7 +4823,7 @@ static enum tcore_sat_result _sat_decode_receive_data(unsigned char* o_cmd_data,
 
 	//channel data length
 	rv =_sat_decode_channel_data_length_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.receive_data.channel_data_len, &data_len_consumed);
-	if(rv != TCORE_SAT_SUCCESS){
+	if (rv != TCORE_SAT_SUCCESS) {
 		return rv; //SEND TR
 	}
 
@@ -4836,7 +4843,7 @@ static enum tcore_sat_result _sat_decode_send_data(unsigned char* o_cmd_data, in
 	unsigned char* cmd_data = NULL;
 	enum tcore_sat_result rv = TCORE_SAT_SUCCESS;
 
-	if(o_cmd_data == NULL){
+	if (o_cmd_data == NULL) {
 		dbg("[SAT] SAT PARSER -  o_cmd_data == NULL");
 		return TCORE_SAT_ERROR_FATAL;
 	}
@@ -4848,7 +4855,7 @@ static enum tcore_sat_result _sat_decode_send_data(unsigned char* o_cmd_data, in
 
 	/** command detail **/
 	sat_cmd_ind_data->data.send_data.command_detail.cmd_qualifier.send_data.send_data_immediately = FALSE;
-	if(cmd_data[index]&0x01){
+	if (cmd_data[index]&0x01) {
 		sat_cmd_ind_data->data.send_data.command_detail.cmd_qualifier.send_data.send_data_immediately = TRUE;
 		dbg("[SAT] SAT PARSER - Send data immediately");
 	}
@@ -4857,24 +4864,24 @@ static enum tcore_sat_result _sat_decode_send_data(unsigned char* o_cmd_data, in
 	index++;
 	memcpy(dev_id,&cmd_data[index],4);
 	rv = _sat_decode_device_identities_tlv(dev_id, &sat_cmd_ind_data->data.send_data.device_id);
-	if(rv != TCORE_SAT_SUCCESS)
+	if (rv != TCORE_SAT_SUCCESS)
 		return rv;
 
 	//alpha identifier - optional
 	index += 4;
-	if((cmd_data[index]&0x7F) == SATK_ALPHA_IDENTIFIER_TAG){
+	if ((cmd_data[index]&0x7F) == SATK_ALPHA_IDENTIFIER_TAG) {
 		rv = _sat_decode_alpha_identifier_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.send_data.alpha_id, &data_len_consumed);
-		if(rv != TCORE_SAT_SUCCESS) {
+		if (rv != TCORE_SAT_SUCCESS) {
 			return rv;
 		}
 		index+=data_len_consumed;
 	}
 
 	//icon id - optional
-	if((cmd_data[index]&0x7F) == SATK_ICON_IDENTIFIER_TAG){
+	if ((cmd_data[index]&0x7F) == SATK_ICON_IDENTIFIER_TAG) {
 		data_len_consumed = 0;
 		rv = _sat_decode_icon_identifier_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.send_data.icon_id, &data_len_consumed);
-		if(rv != TCORE_SAT_SUCCESS){
+		if (rv != TCORE_SAT_SUCCESS) {
 			return rv; //SEND TR
 		}
 		index+=data_len_consumed; //index pointing to the Tag of next TLV
@@ -4882,7 +4889,7 @@ static enum tcore_sat_result _sat_decode_send_data(unsigned char* o_cmd_data, in
 
 	//channel data
 	rv =_sat_decode_channel_data_tlv(o_cmd_data, o_length, index, &sat_cmd_ind_data->data.send_data.channel_data, &data_len_consumed);
-	if(rv != TCORE_SAT_SUCCESS){
+	if (rv != TCORE_SAT_SUCCESS) {
 		return rv; //SEND TR
 	}
 
@@ -4901,7 +4908,7 @@ static enum tcore_sat_result _sat_decode_get_channel_status(unsigned char* o_cmd
 	unsigned char* cmd_data = NULL;
 	enum tcore_sat_result rv = TCORE_SAT_SUCCESS;
 
-	if(o_cmd_data == NULL){
+	if (o_cmd_data == NULL) {
 		dbg("[SAT] SAT PARSER -  o_cmd_data == NULL");
 		return TCORE_SAT_ERROR_FATAL;
 	}
@@ -4917,7 +4924,7 @@ static enum tcore_sat_result _sat_decode_get_channel_status(unsigned char* o_cmd
 	//device identities
 	memcpy(dev_id,&cmd_data[index],4);
 	rv = _sat_decode_device_identities_tlv(dev_id, &sat_cmd_ind_data->data.get_channel_status.device_id);
-	if(rv != TCORE_SAT_SUCCESS)
+	if (rv != TCORE_SAT_SUCCESS)
 		return rv;
 
 	dbg("[SAT] SAT PARSER - :decoding done!.");
@@ -4931,20 +4938,20 @@ int tcore_sat_decode_proactive_command(unsigned char* tlv_origin, unsigned int t
 	int length_field_len = 0;
 	enum tcore_sat_result rv = TCORE_SAT_SUCCESS;
 
-	if(tlv_origin == NULL || tlv_length <=2) {
+	if (tlv_origin == NULL || tlv_length <=2) {
 		dbg("[SAT] SAT PARSER - pointer pData passed is NULL or invalid length.");
 		return TCORE_SAT_ERROR_FATAL;
 	}
 
 	//tag
-	if(tlv_origin[index++]!= SATK_PROACTIVE_CMD_TAG) {
+	if (tlv_origin[index++]!= SATK_PROACTIVE_CMD_TAG) {
 		dbg("[SAT] SAT PARSER - Did not find Proactive command tag.tag=%d", tlv_origin[index-1]);
 		return TCORE_SAT_ERROR_FATAL;
 	}
 
 	//length
 	length_field_len = _get_length_filed_size(tlv_origin[index]);
-	if(length_field_len == 0) {
+	if (length_field_len == 0) {
 		dbg("[SAT] SAT PARSER - Invalid length.");
 		return TCORE_SAT_ERROR_FATAL;
 	}
@@ -4952,21 +4959,21 @@ int tcore_sat_decode_proactive_command(unsigned char* tlv_origin, unsigned int t
 	index+=length_field_len;
 
 	//check command validation
-	if(tlv_length < index+5+4)//command detail(5) and device identities(4)
+	if (tlv_length < index+5+4)//command detail(5) and device identities(4)
 		return TCORE_SAT_ERROR_FATAL;
 
 	//check comprehensive value
-	if((tlv_origin[index] | 0x7F) != 0x7F){
+	if ((tlv_origin[index] | 0x7F) != 0x7F) {
 		dbg("comprehensive value 0x%x", tlv_origin[index] | 0x7F);
 		b_comprehensive = TRUE;
 	}
 
-	if( (tlv_origin[index] & 0x7F) != SATK_COMMAND_DETAILS_TAG){
+	if ( (tlv_origin[index] & 0x7F) != SATK_COMMAND_DETAILS_TAG) {
 		err("[SAT] no command detail info");
 		return TCORE_SAT_ERROR_FATAL;
 	}
 
-	if( tlv_origin[index+1] != SATK_COMMAND_DETAILS_LENGTH){
+	if ( tlv_origin[index+1] != SATK_COMMAND_DETAILS_LENGTH) {
 		err("[SAT] invalid command detail length");
 		return TCORE_SAT_ERROR_FATAL;
 	}
@@ -5084,14 +5091,14 @@ static unsigned char _sat_encode_dcs_tlv(const struct data_coding_scheme* src)
 {
 	unsigned char rv = 0x00;
 
-	if(src == NULL)
+	if (src == NULL)
 		return 0;
 
-	if(src->is_compressed_format)
+	if (src->is_compressed_format)
 		rv |= 0x20;
 
 	//msg class
-	switch(src->m_class){
+	switch(src->m_class) {
 		case MSG_CLASS_0:
 		case MSG_CLASS_1:
 		case MSG_CLASS_2:
@@ -5138,7 +5145,7 @@ static int _sat_encode_command_detail_tlv(const struct tel_sat_cmd_detail_info* 
 	dst[current_index++] = src->cmd_type;
 	dst[current_index] = 0x00;
 
-	switch(src->cmd_type){
+	switch(src->cmd_type) {
 		case SAT_PROATV_CMD_DISPLAY_TEXT:{
 			//command detail text priority
 			if (src->cmd_qualifier.display_text.text_priority == TEXT_PRIORITY_HIGH)
@@ -5150,20 +5157,20 @@ static int _sat_encode_command_detail_tlv(const struct tel_sat_cmd_detail_info* 
 		}break;
 		case SAT_PROATV_CMD_GET_INKEY:{
 			//command detail alphabet set
-			if(src->cmd_qualifier.get_inkey.alphabet_set)
+			if (src->cmd_qualifier.get_inkey.alphabet_set)
 				dst[current_index] += 0x01;
 
 			//command detail alphabet type
-			if(src->cmd_qualifier.get_inkey.alphabet_type == INPUT_ALPHABET_TYPE_UCS2)
+			if (src->cmd_qualifier.get_inkey.alphabet_type == INPUT_ALPHABET_TYPE_UCS2)
 				dst[current_index] += 0x02;
 
 			//command detail get inkey type
-			if(src->cmd_qualifier.get_inkey.inkey_type == INKEY_TYPE_YES_NO_REQUESTED)
+			if (src->cmd_qualifier.get_inkey.inkey_type == INKEY_TYPE_YES_NO_REQUESTED)
 				dst[current_index] += 0x04;
 
 
 			//command detail immediate response required
-			if(src->cmd_qualifier.get_inkey.immediate_rsp_required)
+			if (src->cmd_qualifier.get_inkey.immediate_rsp_required)
 				dst[current_index] += 0x08;
 
 			//command detail help available
@@ -5172,19 +5179,19 @@ static int _sat_encode_command_detail_tlv(const struct tel_sat_cmd_detail_info* 
 		}break;
 		case SAT_PROATV_CMD_GET_INPUT:{
 			//command detail alphabet set
-			if(src->cmd_qualifier.get_input.alphabet_set)
+			if (src->cmd_qualifier.get_input.alphabet_set)
 				dst[current_index] += 0x01;
 
 			//command detail alphabet type
-			if(src->cmd_qualifier.get_input.alphabet_type == INPUT_ALPHABET_TYPE_UCS2)
+			if (src->cmd_qualifier.get_input.alphabet_type == INPUT_ALPHABET_TYPE_UCS2)
 				dst[current_index] += 0x02;
 
 			//command detail echo user input
-			if(!src->cmd_qualifier.get_input.me_echo_user_input)
+			if (!src->cmd_qualifier.get_input.me_echo_user_input)
 				dst[current_index] += 0x04;
 
 			//command detail user input unpacked format
-			if(!src->cmd_qualifier.get_input.user_input_unpacked_format)
+			if (!src->cmd_qualifier.get_input.user_input_unpacked_format)
 				dst[current_index] += 0x08;
 
 			//command detail help available
@@ -5196,7 +5203,7 @@ static int _sat_encode_command_detail_tlv(const struct tel_sat_cmd_detail_info* 
 		}break;
 		case SAT_PROATV_CMD_PLAY_TONE:{
 			//command detail vibration alert
-			if(src->cmd_qualifier.play_tone.vibration_alert == VIBRATE_ALERT_REQUIRED)
+			if (src->cmd_qualifier.play_tone.vibration_alert == VIBRATE_ALERT_REQUIRED)
 				dst[current_index] += 0x01;
 		}break;
 		case SAT_PROATV_CMD_REFRESH:{
@@ -5214,15 +5221,15 @@ static int _sat_encode_command_detail_tlv(const struct tel_sat_cmd_detail_info* 
 		}break;
 		case SAT_PROATV_CMD_SELECT_ITEM:{
 			//command detail presentation
-			if(src->cmd_qualifier.select_item.presentation_type != PRESENTATION_TYPE_NOT_SPECIFIED){
+			if (src->cmd_qualifier.select_item.presentation_type != PRESENTATION_TYPE_NOT_SPECIFIED) {
 				dst[current_index] += 0x01;
-				if(src->cmd_qualifier.select_item.presentation_type == PRESENTATION_TYPE_NAVIGATION_OPTION){
+				if (src->cmd_qualifier.select_item.presentation_type == PRESENTATION_TYPE_NAVIGATION_OPTION) {
 					dst[current_index] += PRESENTATION_TYPE_NAVIGATION_OPTION;
 				}
 			}
 
 			//command detail selection preference
-			if(src->cmd_qualifier.select_item.select_preference == SELECTION_PREFERENCE_USING_SOFT_KEY)
+			if (src->cmd_qualifier.select_item.select_preference == SELECTION_PREFERENCE_USING_SOFT_KEY)
 				dst[current_index] += 0x04;
 
 			//command detail help available
@@ -5231,7 +5238,7 @@ static int _sat_encode_command_detail_tlv(const struct tel_sat_cmd_detail_info* 
 		}break;
 		case SAT_PROATV_CMD_SEND_SMS:{
 			//command detail sms packing by me required
-			if(src->cmd_qualifier.send_sms.packing_by_me_required)
+			if (src->cmd_qualifier.send_sms.packing_by_me_required)
 				dst[current_index] += 0x01;
 		}break;
 		case SAT_PROATV_CMD_SETUP_CALL:{
@@ -5242,22 +5249,22 @@ static int _sat_encode_command_detail_tlv(const struct tel_sat_cmd_detail_info* 
 			dbg("setup evnet list : 1bit RFU")
 		}break;
 		case SAT_PROATV_CMD_OPEN_CHANNEL:{
-			if(src->cmd_qualifier.open_channel.immediate_link)
+			if (src->cmd_qualifier.open_channel.immediate_link)
 				dst[current_index] += 0x01;
-			if(src->cmd_qualifier.open_channel.automatic_reconnection)
+			if (src->cmd_qualifier.open_channel.automatic_reconnection)
 				dst[current_index] += 0x02;
-			if(src->cmd_qualifier.open_channel.background_mode)
+			if (src->cmd_qualifier.open_channel.background_mode)
 				dst[current_index] += 0x04;
 		}break;
 		case SAT_PROATV_CMD_SEND_DATA:{
-			if(src->cmd_qualifier.send_data.send_data_immediately)
+			if (src->cmd_qualifier.send_data.send_data_immediately)
 				dst[current_index] += 0x01;
 		}break;
 		case SAT_PROATV_CMD_PROVIDE_LOCAL_INFO:{
 			dst[current_index] += src->cmd_qualifier.provide_local_info.provide_local_info;
 		}break;
 		case SAT_PROATV_CMD_LANGUAGE_NOTIFICATION:{
-			if(src->cmd_qualifier.language_notification.specific_language)
+			if (src->cmd_qualifier.language_notification.specific_language)
 				dst[current_index] += 0x01;
 		}break;
 		case SAT_PROATV_CMD_LAUNCH_BROWSER:{
@@ -5312,7 +5319,7 @@ static int _sat_encode_text_tlv(const struct tel_sat_text_string_object* src, ch
 	dst[current_index++] =SATK_TEXT_STRING_TAG;
 
 	//length
-	if(src->string_length <= 0x7F){
+	if (src->string_length <= 0x7F) {
 		dst[current_index++] =SATK_DCS_LENGTH+src->string_length;
 		length_index = 1;
 	}
@@ -5323,13 +5330,13 @@ static int _sat_encode_text_tlv(const struct tel_sat_text_string_object* src, ch
 	}
 
 	//dcs
-	if(raw_dcs)
+	if (raw_dcs)
 		dst[current_index++] = src->dcs.raw_dcs;
 	else
 		dst[current_index++] =_sat_encode_dcs_tlv(&(src->dcs));
 
 	//value
-	if(src->string_length > 0){
+	if (src->string_length > 0) {
 		memcpy(&(dst[current_index]), src->string, src->string_length);
 	}
 
@@ -5370,7 +5377,7 @@ static int _sat_encode_language_tlv(const enum tel_sim_language_type src, char *
 
 	dbg("language (%d)", src);
 
-	switch(src){
+	switch(src) {
 
 		case SIM_LANG_GERMAN :
 			dst[current_index++] = 'd';
@@ -5479,7 +5486,7 @@ static int _sat_encode_bearer_desc_tlv(const struct tel_sat_bearer_description* 
 	//bearer type
 	dst[current_index++] = src->bearer_type;
 
-	switch(src->bearer_type){
+	switch(src->bearer_type) {
 		case BEARER_CSD:{
 			dst[current_index++] = src->bearer_parameter.cs_bearer_param.data_rate;
 			dst[current_index++] = src->bearer_parameter.cs_bearer_param.service_type;
@@ -5522,7 +5529,7 @@ static int _sat_encode_channel_data_tlv(const struct tel_sat_channel_data* src, 
 
 	dst[current_index++] = SATK_CHANNEL_DATA_TAG;
 
-	if(src->data_string_len <= 0x7F){
+	if (src->data_string_len <= 0x7F) {
 		dst[current_index++] = src->data_string_len;
 		length_index = 1;
 	}
@@ -5553,7 +5560,7 @@ static int _sat_encode_channel_status_tlv(const struct tel_sat_channel_status* s
 	dst[current_index++] = SATK_CHANNEL_STATUS_TAG;
 	dst[current_index++] = SATK_CHANNEL_STATUS_LENGTH;
 
-	if(src->status == link_or_packet_service_activated) //(bit 8)
+	if (src->status == link_or_packet_service_activated) //(bit 8)
 		dst[current_index] += 0x80;
 
 	dst[current_index++] += src->channel_id; //(bit 1~3)
@@ -5577,7 +5584,7 @@ static int _sat_encode_download_event(const struct tel_sat_envelop_event_downloa
 	encoded_len =_sat_encode_device_identities_tlv(&(evt_dl->device_identitie), dst_envelop, index);
 	index += encoded_len;
 
-	switch(evt_dl->event){
+	switch(evt_dl->event) {
 		case EVENT_LANGUAGE_SELECTION:
 			encoded_len = _sat_encode_language_tlv(evt_dl->language, dst_envelop, index);
 			index += encoded_len;
@@ -5606,9 +5613,9 @@ static int _sat_encode_download_event(const struct tel_sat_envelop_event_downloa
 
 	dbg("download envelop cmd len(%d)", index);
 
-	if(index-2 > 0x7F){
+	if (index-2 > 0x7F) {
 		int idx = 0;
-		for(idx = index; idx > 0; idx--){
+		for(idx = index; idx > 0; idx--) {
 			dst_envelop[idx] = dst_envelop[idx+1];
 		}
 		dst_envelop[1] = 0x81;
@@ -5623,10 +5630,10 @@ int tcore_sat_encode_envelop_cmd(const struct treq_sat_envelop_cmd_data *src_env
 {
 	int index = 0, encoded_len= 0;
 
-	if(!dst_envelop)
+	if (!dst_envelop)
 		return 0;
 
-	if(src_envelop->sub_cmd == ENVELOP_MENU_SELECTION){
+	if (src_envelop->sub_cmd == ENVELOP_MENU_SELECTION) {
 		index = 2; //set the cursor to device identity
 		dbg("item id(%d)", src_envelop->envelop_data.menu_select.item_identifier.item_identifier);
 		encoded_len =_sat_encode_device_identities_tlv(&(src_envelop->envelop_data.menu_select.device_identitie), dst_envelop, index);
@@ -5636,7 +5643,7 @@ int tcore_sat_encode_envelop_cmd(const struct treq_sat_envelop_cmd_data *src_env
 		encoded_len = _sat_encode_item_identifier_tlv(&(src_envelop->envelop_data.menu_select.item_identifier), dst_envelop, index);
 		index += encoded_len;
 
-		if(src_envelop->envelop_data.menu_select.help_request){
+		if (src_envelop->envelop_data.menu_select.help_request) {
 			encoded_len = 2;//help request
 			dst_envelop[index++] = SATK_HELP_REQUEST_TAG;
 			dst_envelop[index++] = SATK_HELP_REQUEST_LENGTH;
@@ -5648,7 +5655,7 @@ int tcore_sat_encode_envelop_cmd(const struct treq_sat_envelop_cmd_data *src_env
 		dst_envelop[0] = SATK_MENU_SELECTION_TAG;
 		dst_envelop[1] = index-2;
 	}
-	else if(src_envelop->sub_cmd == ENVELOP_EVENT_DOWNLOAD){
+	else if (src_envelop->sub_cmd == ENVELOP_EVENT_DOWNLOAD) {
 		index = _sat_encode_download_event(&(src_envelop->envelop_data.event_download),dst_envelop);
 	}
 
@@ -5671,7 +5678,7 @@ static int _sat_encode_display_text(const struct tel_sat_tr_display_text_tlv *sr
 
 	//set result info
 	dst_tr[index++] = (b_comprehensive ? (SATK_RESULT_TAG | 0x80) : SATK_RESULT_TAG);
-	switch(src_tr->result_type){
+	switch(src_tr->result_type) {
 		case RESULT_SUCCESS:
 		case RESULT_SUCCESS_WITH_PARTIAL_COMPREHENSION:
 		case RESULT_SUCCESS_WITH_MISSING_INFO:
@@ -5717,7 +5724,7 @@ static int _sat_encode_get_inkey(const struct tel_sat_tr_get_inkey_tlv *src_tr, 
 	//set result info
 	dst_tr[index++] = (b_comprehensive ? (SATK_RESULT_TAG | 0x80) : SATK_RESULT_TAG);;
 
-	switch(src_tr->result_type){
+	switch(src_tr->result_type) {
 		case RESULT_SUCCESS:
 		case RESULT_SUCCESS_WITH_PARTIAL_COMPREHENSION:
 		case RESULT_SUCCESS_WITH_MISSING_INFO:
@@ -5770,7 +5777,7 @@ static int _sat_encode_get_input(const struct tel_sat_tr_get_input_tlv *src_tr, 
 	//set result info
 	dst_tr[index++] = (b_comprehensive ? (SATK_RESULT_TAG | 0x80) : SATK_RESULT_TAG);;
 
-	switch(src_tr->result_type){
+	switch(src_tr->result_type) {
 		case RESULT_SUCCESS:
 		case RESULT_SUCCESS_WITH_PARTIAL_COMPREHENSION:
 		case RESULT_SUCCESS_WITH_MISSING_INFO:
@@ -5823,7 +5830,7 @@ static int _sat_encode_more_time(const struct tel_sat_tr_more_time_tlv *src_tr, 
 	//set result info
 	dst_tr[index++] = (b_comprehensive ? (SATK_RESULT_TAG | 0x80) : SATK_RESULT_TAG);;
 
-	switch(src_tr->result_type){
+	switch(src_tr->result_type) {
 		case RESULT_SUCCESS:
 		case RESULT_SUCCESS_WITH_PARTIAL_COMPREHENSION:
 		case RESULT_SUCCESS_WITH_MISSING_INFO:
@@ -5864,7 +5871,7 @@ static int _sat_encode_play_tone(const struct tel_sat_tr_play_tone_tlv *src_tr, 
 	//set result info
 	dst_tr[index++] = (b_comprehensive ? (SATK_RESULT_TAG | 0x80) : SATK_RESULT_TAG);;
 
-	switch(src_tr->result_type){
+	switch(src_tr->result_type) {
 		case RESULT_SUCCESS:
 		case RESULT_SUCCESS_WITH_PARTIAL_COMPREHENSION:
 		case RESULT_SUCCESS_WITH_MISSING_INFO:
@@ -5909,7 +5916,7 @@ static int _sat_encode_refresh(const struct tel_sat_tr_refresh_tlv *src_tr, char
 	//set result info
 	dst_tr[index++] = (b_comprehensive ? (SATK_RESULT_TAG | 0x80) : SATK_RESULT_TAG);;
 
-	switch(src_tr->result_type){
+	switch(src_tr->result_type) {
 		case RESULT_SUCCESS:
 		case RESULT_SUCCESS_WITH_PARTIAL_COMPREHENSION:
 		case RESULT_SUCCESS_WITH_MISSING_INFO:
@@ -5951,7 +5958,7 @@ static int _sat_encode_setup_menu(const struct tel_sat_tr_setup_menu_tlv *src_tr
 
 	//set result info
 	dst_tr[index++] = (b_comprehensive ? (SATK_RESULT_TAG | 0x80) : SATK_RESULT_TAG);;
-	switch(src_tr->result_type){
+	switch(src_tr->result_type) {
 		case RESULT_SUCCESS:
 		case RESULT_SUCCESS_WITH_PARTIAL_COMPREHENSION:
 		case RESULT_SUCCESS_WITH_MISSING_INFO:
@@ -5993,7 +6000,7 @@ static int _sat_encode_select_item(const struct tel_sat_tr_select_item_tlv *src_
 	//set result info
 	dst_tr[index++] = (b_comprehensive ? (SATK_RESULT_TAG | 0x80) : SATK_RESULT_TAG);;
 
-	switch(src_tr->result_type){
+	switch(src_tr->result_type) {
 		case RESULT_SUCCESS:
 		case RESULT_SUCCESS_WITH_PARTIAL_COMPREHENSION:
 		case RESULT_SUCCESS_WITH_MISSING_INFO:
@@ -6045,7 +6052,7 @@ static int _sat_encode_send_sms(const struct tel_sat_tr_send_sms_tlv *src_tr, ch
 	//set result info
 	dst_tr[index++] = (b_comprehensive ? (SATK_RESULT_TAG | 0x80) : SATK_RESULT_TAG);;
 
-	switch(src_tr->result_type){
+	switch(src_tr->result_type) {
 		case RESULT_SUCCESS:
 		case RESULT_SUCCESS_WITH_PARTIAL_COMPREHENSION:
 		case RESULT_SUCCESS_WITH_MISSING_INFO:
@@ -6088,7 +6095,7 @@ static int _sat_encode_send_ss(const struct tel_sat_tr_send_ss_tlv *src_tr, char
 	//set result info
 	dst_tr[index++] = (b_comprehensive ? (SATK_RESULT_TAG | 0x80) : SATK_RESULT_TAG);;
 
-	switch(src_tr->result_type){
+	switch(src_tr->result_type) {
 		case RESULT_SUCCESS:
 		case RESULT_SUCCESS_WITH_PARTIAL_COMPREHENSION:
 		case RESULT_SUCCESS_WITH_MISSING_INFO:
@@ -6142,7 +6149,7 @@ static int _sat_encode_send_ussd(const struct tel_sat_tr_send_ussd_tlv *src_tr, 
 	//set result info
 	dst_tr[index++] = (b_comprehensive ? (SATK_RESULT_TAG | 0x80) : SATK_RESULT_TAG);;
 
-	switch(src_tr->result_type){
+	switch(src_tr->result_type) {
 		case RESULT_SUCCESS:
 		case RESULT_SUCCESS_WITH_PARTIAL_COMPREHENSION:
 		case RESULT_SUCCESS_WITH_MISSING_INFO:
@@ -6195,7 +6202,7 @@ static int _sat_encode_setup_call(const struct tel_sat_tr_setup_call_tlv *src_tr
 	//set result info
 	dst_tr[index++] = (b_comprehensive ? (SATK_RESULT_TAG | 0x80) : SATK_RESULT_TAG);;
 
-	switch(src_tr->result_type){
+	switch(src_tr->result_type) {
 		case RESULT_SUCCESS:
 		case RESULT_SUCCESS_WITH_PARTIAL_COMPREHENSION:
 		case RESULT_SUCCESS_WITH_MISSING_INFO:
@@ -6252,14 +6259,14 @@ static int _sat_encode_provide_local_info(const struct tel_sat_tr_provide_local_
 
 	//set result info
 	dst_tr[index++] = (b_comprehensive ? (SATK_RESULT_TAG | 0x80) : SATK_RESULT_TAG);;
-	switch(src_tr->result_type){
+	switch(src_tr->result_type) {
 		case RESULT_SUCCESS:
 		case RESULT_SUCCESS_WITH_PARTIAL_COMPREHENSION:
 		case RESULT_SUCCESS_WITH_MISSING_INFO:
 		case RESULT_SUCCESS_LIMITED_SERVICE:
 			dst_tr[index++] = 1;
 			dst_tr[index++] = src_tr->result_type;
-			switch(src_tr->command_detail.cmd_qualifier.provide_local_info.provide_local_info){
+			switch(src_tr->command_detail.cmd_qualifier.provide_local_info.provide_local_info) {
 				case LOCAL_INFO_DATE_TIME_AND_TIMEZONE:
 					encoded_len = _sat_encode_date_time_and_timezone_tlv(&(src_tr->other.date_time_and_timezone), dst_tr, index);
 					break;
@@ -6308,7 +6315,7 @@ static int _sat_encode_setup_event_list(const struct tel_sat_tr_setup_event_list
 
 	//set result info
 	dst_tr[index++] = (b_comprehensive ? (SATK_RESULT_TAG | 0x80) : SATK_RESULT_TAG);;
-	switch(src_tr->result_type){
+	switch(src_tr->result_type) {
 		case RESULT_SUCCESS:
 		case RESULT_SUCCESS_WITH_PARTIAL_COMPREHENSION:
 		case RESULT_SUCCESS_WITH_MISSING_INFO:
@@ -6349,7 +6356,7 @@ static int _sat_encode_setup_idle_mode_text(const struct tel_sat_tr_setup_idle_m
 	//set result info
 	dst_tr[index++] = (b_comprehensive ? (SATK_RESULT_TAG | 0x80) : SATK_RESULT_TAG);;
 
-	switch(src_tr->result_type){
+	switch(src_tr->result_type) {
 		case RESULT_SUCCESS:
 		case RESULT_SUCCESS_WITH_PARTIAL_COMPREHENSION:
 		case RESULT_SUCCESS_WITH_MISSING_INFO:
@@ -6391,7 +6398,7 @@ static int _sat_encode_send_dtmf(const struct tel_sat_tr_send_dtmf_tlv *src_tr, 
 	//set result info
 	dst_tr[index++] = (b_comprehensive ? (SATK_RESULT_TAG | 0x80) : SATK_RESULT_TAG);;
 
-	switch(src_tr->result_type){
+	switch(src_tr->result_type) {
 		case RESULT_SUCCESS:
 		case RESULT_SUCCESS_WITH_PARTIAL_COMPREHENSION:
 		case RESULT_SUCCESS_WITH_MISSING_INFO:
@@ -6434,7 +6441,7 @@ static int _sat_encode_language_notification(const struct tel_sat_tr_language_no
 	//set result info
 	dst_tr[index++] = (b_comprehensive ? (SATK_RESULT_TAG | 0x80) : SATK_RESULT_TAG);;
 
-	switch(src_tr->result_type){
+	switch(src_tr->result_type) {
 		case RESULT_SUCCESS:
 		case RESULT_SUCCESS_WITH_PARTIAL_COMPREHENSION:
 		case RESULT_SUCCESS_WITH_MISSING_INFO:
@@ -6476,7 +6483,7 @@ static int _sat_encode_launch_browser(const struct tel_sat_tr_launch_browser_tlv
 	//set result info
 	dst_tr[index++] = (b_comprehensive ? (SATK_RESULT_TAG | 0x80) : SATK_RESULT_TAG);;
 
-	switch(src_tr->result_type){
+	switch(src_tr->result_type) {
 		case RESULT_SUCCESS:
 		case RESULT_SUCCESS_WITH_PARTIAL_COMPREHENSION:
 		case RESULT_SUCCESS_WITH_MISSING_INFO:
@@ -6522,7 +6529,7 @@ static int _sat_encode_open_channel(const struct tel_sat_tr_open_channel_tlv *sr
 
 	//set result info
 	dst_tr[index++] = (b_comprehensive ? (SATK_RESULT_TAG | 0x80) : SATK_RESULT_TAG);;
-	switch(src_tr->result_type){
+	switch(src_tr->result_type) {
 		case RESULT_SUCCESS:
 		case RESULT_SUCCESS_WITH_PARTIAL_COMPREHENSION:
 		case RESULT_SUCCESS_WITH_MISSING_INFO:
@@ -6590,7 +6597,7 @@ static int _sat_encode_close_channel(const struct tel_sat_tr_close_channel_tlv *
 
 	//set result info
 	dst_tr[index++] = (b_comprehensive ? (SATK_RESULT_TAG | 0x80) : SATK_RESULT_TAG);;
-	switch(src_tr->result_type){
+	switch(src_tr->result_type) {
 		case RESULT_SUCCESS:
 		case RESULT_SUCCESS_WITH_PARTIAL_COMPREHENSION:
 		case RESULT_SUCCESS_WITH_MISSING_INFO:
@@ -6638,7 +6645,7 @@ static int _sat_encode_send_data(const struct tel_sat_tr_send_data_tlv *src_tr, 
 
 	//set result info
 	dst_tr[index++] = (b_comprehensive ? (SATK_RESULT_TAG | 0x80) : SATK_RESULT_TAG);;
-	switch(src_tr->result_type){
+	switch(src_tr->result_type) {
 		case RESULT_SUCCESS:
 		case RESULT_SUCCESS_WITH_PARTIAL_COMPREHENSION:
 		case RESULT_SUCCESS_WITH_MISSING_INFO:
@@ -6690,7 +6697,7 @@ static int _sat_encode_receive_data(const struct tel_sat_tr_receive_data_tlv *sr
 
 	//set result info
 	dst_tr[index++] = (b_comprehensive ? (SATK_RESULT_TAG | 0x80) : SATK_RESULT_TAG);;
-	switch(src_tr->result_type){
+	switch(src_tr->result_type) {
 		case RESULT_SUCCESS:
 		case RESULT_SUCCESS_WITH_PARTIAL_COMPREHENSION:
 		case RESULT_SUCCESS_WITH_MISSING_INFO:
@@ -6743,7 +6750,7 @@ static int _sat_encode_get_channel_status(const struct tel_sat_tr_get_channel_st
 
 	//set result info
 	dst_tr[index++] = (b_comprehensive ? (SATK_RESULT_TAG | 0x80) : SATK_RESULT_TAG);;
-	switch(src_tr->result_type){
+	switch(src_tr->result_type) {
 		case RESULT_SUCCESS:
 		case RESULT_SUCCESS_WITH_PARTIAL_COMPREHENSION:
 		case RESULT_SUCCESS_WITH_MISSING_INFO:
@@ -6782,13 +6789,13 @@ static int _sat_encode_get_channel_status(const struct tel_sat_tr_get_channel_st
 	return index;
 }
 
-int tcore_sat_encode_terminal_response(const struct treq_sat_terminal_rsp_data *src_tr, char *dst_tr){
+int tcore_sat_encode_terminal_response(const struct treq_sat_terminal_rsp_data *src_tr, char *dst_tr) {
 	int tr_len = 0;
 
-	if(!dst_tr)
+	if (!dst_tr)
 		return 0;
 
-	switch(src_tr->cmd_type){
+	switch(src_tr->cmd_type) {
 		case SAT_PROATV_CMD_DISPLAY_TEXT:{
 			tr_len = _sat_encode_display_text(&(src_tr->terminal_rsp_data.display_text), dst_tr);
 		}break;
@@ -6877,7 +6884,7 @@ void tcore_sat_override_ops(CoreObject *o, struct tcore_sat_operations *sat_ops)
 		return;
 	}
 
-	if(sat_ops) {
+	if (sat_ops) {
 		_clone_sat_operations(po, sat_ops);
 	}
 

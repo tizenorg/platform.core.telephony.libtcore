@@ -254,7 +254,7 @@ static unsigned char _cmux_calc_crc(unsigned char *header, int length)
 	/* Ones complement */
 	crc = (0xFF - fcs);
 
-	dbg("Exit - crc: 0x%02x", crc)
+	dbg("Exit - CRC: [0x%02x]", crc)
 	return crc;
 }
 
@@ -337,7 +337,7 @@ static unsigned char *_cmux_encode_cmux_frame(tcore_cmux_object *cmux_obj,
 		/* DLCI: Data Link Connection Identifier */
 		/* Check if the channel is within range */
 		if (channel_id < cmux_obj->max_cmux_channels && channel_id >= 0) {
-			dbg("Channel ID: %d", channel_id);
+			dbg("Channel ID: [%d]", channel_id);
 			cmux_obj->internal_mux.info_field[frame_length] =
 				(cmux_obj->internal_mux.info_field[frame_length]
 							| ((unsigned char)channel_id << 2));
@@ -411,9 +411,8 @@ static unsigned char *_cmux_encode_cmux_frame(tcore_cmux_object *cmux_obj,
 	}
 
 	*out_data_len = total_frame_length;
-	dbg("Data Length: %d", *out_data_len);
+	dbg("Data (Frame) Length: [%d]", *out_data_len);
 
-	dbg("Exit total_frame_length: %d", total_frame_length);
 	return cmux_obj->internal_mux.info_field;
 }
 
@@ -478,10 +477,10 @@ static void _cmux_process_channel_data(tcore_cmux_object *cmux_obj,
 	dbg("Entry");
 
 	channel_id = channel->channel_id;
-	dbg("Channel ID: %d", channel_id);
+	dbg("Channel ID: [%d]", channel_id);
 
 	frame_type = channel->frame_type & 0xEF;
-	dbg("frame_type: 0x%x", frame_type);
+	dbg("Frame Type: [0x%02x]", frame_type);
 
 	switch (frame_type) {
 		case CMUX_COMMAND_UI:
@@ -499,8 +498,7 @@ static void _cmux_process_channel_data(tcore_cmux_object *cmux_obj,
 			}
 			break;
 		case CMUX_COMMAND_UA:
-			dbg("Received UA Frame");
-			dbg("channel->channel_state: %d", channel->channel_state);
+			dbg("Received UA Frame - Channel State: [%d]", channel->channel_state);
 			if (CMUX_CHANNEL_SABM_SEND_WAITING_FOR_UA == channel->channel_state) {
 				channel->channel_state = CMUX_CHANNEL_ESTABLISHED;
 
@@ -523,7 +521,7 @@ static void _cmux_process_channel_data(tcore_cmux_object *cmux_obj,
 				}
 
 				count++;
-				dbg("Count: %d", count);
+				dbg("Count: [%d]", count);
 				if (cmux_obj->max_cmux_channels == count) {
 					dbg("Invoking CMUX Channel Setup Complete callback - Total Channels: [%d]",
 													count);
@@ -711,7 +709,7 @@ static void _cmux_process_rcv_frame(tcore_cmux_object *cmux_obj, int length)
 			header_length = 4;
 			frame_process_ptr++;
 		}
-		dbg("info_field_len: %d", cmux_obj->internal_mux.info_field_len);
+		dbg("info_field_len: [%d]", cmux_obj->internal_mux.info_field_len);
 
 		/* Copy received information field */
 		memcpy(cmux_obj->internal_mux.info_field, frame_process_ptr,
@@ -760,7 +758,7 @@ static gboolean _cmux_recv_cmux_data(tcore_cmux_object *cmux_obj,
 		return FALSE;
 	}
 
-	dbg("Dispatching to logical HAL - hal: %x", (unsigned int)hal);
+	dbg("Dispatching to logical HAL - hal: [0x%x]", (unsigned int)hal);
 	if (tcore_hal_dispatch_response_data(hal, 0,
 			cmux_obj->internal_mux.info_field_len,
 			cmux_obj->internal_mux.info_field)
@@ -781,7 +779,7 @@ static TReturn _cmux_hal_power(TcoreHal *hal, gboolean flag)
 		dbg("Powering ON");
 		return tcore_hal_set_power_state(hal, TRUE);
 	} else {					/* Powering OFF */
-		dbg("Powering ON");
+		dbg("Powering OFF");
 		return tcore_hal_set_power_state(hal, FALSE);
 	}
 }
@@ -816,7 +814,7 @@ static TReturn _cmux_hal_send(TcoreHal *hal, unsigned int data_len, void *data)
 	channel_id = cmux_obj->max_cmux_channels + 1;
 
 	channel_name = tcore_hal_get_name(hal);
-	dbg("HAL name: %s", channel_name);
+	dbg("HAL name: [%s]", channel_name);
 
 	if (channel_name != NULL) {
 		int i;
@@ -828,16 +826,17 @@ static TReturn _cmux_hal_send(TcoreHal *hal, unsigned int data_len, void *data)
 		for (i = 1 ; cmux_obj->max_cmux_channels > i ; i++) {
 			hal_name =
 				tcore_hal_get_name(cmux_obj->internal_mux.channel_info[i]->hal);
-			dbg("HAL name: %s", hal_name);
-			if (hal_name == NULL)
+			if (hal_name == NULL) {
+				dbg("HAL name: [%s]", hal_name);
 				continue;
+			}
 
 			/*
 			 * Comparing all Logical HAL names with required HAL name.
 			 */
 			if (strcmp(hal_name, channel_name) == 0) {
 				channel_id = cmux_obj->internal_mux.channel_info[i]->channel_id;
-				dbg("Found Channel ID: %d", channel_id);
+				dbg("Found Channel ID: [%d]", channel_id);
 
 				/* Free HAL name */
 				g_free(hal_name);
@@ -1282,7 +1281,7 @@ TReturn tcore_cmux_init(TcoreHal *phy_hal, unsigned int frame_size,
 		tcore_pending_free(pending);
 		return ret;
 	}
-	dbg("AT Command: %s, Prefix(if any):%s, AT-Command length: %d", req->cmd, req->prefix, strlen(req->cmd));
+	dbg("AT Command: [%s], Prefix(if any): [%s], AT-Command length: [%d]", req->cmd, req->prefix, strlen(req->cmd));
 
 	tcore_pending_set_request_data(pending, 0, req);
 	tcore_pending_set_response_callback(pending, resp_cb, resp_cb_data);
@@ -1395,7 +1394,7 @@ TReturn tcore_cmux_setup_internal_mux(tcore_cmux_mode mode,
 			err("Failed to encode");
 			goto ERROR;
 		}
-		dbg("data_len: %d data: %s", data_len, data);
+		dbg("data_len: [%d] data: [%s]", data_len, data);
 
 		/* Send CMUX data */
 		ret = _cmux_send_data(cmux_obj->phy_hal, data_len, data);

@@ -123,6 +123,11 @@ TReturn tcore_context_set_state(CoreObject *o, enum co_context_state state)
 {
 	struct private_object_data *po = NULL;
 
+	dbg("Set State: [%s]", ((state == CONTEXT_STATE_ACTIVATED) ? "ACTIVATED"
+					: (state == CONTEXT_STATE_ACTIVATING) ? "ACTIVATING"
+					: (state == CONTEXT_STATE_DEACTIVATED) ? "DEACTIVATED"
+					: "DEACTIVATING"));
+
 	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PS_CONTEXT, TCORE_RETURN_EINVAL);
 
 	po = tcore_object_ref_object(o);
@@ -547,19 +552,31 @@ TReturn tcore_context_set_devinfo(CoreObject *o, struct tnoti_ps_pdp_ipconfigura
 {
 	struct private_object_data *po = NULL;
 
+	dbg("Setup device information");
+
 	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PS_CONTEXT, TCORE_RETURN_EINVAL);
 
 	po = tcore_object_ref_object(o);
-	if (!po)
+	if (!po) {
+		err("Failed to refer Object");
 		return FALSE;
-	if (!devinfo)
+	}
+
+	if (!devinfo) {
+		err("Device info is NULL");
 		return FALSE;
+	}
 
 	memcpy(&(po->ip_v4), devinfo->ip_address, sizeof(union tcore_ip4_type));
 	memcpy(&(po->dns_primary_v4), devinfo->primary_dns, sizeof(union tcore_ip4_type));
 	memcpy(&(po->dns_secondary_v4), devinfo->secondary_dns, sizeof(union tcore_ip4_type));
 	memcpy(&(po->gateway_v4), devinfo->gateway, sizeof(union tcore_ip4_type));
 	memcpy(po->devname, devinfo->devname, sizeof(char) * 16);
+
+	msg("	IP Address: [0x%x]", po->ip_v4);
+	msg("	DNS - Primary: [0x%x] Secondary: [0x%x]", po->dns_primary_v4, po->dns_secondary_v4);
+	msg("	Gateway: [0x%x]", po->gateway_v4);
+	msg("	Device Name: [%s]", po->devname);
 
 	return TCORE_RETURN_SUCCESS;
 }
@@ -568,11 +585,13 @@ TReturn tcore_context_reset_devinfo(CoreObject *o)
 {
 	struct private_object_data *po = NULL;
 
+	dbg("Reset device information");
+
 	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PS_CONTEXT, TCORE_RETURN_EINVAL);
 
 	po = tcore_object_ref_object(o);
 	if (!po)
-		return FALSE;
+		return TCORE_RETURN_FAILURE;
 
 	memset(&(po->ip_v4), 0, sizeof(union tcore_ip4_type));
 	memset(&(po->dns_primary_v4), 0, sizeof(union tcore_ip4_type));
@@ -615,6 +634,7 @@ static void tcore_context_set_ipv4_atoi(unsigned char *ip4, const char *str)
 	token = strtok(temp, ".");
 	while (token != NULL) {
 		ip4[index++] = atoi(token);
+		msg("	[%c]", ip4[index-1]);
 		token = strtok(NULL, ".");
 	}
 	g_free(temp);
@@ -638,6 +658,7 @@ TReturn tcore_context_set_ipv4_addr(CoreObject *o, const char *addr)
 	if (addr) {
 		po->addr = g_strdup(addr);
 		tcore_context_set_ipv4_atoi(po->ip_v4.s, addr);
+		dbg("IP Address: [%s]", addr);
 	}
 
 	return TCORE_RETURN_SUCCESS;

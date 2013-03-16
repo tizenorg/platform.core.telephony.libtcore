@@ -25,7 +25,7 @@ __BEGIN_DECLS
 
 typedef void (*TcoreHalReceiveCallback)(TcoreHal *hal, unsigned int data_len, const void *data, void *user_data);
 typedef enum tcore_hook_return (*TcoreHalSendHook)(TcoreHal *hal, unsigned int data_len, void *data, void *user_data);
-typedef void (*TcoreHalSetupNetifCallback)(CoreObject *co, const char* devname, void *user_data);
+typedef void (*TcoreHalSetupNetifCallback)(CoreObject *co, int result, const char* devname, void *user_data);
 
 enum tcore_hal_recv_data_type {
 	TCORE_HAL_RECV_INDICATION,

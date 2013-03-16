@@ -1010,7 +1010,8 @@ TReturn tcore_prepare_and_send_at_request(CoreObject *co,
 		tcore_pending_free(pending);
 		return ret;
 	}
-	dbg("AT Command: %s, Prefix(if any):%s, AT-Command length: %d", req->cmd, req->prefix, strlen(req->cmd));
+	dbg("AT Command: [%s], Prefix(if any): [%s], AT-Command length: [%d]",
+								req->cmd, req->prefix, strlen(req->cmd));
 
 	tcore_pending_set_request_data(pending, 0, req);
 	tcore_pending_set_response_callback(pending, resp_cb, resp_cb_data);

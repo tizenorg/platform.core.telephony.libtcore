@@ -302,6 +302,8 @@ TcorePlugin *tcore_server_find_plugin(Server *s, const char *name)
 	GSList *list;
 	TcoreModem *modem;
 
+	dbg("Name: [%s]", name);
+
 	for (list = s->modems; list; list = list->next) {
 		modem = list->data;
 		if (modem == NULL)
@@ -508,6 +510,7 @@ TReturn tcore_server_dispatch_request(Server *s, UserRequest *ur)
 	command = tcore_user_request_get_command(ur);
 
 	category = CORE_OBJECT_TYPE_DEFAULT | (command & 0x0FF00000);
+	dbg("Category: [0x%x]", category);
 
 	co = tcore_plugin_ref_core_object(p, category);
 	if (co == NULL) {
@@ -530,6 +533,7 @@ TReturn tcore_server_send_notification(Server *s, CoreObject *source,
 	GSList *list;
 	Communicator *comm;
 	struct hook_notification_type *hook;
+	dbg("Send Notification!!! Command: [0x%x]", command);
 
 	if (s == NULL)
 		return TCORE_RETURN_EINVAL;
@@ -541,6 +545,7 @@ TReturn tcore_server_send_notification(Server *s, CoreObject *source,
 		}
 
 		if (hook->command == command) {
+			dbg("Invoking hook_func() for Command: [0x%x]", command);
 			if (hook->func(s, source, command, data_len, data, hook->user_data)
 					== TCORE_HOOK_RETURN_STOP_PROPAGATION)
 				return TCORE_RETURN_SUCCESS;
@@ -610,18 +615,23 @@ TReturn tcore_server_add_notification_hook(Server *s,
 {
 	struct hook_notification_type *hook;
 
-	if ((s == NULL)|| (func == NULL))
+	if ((s == NULL) || (func == NULL)) {
+		err("server: [0x%x] func: [0x%x]", s, func);
 		return TCORE_RETURN_EINVAL;
+	}
 
 	hook = g_try_new0(struct hook_notification_type, 1);
-	if (hook == NULL)
+	if (hook == NULL) {
+		err("Failed to allocate memory");
 		return TCORE_RETURN_ENOMEM;
+	}
 
 	hook->command = command;
 	hook->func = func;
 	hook->user_data = user_data;
 
 	s->hook_list_notification = g_slist_append(s->hook_list_notification, hook);
+	dbg("Added hook_func() for Command: [0x%x]", command);
 
 	return TCORE_RETURN_SUCCESS;
 }
@@ -976,6 +986,11 @@ TReturn tcore_server_load_modem_plugin(Server *s,
 	}
 
 	dbg("Plugin %s initialization success", desc->name);
+
+	/* Notify addition of Plug-in to Upper Layers */
+	tcore_server_send_notification(s, NULL, TNOTI_SERVER_ADDED_PLUGIN,
+								0, modem_plugin);
+
 	ret = TCORE_RETURN_SUCCESS;
 
 out:

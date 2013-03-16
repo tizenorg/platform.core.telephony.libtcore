@@ -276,28 +276,27 @@ gboolean tcore_modem_get_flight_mode_state(CoreObject *o)
 
 TReturn tcore_modem_set_powered(CoreObject *o, gboolean pwr)
 {
-	TcoreHal *h;
+	struct private_object_data *po = NULL;
 
 	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_MODEM, TCORE_RETURN_EINVAL);
 
-	h = tcore_object_get_hal(o);
-	if (!h)
-		return TCORE_RETURN_FAILURE;
+	po = tcore_object_ref_object(o);
+	if (!po)
+		return FALSE;
 
-	tcore_hal_set_power_state(h, pwr);
-
-	return TRUE;
+	return po->powered;
 }
 
 gboolean tcore_modem_get_powered(CoreObject *o)
 {
-	TcoreHal *h;
+	struct private_object_data *po = NULL;
 
 	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_MODEM, FALSE);
 
-	h = tcore_object_get_hal(o);
-	if (!h)
+	po = tcore_object_ref_object(o);
+	if (!po)
 		return FALSE;
 
-	return tcore_hal_get_power_state(h);
+	return po->powered;
+
 }
