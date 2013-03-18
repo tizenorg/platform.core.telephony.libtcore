@@ -706,12 +706,14 @@ struct treq_sim_req_authentication {
 struct tresp_sim_verify_pins {
 	enum tel_sim_pin_operation_result result;
 	enum tel_sim_pin_type pin_type;
+	enum tel_sim_lock_status lock_status;
 	int retry_count;
 };
 
 struct tresp_sim_verify_puks {
 	enum tel_sim_pin_operation_result result;
 	enum tel_sim_pin_type pin_type;
+	enum tel_sim_lock_status lock_status;
 	int retry_count;
 };
 
