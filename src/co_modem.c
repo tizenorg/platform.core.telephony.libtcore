@@ -258,7 +258,7 @@ TReturn tcore_modem_set_flight_mode_state(CoreObject *o, gboolean flag)
 
 	po->flight_mode = flag;
 
-	return TRUE;
+	return TCORE_RETURN_SUCCESS;
 }
 
 gboolean tcore_modem_get_flight_mode_state(CoreObject *o)
@@ -276,7 +276,7 @@ gboolean tcore_modem_get_flight_mode_state(CoreObject *o)
 
 TReturn tcore_modem_set_powered(CoreObject *o, gboolean pwr)
 {
-	struct private_object_data *po = NULL;
+	struct private_object_data *po;
 
 	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_MODEM, TCORE_RETURN_EINVAL);
 
@@ -284,12 +284,14 @@ TReturn tcore_modem_set_powered(CoreObject *o, gboolean pwr)
 	if (!po)
 		return FALSE;
 
-	return po->powered;
+	po->powered = pwr;
+
+	return TCORE_RETURN_SUCCESS;
 }
 
 gboolean tcore_modem_get_powered(CoreObject *o)
 {
-	struct private_object_data *po = NULL;
+	struct private_object_data *po;
 
 	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_MODEM, FALSE);
 
@@ -298,5 +300,4 @@ gboolean tcore_modem_get_powered(CoreObject *o)
 		return FALSE;
 
 	return po->powered;
-
 }

@@ -223,7 +223,7 @@ struct tresp_network_search {
 	int list_count;
 	struct {
 		enum telephony_network_plmn_status  status;
-		char name[17];
+		char name[40];
 		char plmn[7];
 		enum telephony_network_access_technology act;
 		unsigned int lac;

@@ -82,6 +82,7 @@ struct _notification {
  */
 static const char *list_final_responses_success[] = {
 	"OK",
+	"CONNECT",
 };
 
 /**
