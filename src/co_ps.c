@@ -48,6 +48,9 @@ struct private_object_data {
 
 static void _clone_ps_operations(struct private_object_data *po, struct tcore_ps_operations *ps_ops)
 {
+	if(ps_ops->define_context) {
+		po->ops->define_context = ps_ops->define_context;
+	}
 	if(ps_ops->activate_context) {
 		po->ops->activate_context = ps_ops->activate_context;
 	}
