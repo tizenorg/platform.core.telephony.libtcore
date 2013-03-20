@@ -1000,3 +1000,57 @@ out:
 
 	return ret;
 }
+
+void tcore_server_unload_modem_plugin(Server *s, TcorePlugin *modem_if_plugin)
+{
+	TcoreModem *modem;
+	TcorePlugin *modem_plugin;
+	const struct tcore_plugin_define_desc *desc;
+
+	dbg("Enter");
+
+	if ((s == NULL) || (modem_if_plugin == NULL)) {
+		err("Invalid inputs");
+		return;
+	}
+
+	/* Find modem from Server's Modem's list */
+	modem = _server_find_modem(s, modem_if_plugin, modem_if_plugin);
+	if (modem == NULL) {
+		err("Failed to find 'modem' for Plug-in: [%s]",
+					tcore_plugin_ref_plugin_name(modem_if_plugin));
+		return;
+	}
+
+	msg("Modem Plug-in: [%s] Modem Interface Plug-in: [%s]",
+			tcore_plugin_ref_plugin_name(modem->modem_plugin),
+			tcore_plugin_ref_plugin_name(modem->modem_iface_plugin));
+	msg("CP Name: [%s]", modem->cp_name);
+
+	/* Extract Modem Plug-in */
+	modem_plugin = modem->modem_plugin;
+	if (modem_plugin == NULL) {
+		err("Modem Plug-in is NULL");
+		return;
+	}
+
+	/* Notify deletion of Plug-in to Upper Layers */
+	tcore_server_send_notification(s, NULL, TNOTI_SERVER_REMOVED_PLUGIN,
+							0, modem_plugin);
+
+	/* Extract descriptor of Modem Plug-in */
+	desc = tcore_plugin_get_description(modem_plugin);
+	if (desc != NULL) {
+		/* Unload Modem Plug-in */
+		if (desc->unload != NULL) {
+			dbg("Unloading Modem Plug-in: [%s]",
+						tcore_plugin_ref_plugin_name(modem_plugin));
+			desc->unload(modem_plugin);
+		}
+	}
+
+	/* Free Modem Plug-in */
+	tcore_plugin_free(modem_plugin);
+
+	dbg("Unloaded Modem Plug-in");
+}

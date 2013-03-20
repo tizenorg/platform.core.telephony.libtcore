@@ -88,6 +88,8 @@ void tcore_server_print_modems(TcorePlugin *plugin);
 TReturn tcore_server_load_modem_plugin(Server *s,
 					TcorePlugin *modem_if_plugin,
 					const char *name);
+void tcore_server_unload_modem_plugin(Server *s, TcorePlugin *modem_if_plugin);
+
 
 __END_DECLS
 
