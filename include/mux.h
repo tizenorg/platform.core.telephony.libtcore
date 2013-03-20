@@ -35,12 +35,15 @@ typedef struct cmux_channel tcore_cmux_channel;
 /* Global MUX Object */
 typedef struct cmux_obj tcore_cmux_object;
 
-/* Internal CMUX setup complete callback prototype */
+/* CMUX setup complete callback prototype */
 typedef void (*cmux_setup_complete_cb_func) (gpointer user_data);
 
 /* CMUX setup callback prototype */
 typedef void (*cmux_setup_cb_func) (int channel_id, TcoreHal *hal,
 									gpointer user_data);
+
+/* CMUX Channel close callback prototype */
+typedef void (*cmux_channel_close_cb_func) (TcoreHal *hal, gpointer user_data);
 
 /* CMUX initialization - Internal and Kernel */
 TReturn tcore_cmux_init(TcoreHal *phy_hal, unsigned int frame_size,
@@ -53,7 +56,8 @@ TReturn tcore_cmux_setup_internal_mux(tcore_cmux_mode mode,
 	cmux_setup_complete_cb_func setup_complete_cb, gpointer setup_complete_user_data);
 
 /* Close CMUX */
-void tcore_cmux_close(TcoreHal *phy_hal);
+void tcore_cmux_close(TcoreHal *phy_hal,
+	cmux_channel_close_cb_func channel_close_cb, gpointer channel_close_user_data);
 
 /* HAL Receive for Internal CMUX */
 void tcore_cmux_rcv_from_hal(TcoreHal *hal, unsigned char *data, size_t length);

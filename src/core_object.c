@@ -121,6 +121,25 @@ static void _util_print_mapping_tbl_entry(object_mapping_table_t *tbl_entry)
 	}
 }
 
+static void _free_tbl_entry(gpointer data)
+{
+	object_mapping_table_t *tbl_entry;
+
+	if (data == NULL)
+		return;
+
+	tbl_entry = data;
+
+	dbg("Removing Mapping Table Entry - HAL: [0x%x]", tbl_entry->hal);
+	_util_print_mapping_tbl_entry(tbl_entry);
+
+	/* Free Core Object types list */
+	g_slist_free(tbl_entry->object_type);
+
+	/* Free Table entry */
+	g_free(tbl_entry);
+}
+
 static CoreObject *_object_new(TcorePlugin *plugin, unsigned int type)
 {
 	CoreObject *co;
@@ -818,6 +837,19 @@ void *tcore_object_add_mapping_tbl_entry(void *mapping_tbl,
 	dbg("Added Mapping Table entry - HAL: [0x%x] Object type: [0x%x]", hal, object_type);
 
 	return mapping_tbl_list;
+}
+
+void tcore_object_remove_mapping_tbl(void *mapping_tbl)
+{
+	GSList *mapping_tbl_list = mapping_tbl;
+
+	if (mapping_tbl_list == NULL) {
+		err("Mapping Table is NULL");
+		return;
+	}
+
+	/* Freeing Mapping Table */
+	g_slist_free_full(mapping_tbl_list, _free_tbl_entry);
 }
 
 void *tcore_object_remove_mapping_tbl_entry(void *mapping_tbl, TcoreHal *hal)

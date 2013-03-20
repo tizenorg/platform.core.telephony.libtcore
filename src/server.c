@@ -836,6 +836,33 @@ gboolean tcore_server_add_cp_mapping_tbl_entry(TcorePlugin *modem_iface_plugin,
 	return TRUE;
 }
 
+void tcore_server_remove_cp_mapping_tbl(TcorePlugin *modem_iface_plugin)
+{
+	Server *s;
+	TcoreModem *modem;
+
+	if (modem_iface_plugin == NULL) {
+		err("Modem Interface is NULL");
+		return;
+	}
+
+	s = tcore_plugin_ref_server(modem_iface_plugin);
+	if (s == NULL) {
+		err("server is NULL");
+		return;
+	}
+
+	modem = _server_find_modem(s, modem_iface_plugin, NULL);
+	if (modem == NULL) {
+		err("Failed to find 'modem' for Modem Interface Plug-in: [%s]",
+					tcore_plugin_ref_plugin_name(modem_iface_plugin));
+		return;
+	}
+
+	/* Removing the Mapping Table from the Modems list */
+	tcore_object_remove_mapping_tbl(modem->mapping_tbl);
+}
+
 void tcore_server_remove_cp_mapping_tbl_entry(TcorePlugin *modem_iface_plugin,
 					TcoreHal *hal)
 {

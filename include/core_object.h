@@ -132,6 +132,7 @@ TReturn tcore_object_emit_callback(CoreObject *co, const char *event, const void
 
 void *tcore_object_add_mapping_tbl_entry(void *mapping_tbl,
 						unsigned int object_type, TcoreHal *hal);
+void tcore_object_remove_mapping_tbl(void *mapping_tbl);
 void *tcore_object_remove_mapping_tbl_entry(void *mapping_tbl, TcoreHal *hal);
 void tcore_object_remove_mapping_tbl_entry_by_type(void *mapping_tbl,
 							unsigned int co_type);

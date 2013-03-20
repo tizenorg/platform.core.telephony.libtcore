@@ -451,7 +451,9 @@ static void _cmux_control_channel_handle(tcore_cmux_object *cmux_obj)
 					dbg("Multiplexer close down");
 
 					cmux_obj->cmux_state = CMUX_CLOSED;
-					tcore_cmux_close(cmux_obj->phy_hal);
+
+					/* TODO - Need to notify regarding CMUX closure */
+					tcore_cmux_close(cmux_obj->phy_hal, NULL, NULL);
 					break;
 				default:
 					/* We will be supporting these commands in Phase 2 */
@@ -541,7 +543,9 @@ static void _cmux_process_channel_data(tcore_cmux_object *cmux_obj,
 
 				if (channel_id == CMUX_CHANNEL_0) {
 					cmux_obj->cmux_state = CMUX_CLOSED;
-					tcore_cmux_close(cmux_obj->phy_hal);
+
+					/* TODO - Need to notify regarding CMUX closure */
+					tcore_cmux_close(cmux_obj->phy_hal, NULL, NULL);
 				}
 			} else
 				err("Received UA in wrong state!!!");
@@ -615,7 +619,8 @@ static void _cmux_process_channel_data(tcore_cmux_object *cmux_obj,
 					cmux_obj->cmux_state = CMUX_CLOSED;
 
 					/* Close CMUX */
-					tcore_cmux_close(cmux_obj->phy_hal);
+					/* TODO - Need to notify regarding CMUX closure */
+					tcore_cmux_close(cmux_obj->phy_hal, NULL, NULL);
 				}
 			}
 			break;
@@ -1417,7 +1422,8 @@ ERROR:
 }
 
 /* Close CMUX */
-void tcore_cmux_close(TcoreHal *phy_hal)
+void tcore_cmux_close(TcoreHal *phy_hal,
+	cmux_channel_close_cb_func channel_close_cb, gpointer channel_close_user_data)
 {
 	tcore_cmux_object *cmux_obj;
 	int channel_id;
@@ -1441,6 +1447,11 @@ void tcore_cmux_close(TcoreHal *phy_hal)
 
 		/* Close Channel - Send DSC command */
 		_cmux_close_channel(cmux_obj, channel_id);
+
+		/* Invoke callback */
+		if (channel_close_cb != NULL)
+			channel_close_cb(cmux_obj->internal_mux.channel_info[channel_id]->hal,
+						channel_close_user_data);
 
 		/* Free Logical HAL for Channel */
 		tcore_hal_free(cmux_obj->internal_mux.channel_info[channel_id]->hal);

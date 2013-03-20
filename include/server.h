@@ -79,6 +79,7 @@ const char *tcore_server_get_cp_name_by_plugin(TcorePlugin *plugin);
 
 gboolean tcore_server_add_cp_mapping_tbl_entry(TcorePlugin *modem_iface_plugin,
 					unsigned int co_type, TcoreHal *hal);
+void tcore_server_remove_cp_mapping_tbl(TcorePlugin *modem_iface_plugin);
 void tcore_server_remove_cp_mapping_tbl_entry(TcorePlugin *modem_iface_plugin,
 					TcoreHal *hal);
 void *tcore_server_get_cp_mapping_tbl(TcorePlugin *modem_plugin);
