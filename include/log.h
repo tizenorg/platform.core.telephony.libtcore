@@ -31,11 +31,11 @@ __BEGIN_DECLS
 #define TCORE_LOG_TAG "UNKNOWN"
 #endif
 
-#define info(fmt,args...)  { RLOG(LOG_INFO, TCORE_LOG_TAG, fmt "\n", ##args); }
-#define msg(fmt,args...)  { RLOG(LOG_DEBUG, TCORE_LOG_TAG, fmt "\n", ##args); }
-#define dbg(fmt,args...)  { RLOG(LOG_DEBUG, TCORE_LOG_TAG, "<%s:%d> " fmt "\n", __func__, __LINE__, ##args); }
-#define warn(fmt,args...)  { RLOG(LOG_WARN, TCORE_LOG_TAG, "<%s:%d> " fmt "\n", __func__, __LINE__, ##args); }
-#define err(fmt,args...)  { RLOG(LOG_FATAL, TCORE_LOG_TAG, "<%s:%d> " fmt "\n", __func__, __LINE__, ##args); }
+#define info(fmt,args...)  do { RLOG(LOG_INFO, TCORE_LOG_TAG, fmt "\n", ##args); } while(0)
+#define msg(fmt,args...)  do { RLOG(LOG_DEBUG, TCORE_LOG_TAG, fmt "\n", ##args); } while(0)
+#define dbg(fmt,args...)  do { RLOG(LOG_DEBUG, TCORE_LOG_TAG, "<%s:%d> " fmt "\n", __func__, __LINE__, ##args); } while(0)
+#define warn(fmt,args...)  do { RLOG(LOG_WARN, TCORE_LOG_TAG, "<%s:%d> " fmt "\n", __func__, __LINE__, ##args); } while(0)
+#define err(fmt,args...)  do { RLOG(LOG_FATAL, TCORE_LOG_TAG, "<%s:%d> " fmt "\n", __func__, __LINE__, ##args); } while(0)
 
 #elif defined(FEATURE_TLOG_DEBUG)
 
@@ -67,11 +67,11 @@ enum tcore_log_priority {
  */
 void tcore_log(enum tcore_log_type type, enum tcore_log_priority priority, const char *tag, const char *fmt, ...);
 
-#define info(fmt,args...)  { tcore_log(TCORE_LOG_TYPE_RADIO, TCORE_LOG_INFO, TCORE_LOG_TAG, fmt "\n", ##args); }
-#define msg(fmt,args...)  { tcore_log(TCORE_LOG_TYPE_RADIO, TCORE_LOG_DEBUG, TCORE_LOG_TAG, fmt "\n", ##args); }
-#define dbg(fmt,args...)  { tcore_log(TCORE_LOG_TYPE_RADIO, TCORE_LOG_DEBUG, TCORE_LOG_TAG, "<%s:%d> " fmt "\n", __func__, __LINE__, ##args); }
-#define warn(fmt,args...)  { tcore_log(TCORE_LOG_TYPE_RADIO, TCORE_LOG_WARN, TCORE_LOG_TAG, "<%s:%d> " fmt "\n", __func__, __LINE__, ##args); }
-#define err(fmt,args...)  { tcore_log(TCORE_LOG_TYPE_RADIO, TCORE_LOG_FATAL, TCORE_LOG_TAG, "<%s:%d> " fmt "\n", __func__, __LINE__, ##args); }
+#define info(fmt,args...)  do { tcore_log(TCORE_LOG_TYPE_RADIO, TCORE_LOG_INFO, TCORE_LOG_TAG, fmt "\n", ##args); } while(0)
+#define msg(fmt,args...)  do { tcore_log(TCORE_LOG_TYPE_RADIO, TCORE_LOG_DEBUG, TCORE_LOG_TAG, fmt "\n", ##args); } while(0)
+#define dbg(fmt,args...)  do { tcore_log(TCORE_LOG_TYPE_RADIO, TCORE_LOG_DEBUG, TCORE_LOG_TAG, "<%s:%d> " fmt "\n", __func__, __LINE__, ##args); } while(0)
+#define warn(fmt,args...)  do { tcore_log(TCORE_LOG_TYPE_RADIO, TCORE_LOG_WARN, TCORE_LOG_TAG, "<%s:%d> " fmt "\n", __func__, __LINE__, ##args); } while(0)
+#define err(fmt,args...)  do { tcore_log(TCORE_LOG_TYPE_RADIO, TCORE_LOG_FATAL, TCORE_LOG_TAG, "<%s:%d> " fmt "\n", __func__, __LINE__, ##args); } while(0)
 
 #else
 
@@ -103,11 +103,11 @@ void tcore_log(enum tcore_log_type type, enum tcore_log_priority priority, const
 #define TCORE_LOG_FUNC fprintf
 #endif
 
-#define info(fmt,args...)  TCORE_LOG_FUNC(TCORE_LOG_FILE, fmt "\n", ##args); fflush(TCORE_LOG_FILE);
-#define msg(fmt,args...)  TCORE_LOG_FUNC(TCORE_LOG_FILE, fmt "\n", ##args); fflush(TCORE_LOG_FILE);
-#define dbg(fmt,args...)  TCORE_LOG_FUNC(TCORE_LOG_FILE, ANSI_COLOR_LIGHTGRAY "<%s:%s> " ANSI_COLOR_NORMAL fmt "\n", __FILE__, __FUNCTION__, ##args); fflush(TCORE_LOG_FILE);
-#define warn(fmt,args...) TCORE_LOG_FUNC(TCORE_LOG_FILE, ANSI_COLOR_YELLOW "<%s:%s> " ANSI_COLOR_NORMAL fmt "\n", __FILE__, __FUNCTION__, ##args); fflush(TCORE_LOG_FILE);
-#define err(fmt,args...)  TCORE_LOG_FUNC(TCORE_LOG_FILE, ANSI_COLOR_LIGHTRED "<%s:%s> " ANSI_COLOR_NORMAL fmt "\n", __FILE__, __FUNCTION__, ##args); fflush(TCORE_LOG_FILE);
+#define info(fmt,args...)  do { TCORE_LOG_FUNC(TCORE_LOG_FILE, fmt "\n", ##args); fflush(TCORE_LOG_FILE); } while(0)
+#define msg(fmt,args...)  do { TCORE_LOG_FUNC(TCORE_LOG_FILE, fmt "\n", ##args); fflush(TCORE_LOG_FILE); } while(0)
+#define dbg(fmt,args...)  do { TCORE_LOG_FUNC(TCORE_LOG_FILE, ANSI_COLOR_LIGHTGRAY "<%s:%s> " ANSI_COLOR_NORMAL fmt "\n", __FILE__, __FUNCTION__, ##args); fflush(TCORE_LOG_FILE); } while(0)
+#define warn(fmt,args...)  do { TCORE_LOG_FUNC(TCORE_LOG_FILE, ANSI_COLOR_YELLOW "<%s:%s> " ANSI_COLOR_NORMAL fmt "\n", __FILE__, __FUNCTION__, ##args); fflush(TCORE_LOG_FILE); } while(0)
+#define err(fmt,args...)  do { TCORE_LOG_FUNC(TCORE_LOG_FILE, ANSI_COLOR_LIGHTRED "<%s:%s> " ANSI_COLOR_NORMAL fmt "\n", __FILE__, __FUNCTION__, ##args); fflush(TCORE_LOG_FILE); } while(0)
 
 #endif
 

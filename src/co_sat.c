@@ -809,7 +809,7 @@ static enum tcore_sat_result _sat_decode_device_identities_tlv(unsigned char* tl
 				break;
 			default:{
 				if (tlv_str[index] >= 0x21 && tlv_str[index] <= 0x27) {
-					dbg("BIP channel id(0x%x)", tlv_str[index])
+					dbg("BIP channel id(0x%x)", tlv_str[index]);
 					if (i == 0) dev_id_obj->src = tlv_str[index];
 					if (i == 1) dev_id_obj->dest = tlv_str[index];
 				}
@@ -5199,7 +5199,7 @@ static int _sat_encode_command_detail_tlv(const struct tel_sat_cmd_detail_info* 
 				dst[current_index] += 0x80;
 		}break;
 		case SAT_PROATV_CMD_MORE_TIME:{
-			dbg("more time : 1bit RFU")
+			dbg("more time : 1bit RFU");
 		}break;
 		case SAT_PROATV_CMD_PLAY_TONE:{
 			//command detail vibration alert
@@ -5246,7 +5246,7 @@ static int _sat_encode_command_detail_tlv(const struct tel_sat_cmd_detail_info* 
 			dst[current_index] += src->cmd_qualifier.setup_call.setup_call;
 		}break;
 		case SAT_PROATV_CMD_SETUP_EVENT_LIST:{
-			dbg("setup evnet list : 1bit RFU")
+			dbg("setup evnet list : 1bit RFU");
 		}break;
 		case SAT_PROATV_CMD_OPEN_CHANNEL:{
 			if (src->cmd_qualifier.open_channel.immediate_link)

@@ -254,7 +254,7 @@ static unsigned char _cmux_calc_crc(unsigned char *header, int length)
 	/* Ones complement */
 	crc = (0xFF - fcs);
 
-	dbg("Exit - CRC: [0x%02x]", crc)
+	dbg("Exit - CRC: [0x%02x]", crc);
 	return crc;
 }
 

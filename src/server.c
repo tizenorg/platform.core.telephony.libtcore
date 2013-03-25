@@ -141,7 +141,7 @@ static TcoreModem *_server_find_modem(Server *s,
 		 */
 		if ((modem_iface_plugin == modem->modem_iface_plugin)
 			&& ((modem_plugin == NULL) && (modem->modem_plugin == NULL))) {
-			dbg("'modem' found!!!")
+			dbg("'modem' found!!!");
 			return modem;
 		}
 
@@ -154,7 +154,7 @@ static TcoreModem *_server_find_modem(Server *s,
 		 */
 		if ((modem_iface_plugin == NULL)
 			&& (modem_plugin == modem->modem_plugin)) {
-			dbg("'modem' found!!!")
+			dbg("'modem' found!!!");
 			return modem;
 		}
 
@@ -168,7 +168,7 @@ static TcoreModem *_server_find_modem(Server *s,
 		if ((modem_iface_plugin == modem_plugin)
 				&& ((modem_iface_plugin == modem->modem_iface_plugin)
 					|| (modem_plugin == modem->modem_plugin))) {
-			dbg("'modem' found!!!")
+			dbg("'modem' found!!!");
 			return modem;
 		}
 	}
