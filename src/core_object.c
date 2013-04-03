@@ -541,10 +541,11 @@ TReturn tcore_object_set_hal(CoreObject *co, TcoreHal *hal)
 	TcoreAT *at;
 	struct callback_type *cb = NULL;
 	GSList *l = NULL;
-	dbg("Core Object Type: [0x%x] HAL: [0x%x]", co->type, hal);
 
 	if (co == NULL)
 		return TCORE_RETURN_EINVAL;
+
+	dbg("Core Object Type: [0x%x] HAL: [0x%x]", co->type, hal);
 
 	if (co->hal) {
 		/* Remove unsolicited callbacks */
