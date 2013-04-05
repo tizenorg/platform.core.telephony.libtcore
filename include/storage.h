@@ -80,6 +80,8 @@ enum tcore_storage_key {
 
 	STORAGE_KEY_LANGUAGE_SET,
 	STORAGE_KEY_IDLE_SCREEN_LAUNCHED_BOOL,
+
+	STORAGE_KEY_CISSAPPL_SHOW_MY_NUMBER_INT,
 };
 
 enum storage_value {
