@@ -920,10 +920,6 @@ void tcore_object_print_mapping_tbl(void *mapping_tbl)
 	}
 
 	mapping_tbl_list = mapping_tbl;
-	if (mapping_tbl_list == NULL) {
-		err("No Mapping Table present");
-		return;
-	}
 
 	for ( ; mapping_tbl_list ; mapping_tbl_list = mapping_tbl_list->next) {
 		tbl_entry = mapping_tbl_list->data;
