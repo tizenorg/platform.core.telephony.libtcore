@@ -188,7 +188,7 @@ struct treq_network_set_preferred_plmn {
 	enum telephony_network_preferred_plmn_operation operation;
 	char plmn[7];
 	enum telephony_network_access_technology act;
-	int ef_index;
+	int index;
 };
 struct treq_network_get_preferred_plmn { /* no data */
 };
@@ -269,7 +269,7 @@ struct tresp_network_get_preferred_plmn {
 	TReturn result;
 	int list_count;
 	struct {
-		int ef_index;
+		int index;
 		char plmn[7];
 		enum telephony_network_access_technology act;
 		unsigned int lac;
