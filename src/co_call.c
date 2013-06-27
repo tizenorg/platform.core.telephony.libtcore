@@ -359,28 +359,14 @@ static TReturn _dispatcher(CoreObject *o, UserRequest *ur)
 static void _free_hook(CoreObject *o)
 {
 	struct private_object_data *po;
-	GSList *list;
 
 	po = tcore_object_ref_object(o);
 	if (NULL == po)
 		return;
 
-	if (po->cobjs) {
-		for (list = po->cobjs; list; list = list->next) {
-			if (NULL == list)
-				continue;
-
-			if (list->data)
-				g_free(list->data);
-
-			list->data = NULL;
-		}
-
-		g_slist_free(po->cobjs);
-		po->cobjs = NULL;
-	}
-
+	g_slist_free_full(po->cobjs, g_free);
 	g_free(po);
+
 	tcore_object_link_object(o, NULL);
 }
 
@@ -843,13 +829,24 @@ enum tcore_call_cli_mode tcore_call_object_get_cli_mode(struct call_object *co)
 }
 
 gboolean tcore_call_object_set_cna_info(struct call_object *co,
-							enum tcore_call_cna_mode mode, char *name, int dcs)
+		enum tcore_call_cna_mode mode, char *name, int dcs)
 {
+	int len;
+
 	_check_null("co", co, FALSE);
 	_check_null("name", name, FALSE);
 
+	len = strlen(name);
+	if (len >= MAX_CALL_NAME_LEN) {
+		dbg("Call name is too long");
+		return FALSE;
+	}
+
+	strncpy(co->cna.name, name, len);
+	co->cna.name[len] = '\0';
+
 	co->cna.mode = mode;
-	strncpy(co->cna.name, name, MAX_CALL_NAME_LEN);
+
 	return TRUE;
 }
 
@@ -1150,7 +1147,7 @@ void tcore_call_information_mt_cna(CoreObject *o,
 {
 	CORE_OBJECT_CHECK(o, CORE_OBJECT_TYPE_CALL);
 
-	return _call_info_mt_cna(o, mode, name, dcs);
+	_call_info_mt_cna(o, mode, name, dcs);
 }
 
 void tcore_call_information_mt_forwarded_call(CoreObject *o, char *number)

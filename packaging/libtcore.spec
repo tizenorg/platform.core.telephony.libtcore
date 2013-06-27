@@ -1,6 +1,6 @@
 Name: libtcore
 Summary: Telephony-core library
-Version: 0.1.84
+Version: 0.1.85
 Release:    1
 Group:      System/Libraries
 License:    Apache
