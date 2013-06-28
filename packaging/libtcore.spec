@@ -5,6 +5,7 @@ Release:    1
 Group:      System/Libraries
 License:    Apache
 Source0:    libtcore-%{version}.tar.gz
+Source1001: 	libtcore.manifest
 Requires(post): /sbin/ldconfig
 Requires(postun): /sbin/ldconfig
 BuildRequires:  cmake
@@ -24,6 +25,7 @@ Telephony-core library (Development)
 
 %prep
 %setup -q
+cp %{SOURCE1001} .
 
 %build
 %cmake . -DVERSION=%{version}
@@ -38,12 +40,13 @@ make %{?jobs:-j%jobs}
 %make_install
 
 %files
-%manifest libtcore.manifest
+%manifest %{name}.manifest
 %defattr(-,root,root,-)
 %{_libdir}/libtcore*
 /usr/share/license/libtcore
 
 %files devel
+%manifest %{name}.manifest
 %defattr(-,root,root,-)
 %{_includedir}/*
 %{_libdir}/pkgconfig/tcore.pc
