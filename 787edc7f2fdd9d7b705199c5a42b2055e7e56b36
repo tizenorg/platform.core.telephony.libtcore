@@ -1,0 +1,8 @@
+Change-Id: I787edc7f2fdd9d7b705199c5a42b2055e7e56b36
+Code-Review+2: Ryan Ware <ware@linux.intel.com>
+Verified+1: Ryan Ware <ware@linux.intel.com>
+Submitted-by: Ryan Ware <ware@linux.intel.com>
+Submitted-at: Mon, 08 Jul 2013 10:06:54 -0700
+Reviewed-on: https://review.tizen.org/gerrit/4526
+Project: platform/core/telephony/libtcore
+Branch: refs/heads/tizen
