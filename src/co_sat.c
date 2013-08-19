@@ -2299,13 +2299,14 @@ static enum tcore_sat_result _sat_decode_other_address_tlv(unsigned char* tlv_st
 	}//end of switch
 
 	//address
-	memcpy(other_address_obj->address, address, strlen(address));
-	other_address_obj->address_len = strlen(address);
+	if (address) {
+		other_address_obj->address_len = strlen(address);
+		memcpy(other_address_obj->address, address, other_address_obj->address_len);
 
-	if (address)
 		g_free(address);
+		dbg("destination address(%s)", other_address_obj->address);
+	}
 
-	dbg("destination address(%s)", other_address_obj->address);
 	*consumed_data_len = 2+address_len;
 	return TCORE_SAT_SUCCESS;
 }

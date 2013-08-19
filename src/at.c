@@ -184,7 +184,7 @@ static void _emit_pending_response(TcoreAT *at)
 		dbg("no pending");
 	}
 
-	tcore_pending_emit_response_callback(p, sizeof(TcoreATResponse *), at->resp);
+	tcore_pending_emit_response_callback(p, sizeof(TcoreATResponse), at->resp);
 	tcore_user_request_unref(tcore_pending_ref_user_request(p));
 	tcore_pending_free(p);
 
