@@ -2013,9 +2013,6 @@ gboolean tcore_sim_decode_dynamic_flag(struct tel_sim_cphs_dflag *p_df, unsigned
 		case 0x01:
 			p_df->DynamicFlags = SIM_DYNAMIC_FLAGS_LINE1;
 			break;
-
-		default:
-			break;
 	}
 	return TRUE;
 }
@@ -2033,8 +2030,6 @@ gboolean tcore_sim_decode_dynamic2_flag(struct tel_sim_cphs_dflag2 *p_d2f, unsig
 			break;
 		case 0x01:
 			p_d2f->Dynamic2Flag = SIM_PIN2_ACCESSIBLE_FLAGS_LOCKED;
-			break;
-		default:
 			break;
 	}
 	return TRUE;

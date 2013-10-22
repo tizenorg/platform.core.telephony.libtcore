@@ -328,9 +328,6 @@ static void _sat_decode_dcs(unsigned char dcs, struct data_coding_scheme* dsc_ob
 			case 0x03:
 				dsc_obj->m_class = MSG_CLASS_3;
 				break;
-			default:
-				dsc_obj->m_class = MSG_CLASS_RESERVED;
-				break;
 		}
 	}
 
