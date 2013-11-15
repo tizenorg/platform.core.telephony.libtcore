@@ -1,0 +1,50 @@
+From 5db460c07253516d2f17f7a2a0e119d0559ae774 Mon Sep 17 00:00:00 2001
+From: Dongchul Lim <dc7.lim@samsung.com>
+Date: Tue, 22 Oct 2013 19:32:17 +0900
+Subject: [PATCH 2/2] [Prevent] Dead default in switch
+
+---
+ src/co_sat.c |    3 ---
+ src/co_sim.c |    5 -----
+ 2 files changed, 8 deletions(-)
+
+diff --git a/src/co_sat.c b/src/co_sat.c
+index 7cb2df2..2cbd1c1 100644
+--- a/src/co_sat.c
++++ b/src/co_sat.c
+@@ -328,9 +328,6 @@ static void _sat_decode_dcs(unsigned char dcs, struct data_coding_scheme* dsc_ob
+ 			case 0x03:
+ 				dsc_obj->m_class = MSG_CLASS_3;
+ 				break;
+-			default:
+-				dsc_obj->m_class = MSG_CLASS_RESERVED;
+-				break;
+ 		}
+ 	}
+ 
+diff --git a/src/co_sim.c b/src/co_sim.c
+index f1d247d..4172b97 100644
+--- a/src/co_sim.c
++++ b/src/co_sim.c
+@@ -2013,9 +2013,6 @@ gboolean tcore_sim_decode_dynamic_flag(struct tel_sim_cphs_dflag *p_df, unsigned
+ 		case 0x01:
+ 			p_df->DynamicFlags = SIM_DYNAMIC_FLAGS_LINE1;
+ 			break;
+-
+-		default:
+-			break;
+ 	}
+ 	return TRUE;
+ }
+@@ -2034,8 +2031,6 @@ gboolean tcore_sim_decode_dynamic2_flag(struct tel_sim_cphs_dflag2 *p_d2f, unsig
+ 		case 0x01:
+ 			p_d2f->Dynamic2Flag = SIM_PIN2_ACCESSIBLE_FLAGS_LOCKED;
+ 			break;
+-		default:
+-			break;
+ 	}
+ 	return TRUE;
+ }
+-- 
+1.7.9.5
+

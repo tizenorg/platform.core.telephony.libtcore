@@ -1,0 +1,41 @@
+From 155ebb8d9aeea4e6c75e6892b227052bb1a16aec Mon Sep 17 00:00:00 2001
+From: Dongchul Lim <dc7.lim@samsung.com>
+Date: Thu, 26 Sep 2013 20:26:36 +0900
+Subject: [PATCH 1/2] Generate Licence file
+
+---
+ packaging/libtcore.spec |    6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/packaging/libtcore.spec b/packaging/libtcore.spec
+index 740f6ef..bc4fe15 100644
+--- a/packaging/libtcore.spec
++++ b/packaging/libtcore.spec
+@@ -3,7 +3,7 @@ Summary: Telephony-core library
+ Version: 0.1.85
+ Release:    1
+ Group:      System/Libraries
+-License:    Apache
++License:    Apache-2.0
+ Source0:    libtcore-%{version}.tar.gz
+ Requires(post): /sbin/ldconfig
+ Requires(postun): /sbin/ldconfig
+@@ -36,12 +36,14 @@ make %{?jobs:-j%jobs}
+ 
+ %install
+ %make_install
++mkdir -p %{buildroot}/usr/share/license
++cp LICENSE %{buildroot}/usr/share/license/%{name}
+ 
+ %files
+ %manifest libtcore.manifest
+ %defattr(-,root,root,-)
+ %{_libdir}/libtcore*
+-/usr/share/license/libtcore
++/usr/share/license/%{name}
+ 
+ %files devel
+ %defattr(-,root,root,-)
+-- 
+1.7.9.5
+
