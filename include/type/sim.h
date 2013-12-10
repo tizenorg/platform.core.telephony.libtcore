@@ -45,8 +45,8 @@ __BEGIN_DECLS
 #define SIM_OPL_PNN_RECORD_CNT_MAX 5//85 //telephony defined
 #define SIM_NW_FULL_NAME_LEN_MAX 40 //telephony defined TODO should be defined one value in all.
 #define SIM_OPLMNWACT_LEN_MAX 100 //telephony defined
-#define SIM_AUTH_REQ_DATA_LEN_MAX 256 //telephony defined
-#define SIM_AUTH_RESP_DATA_LEN_MAX 128 //telephony defined
+#define SIM_AUTH_REQ_DATA_LEN_MAX 16 //telephony defined
+#define SIM_AUTH_RESP_DATA_LEN_MAX 16 //telephony defined
 #define SIM_CPHS_CALL_FORWARDING_LEN_MAX 2 //telephony defined
 #define SIM_CPHS_CSP_ENTRY_CNT_MAX 11 //telephony defined
 #define SIM_CPHS_CSP_LEN_MAX 22 //telephony defined
