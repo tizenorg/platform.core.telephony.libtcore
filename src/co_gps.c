@@ -1,9 +1,8 @@
 /*
  * libtcore
  *
- * Copyright (c) 2012 Samsung Electronics Co., Ltd. All rights reserved.
- *
- * Contact: Ja-young Gu <jygu@samsung.com>
+ * Copyright (c) 2013 Samsung Electronics Co. Ltd. All rights reserved.
+ * Copyright (c) 2013 Intel Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,146 +17,132 @@
  * limitations under the License.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
 #include <glib.h>
 
 #include "tcore.h"
 #include "plugin.h"
-#include "user_request.h"
 #include "co_gps.h"
 
-struct private_object_data {
-	struct tcore_gps_operations *ops;
-};
+typedef struct {
+	TcoreGpsOps *ops;
+} PrivateObject;
 
-static void _clone_hook(CoreObject *src, CoreObject *dest)
+static void _po_free_hook(CoreObject *co)
 {
-	struct private_object_data *src_po = NULL;
-	struct private_object_data *dest_po = NULL;
+	PrivateObject *po = tcore_object_ref_object(co);
+	tcore_check_return(po != NULL);
 
-	if (!src || !dest)
-		return;
+	tcore_free(po->ops);
+	tcore_free(po);
+	tcore_object_link_object(co, NULL);
+}
 
-	dest_po = calloc(1, sizeof(struct private_object_data));
-	if (!dest_po) {
-		tcore_object_link_object(dest, NULL);
-		return;
-	}
+static void _po_clone_hook(CoreObject *src, CoreObject *dest)
+{
+	PrivateObject *dest_po = NULL;
+	PrivateObject *src_po = tcore_object_ref_object(src);
+	tcore_check_return_assert(src_po != NULL);
+	tcore_check_return_assert(src_po->ops != NULL);
+	tcore_check_return_assert(dest != NULL);
 
-	src_po = tcore_object_ref_object(src);
-	dest_po->ops = src_po->ops;
+	dest_po = tcore_malloc0(sizeof(PrivateObject));
+	dest_po->ops = tcore_memdup(src_po->ops, sizeof(TcoreGpsOps));
 
 	tcore_object_link_object(dest, dest_po);
 }
 
-static void _clone_gps_operations(struct private_object_data *po, struct tcore_gps_operations *gps_ops)
+static TelReturn _dispatcher(CoreObject *co,
+	TcoreCommand command, const void *request,
+	TcoreObjectResponseCallback cb, const void *user_data)
 {
-	if(gps_ops->confirm_measure_pos) {
-		po->ops->confirm_measure_pos = gps_ops->confirm_measure_pos;
-	}
+	TcoreGpsOps *gps = NULL;
+	PrivateObject *po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, TEL_RETURN_INVALID_PARAMETER);
+	tcore_check_return_value_assert(po->ops != NULL, TEL_RETURN_INVALID_PARAMETER);
 
-	return;
-}
+	gps = po->ops;
 
-static TReturn _dispatcher(CoreObject *o, UserRequest *ur)
-{
-	enum tcore_request_command command;
-	struct private_object_data *po = NULL;
-
-	if (!o || !ur)
-		return TCORE_RETURN_EINVAL;
-
-	po = tcore_object_ref_object(o);
-	if (!po || !po->ops)
-		return TCORE_RETURN_ENOSYS;
-
-	command = tcore_user_request_get_command(ur);
 	switch (command) {
-		case TREQ_GPS_CONFIRM_MEASURE_POS:
-			dbg("TREQ_GPS_CONFIRM_MEASURE_POS");
-			if (!po->ops->confirm_measure_pos)
-				return TCORE_RETURN_ENOSYS;
+	case TCORE_COMMAND_GPS_CONFIRM_MEASURE_POS:
+		if (gps->confirm_measure_pos)
+			return gps->confirm_measure_pos(co,
+				(TelGpsDataInfo *)request,
+				cb, (void *)user_data);
+		break;
 
-			return po->ops->confirm_measure_pos(o, ur);
-			break;
+	case TCORE_COMMAND_GPS_SET_FREQUENCY_AIDING:
+		if (gps->set_frequency_aiding)
+			return gps->set_frequency_aiding(co,
+				*(gboolean *)request,
+				cb, (void *)user_data);
+		break;
 
-		case TREQ_GPS_SET_FREQUENCY_AIDING:
-			dbg("TREQ_GPS_SET_FREQUENCY_AIDING");
-			if (!po->ops->set_frequency_aiding)
-				return TCORE_RETURN_ENOSYS;
-
-			return po->ops->set_frequency_aiding(o, ur);
-			break;
-
-		default:
-			dbg("not supported cmd");
-			break;
+	default:
+		err("Unsupported Command [0x%x]", command);
+		return TEL_RETURN_INVALID_PARAMETER;
 	}
-	return TCORE_RETURN_SUCCESS;
+	err("Operation NOT Supported");
+	return TEL_RETURN_OPERATION_NOT_SUPPORTED;
 }
 
-void tcore_gps_override_ops(CoreObject *o, struct tcore_gps_operations *gps_ops)
+void tcore_gps_override_ops(CoreObject *co, TcoreGpsOps *ops)
 {
-	struct private_object_data *po = NULL;
+	PrivateObject *po = tcore_object_ref_object(co);
 
-	CORE_OBJECT_CHECK(o, CORE_OBJECT_TYPE_GPS);
+	tcore_check_return_assert(po != NULL);
+	tcore_check_return_assert(po->ops != NULL);
+	tcore_check_return_assert(ops != NULL);
 
-	po = (struct private_object_data *)tcore_object_ref_object(o);
-	if (!po) {
-		return;
+	if (ops->confirm_measure_pos)
+		po->ops->confirm_measure_pos = ops->confirm_measure_pos;
+	if (ops->set_frequency_aiding)
+		po->ops->set_frequency_aiding = ops->set_frequency_aiding;
+}
+
+gboolean tcore_gps_set_ops(CoreObject *co, TcoreGpsOps *ops)
+{
+	PrivateObject *po;
+	tcore_check_return_value(co != NULL, FALSE);
+
+	po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
+
+	if (po->ops != NULL) {
+		tcore_free(po->ops);
+		po->ops = NULL;
 	}
 
-	if(gps_ops) {
-		_clone_gps_operations(po, gps_ops);
-	}
+	if (ops != NULL)
+		po->ops = tcore_memdup((gconstpointer)ops, sizeof(TcoreGpsOps));
 
-	return;
+	return TRUE;
 }
 
 CoreObject *tcore_gps_new(TcorePlugin *p,
-			struct tcore_gps_operations *ops, TcoreHal *hal)
+			TcoreGpsOps *ops, TcoreHal *hal)
 {
-	CoreObject *o = NULL;
-	struct private_object_data *po = NULL;
+	CoreObject *co = NULL;
+	PrivateObject *po = NULL;
+	tcore_check_return_value_assert(p != NULL, NULL);
 
-	if (!p)
-		return NULL;
+	co = tcore_object_new(p, hal);
+	tcore_check_return_value_assert(co != NULL, NULL);
 
-	o = tcore_object_new(p, hal);
-	if (!o)
-		return NULL;
+	po = tcore_malloc0(sizeof(PrivateObject));
 
-	po = calloc(1, sizeof(struct private_object_data));
-	if (!po) {
-		tcore_object_free(o);
-		return NULL;
-	}
+	if (ops != NULL)
+		po->ops = tcore_memdup(ops, sizeof(TcoreGpsOps));
 
-	po->ops = ops;
-
-	tcore_object_set_type(o, CORE_OBJECT_TYPE_GPS);
-	tcore_object_link_object(o, po);
-	tcore_object_set_dispatcher(o, _dispatcher);
-	tcore_object_set_clone_hook(o, _clone_hook);
-
-	return o;
+	tcore_object_set_type(co, CORE_OBJECT_TYPE_GPS);
+	tcore_object_link_object(co, po);
+	tcore_object_set_free_hook(co, _po_free_hook);
+	tcore_object_set_clone_hook(co, _po_clone_hook);
+	tcore_object_set_dispatcher(co, _dispatcher);
+	return co;
 }
 
-void tcore_gps_free(CoreObject *o)
+void tcore_gps_free(CoreObject *co)
 {
-	struct private_object_data *po = NULL;
-
-	CORE_OBJECT_CHECK(o, CORE_OBJECT_TYPE_GPS);
-
-	po = tcore_object_ref_object(o);
-	if (!po)
-		return;
-
-	g_free(po);
-	tcore_object_link_object(o, po);
-	tcore_object_free(o);
+	CORE_OBJECT_CHECK(co, CORE_OBJECT_TYPE_GPS);
+	tcore_object_free(co);
 }
-

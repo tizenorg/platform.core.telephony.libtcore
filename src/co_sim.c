@@ -1,9 +1,8 @@
 /*
  * libtcore
  *
- * Copyright (c) 2012 Samsung Electronics Co., Ltd. All rights reserved.
- *
- * Contact: Ja-young Gu <jygu@samsung.com>
+ * Copyright (c) 2013 Samsung Electronics Co. Ltd. All rights reserved.
+ * Copyright (c) 2013 Intel Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,550 +26,201 @@
 #include "tcore.h"
 #include "plugin.h"
 #include "queue.h"
-#include "user_request.h"
 #include "core_object.h"
 #include "co_sim.h"
 
-struct private_object_data {
-	struct tcore_sim_operations *ops;
+typedef struct {
+	TcoreSimOps *ops;
 
-	enum tel_sim_type type; /**< Provides the SIM card type*/
-	enum tel_sim_status sim_status; /**< Provides the card status*/
-	struct tel_sim_imsi imsi; /**< Provides IMSI information*/
-	gboolean b_sim_changed; /**< Provides SIM card Identification- 0:no changed, 1:changed*/
-	gboolean b_cphs; /**< Whether current SIM is for CPHS or not*/
-	struct tel_sim_service_table svct; /**< (U)SIM Service Table information*/
+	TelSimCardType type; /**< Provides the SIM card type*/
+	TelSimCardStatus sim_status; /**< Provides the card status*/
+	TelSimCardChangeStatus change_status; /**< Provides SIM card change status */
+	TelSimImsiInfo imsi; /**< Provides IMSI information*/
+	gboolean is_cphs; /**< Whether current SIM is for CPHS or not*/
+	TelSimServiceTable svct; /**< (U)SIM Service Table information*/
+	gchar *spn;
+	TelSimSpnDispCondition disp_condition;
 	void *userdata; /**< free use data*/
-};
+} PrivateObject;
 
-static void _clone_sim_operations(struct private_object_data *po, struct tcore_sim_operations *sim_ops)
+static TelReturn _dispatcher(CoreObject *co, TcoreCommand command,
+	const void *request, TcoreObjectResponseCallback cb, const void *user_data)
 {
-	if(sim_ops->verify_pins) {
-		po->ops->verify_pins = sim_ops->verify_pins;
-	}
-	if(sim_ops->verify_puks) {
-		po->ops->verify_puks = sim_ops->verify_puks;
-	}
-	if(sim_ops->change_pins) {
-		po->ops->change_pins = sim_ops->change_pins;
-	}
-	if(sim_ops->get_facility_status) {
-		po->ops->get_facility_status = sim_ops->get_facility_status;
-	}
-	if(sim_ops->enable_facility) {
-		po->ops->enable_facility = sim_ops->enable_facility;
-	}
-	if(sim_ops->disable_facility) {
-		po->ops->disable_facility = sim_ops->disable_facility;
-	}
-	if(sim_ops->get_lock_info) {
-		po->ops->get_lock_info = sim_ops->get_lock_info;
-	}
-	if(sim_ops->read_file) {
-		po->ops->read_file = sim_ops->read_file;
-	}
-	if(sim_ops->update_file) {
-		po->ops->update_file = sim_ops->update_file;
-	}
-	if(sim_ops->transmit_apdu) {
-		po->ops->transmit_apdu = sim_ops->transmit_apdu;
-	}
-	if(sim_ops->get_atr) {
-		po->ops->get_atr = sim_ops->get_atr;
-	}
-	if(sim_ops->req_authentication) {
-		po->ops->req_authentication = sim_ops->req_authentication;
-	}
+	PrivateObject *po = NULL;
+	po = tcore_object_ref_object(co);
 
-	return;
-}
+	tcore_check_return_value_assert(po != NULL, TEL_RETURN_INVALID_PARAMETER);
+	tcore_check_return_value_assert(po->ops != NULL, TEL_RETURN_INVALID_PARAMETER);
 
-static TReturn _dispatcher(CoreObject *o, UserRequest *ur)
-{
-	enum tcore_request_command command;
-	struct private_object_data *po = NULL;
-
-	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_SIM, TCORE_RETURN_EINVAL);
-
-	po = tcore_object_ref_object(o);
-	if (!po || !po->ops)
-		return TCORE_RETURN_ENOSYS;
-
-	command = tcore_user_request_get_command(ur);
+	dbg("command [0x%x]", command);
 
 	switch (command) {
-		case TREQ_SIM_VERIFY_PINS:
-			if (!po->ops->verify_pins)
-				return TCORE_RETURN_ENOSYS;
-
-			return po->ops->verify_pins(o, ur);
-			break;
-
-		case TREQ_SIM_VERIFY_PUKS:
-			if (!po->ops->verify_puks)
-				return TCORE_RETURN_ENOSYS;
-
-			return po->ops->verify_puks(o, ur);
-			break;
-
-		case TREQ_SIM_CHANGE_PINS:
-			if (!po->ops->change_pins)
-				return TCORE_RETURN_ENOSYS;
-
-			return po->ops->change_pins(o, ur);
-			break;
-
-		case TREQ_SIM_GET_FACILITY_STATUS:
-			if (!po->ops->get_facility_status)
-				return TCORE_RETURN_ENOSYS;
-
-			return po->ops->get_facility_status(o, ur);
-			break;
-
-		case TREQ_SIM_DISABLE_FACILITY:
-			if (!po->ops->disable_facility)
-				return TCORE_RETURN_ENOSYS;
-
-			return po->ops->disable_facility(o, ur);
-			break;
-
-		case TREQ_SIM_ENABLE_FACILITY:
-			if (!po->ops->enable_facility)
-				return TCORE_RETURN_ENOSYS;
-
-			return po->ops->enable_facility(o, ur);
-			break;
-
-		case TREQ_SIM_GET_LOCK_INFO:
-			if (!po->ops->get_lock_info)
-				return TCORE_RETURN_ENOSYS;
-
-			return po->ops->get_lock_info(o, ur);
-			break;
-
-		case TREQ_SIM_TRANSMIT_APDU:
-			if (!po->ops->transmit_apdu)
-				return TCORE_RETURN_ENOSYS;
-
-			return po->ops->transmit_apdu(o, ur);
-			break;
-
-		case TREQ_SIM_GET_ATR:
-			if (!po->ops->get_atr)
-				return TCORE_RETURN_ENOSYS;
-
-			return po->ops->get_atr(o, ur);
-			break;
-
-		case TREQ_SIM_SET_LANGUAGE:
-		case TREQ_SIM_SET_CALLFORWARDING:
-		case TREQ_SIM_SET_MESSAGEWAITING:
-		case TREQ_SIM_SET_MAILBOX:
-			if (!po->ops->update_file)
-				return TCORE_RETURN_ENOSYS;
-
-			return po->ops->update_file(o, ur);
-			break;
-
-		case TREQ_SIM_GET_ECC:
-		case TREQ_SIM_GET_LANGUAGE:
-		case TREQ_SIM_GET_ICCID:
-		case TREQ_SIM_GET_MAILBOX:
-		case TREQ_SIM_GET_CALLFORWARDING:
-		case TREQ_SIM_GET_MESSAGEWAITING:
-		case TREQ_SIM_GET_CPHS_INFO:
-		case TREQ_SIM_GET_MSISDN:
-		case TREQ_SIM_GET_SPN:
-		case TREQ_SIM_GET_SPDI:
-		case TREQ_SIM_GET_OPL:
-		case TREQ_SIM_GET_PNN:
-		case TREQ_SIM_GET_CPHS_NETNAME:
-		case TREQ_SIM_GET_OPLMNWACT:
-			if (!po->ops->read_file)
-				return TCORE_RETURN_ENOSYS;
-
-			return po->ops->read_file(o, ur);
-			break;
-
-		case TREQ_SIM_REQ_AUTHENTICATION:
-			if (!po->ops->req_authentication)
-				return TCORE_RETURN_ENOSYS;
-
-			return po->ops->req_authentication(o, ur);
-			break;
-
-		default:
-			break;
+	case TCORE_COMMAND_SIM_GET_IMSI:
+		if (po->ops->get_imsi)
+			return po->ops->get_imsi(co, cb, (void *)user_data);
+	break;
+	case TCORE_COMMAND_SIM_GET_ECC:
+		if (po->ops->get_ecc)
+			return po->ops->get_ecc(co, cb, (void *)user_data);
+	break;
+	case TCORE_COMMAND_SIM_GET_ICCID:
+		if (po->ops->get_iccid)
+			return po->ops->get_iccid(co, cb, (void *)user_data);
+	break;
+	case TCORE_COMMAND_SIM_GET_LANGUAGE:
+		if (po->ops->get_language)
+			return po->ops->get_language(co, cb, (void *)user_data);
+	break;
+	case TCORE_COMMAND_SIM_SET_LANGUAGE:
+		if (po->ops->set_language)
+			return po->ops->set_language(co, *(TelSimLanguagePreferenceCode *) request, cb, (void *)user_data);
+	break;
+	case TCORE_COMMAND_SIM_GET_CALL_FORWARDING_INFO:
+		if (po->ops->get_callforwarding_info)
+			return po->ops->get_callforwarding_info(co, cb, (void *)user_data);
+	break;
+	case TCORE_COMMAND_SIM_GET_MESSAGE_WAITING_INFO:
+		if (po->ops->get_messagewaiting_info)
+			return po->ops->get_messagewaiting_info(co, cb, (void *)user_data);
+	break;
+	case TCORE_COMMAND_SIM_SET_MESSAGE_WAITING_INFO:
+		if (po->ops->set_messagewaiting_info)
+			return po->ops->set_messagewaiting_info(co, (TelSimMwis *)request, cb, (void *)user_data);
+	break;
+	case TCORE_COMMAND_SIM_GET_MAILBOX_INFO:
+		if (po->ops->get_mailbox_info)
+			return po->ops->get_mailbox_info(co, cb, (void *)user_data);
+	break;
+	case TCORE_COMMAND_SIM_SET_MAILBOX_INFO:
+		if (po->ops->set_mailbox_info)
+			return po->ops->set_mailbox_info(co, (TelSimMailBoxNumber *)request, cb, (void *)user_data);
+	break;
+	case TCORE_COMMAND_SIM_GET_MSISDN:
+		if (po->ops->get_msisdn)
+			return po->ops->get_msisdn(co, cb, (void *)user_data);
+	break;
+	case TCORE_COMMAND_SIM_GET_SPN:
+		if (po->ops->get_spn)
+			return po->ops->get_spn(co, cb, (void *)user_data);
+	break;
+	case TCORE_COMMAND_SIM_GET_CPHS_NET_NAME:
+		if (po->ops->get_cphs_netname)
+			return po->ops->get_cphs_netname(co, cb, (void *)user_data);
+	break;
+	case TCORE_COMMAND_SIM_GET_SP_DISPLAY_INFO:
+		if (po->ops->get_sp_display_info)
+			return po->ops->get_sp_display_info(co, cb, (void *)user_data);
+	break;
+	case TCORE_COMMAND_SIM_REQ_AUTHENTICATION:
+		if (po->ops->req_authentication)
+			return po->ops->req_authentication(co, (TelSimAuthenticationData *)request, cb, (void *)user_data);
+	break;
+	case TCORE_COMMAND_SIM_VERIFY_PINS:
+		if (po->ops->verify_pins)
+			return po->ops->verify_pins(co, (TelSimSecPinPw *)request, cb, (void *)user_data);
+	break;
+	case TCORE_COMMAND_SIM_VERIFY_PUKS:
+		if (po->ops->verify_puks)
+			return po->ops->verify_puks(co, (TelSimSecPukPw *)request, cb, (void *)user_data);
+	break;
+	case TCORE_COMMAND_SIM_CHANGE_PINS:
+		if (po->ops->change_pins)
+			return po->ops->change_pins(co, (TelSimSecChangePinPw *)request, cb, (void *)user_data);
+	break;
+	case TCORE_COMMAND_SIM_DISABLE_FACILITY:
+		if (po->ops->disable_facility)
+			return po->ops->disable_facility(co, (TelSimFacilityPw *)request, cb, (void *)user_data);
+	break;
+	case TCORE_COMMAND_SIM_ENABLE_FACILITY:
+		if (po->ops->enable_facility)
+			return po->ops->enable_facility(co, (TelSimFacilityPw *)request, cb, (void *)user_data);
+	break;
+	case TCORE_COMMAND_SIM_GET_FACILITY:
+		if (po->ops->get_facility)
+			return po->ops->get_facility(co, *(TelSimLockType *)request, cb, (void *)user_data);
+	break;
+	case TCORE_COMMAND_SIM_GET_LOCK_INFO:
+		if (po->ops->get_lock_info)
+			return po->ops->get_lock_info(co, *(TelSimLockType *)request, cb, (void *)user_data);
+	break;
+	case TCORE_COMMAND_SIM_REQ_APDU:
+		if (po->ops->req_apdu)
+			return po->ops->req_apdu(co, (TelSimApdu *)request, cb, (void *)user_data);
+	break;
+	case TCORE_COMMAND_SIM_REQ_ATR:
+		if (po->ops->req_atr)
+			return po->ops->req_atr(co, cb, (void *)user_data);
+	break;
+	default:
+		err("Unsupported operation");
+		return  TEL_RETURN_INVALID_PARAMETER;
 	}
 
-	return TCORE_RETURN_SUCCESS;
+	err("Operation NOT Permitted");
+	return TEL_RETURN_OPERATION_NOT_SUPPORTED;
 }
 
-static void _clone_hook(CoreObject *src, CoreObject *dest)
+static void _po_clone_hook(CoreObject *src, CoreObject *dest)
 {
-	struct private_object_data *src_po = NULL;
-	struct private_object_data *dest_po = NULL;
+	PrivateObject *src_po = NULL;
+	PrivateObject *dest_po = NULL;
 
-	if (!src || !dest)
-		return;
+	tcore_check_return_assert(src != NULL);
+	tcore_check_return_assert(dest != NULL);
 
-	dest_po = calloc(1, sizeof(struct private_object_data));
-	if (!dest_po) {
+	src_po = tcore_object_ref_object(src);
+	if (NULL == src_po) {
+		err("invalid source private object");
 		tcore_object_link_object(dest, NULL);
 		return;
 	}
 
-	src_po = tcore_object_ref_object(src);
-	dest_po->ops = src_po->ops;
+	tcore_check_return_assert(src_po->ops != NULL);
+
+	dest_po = tcore_malloc0(sizeof(PrivateObject));
+	dest_po->ops = tcore_memdup(src_po->ops, sizeof(TcoreSimOps));
 
 	tcore_object_link_object(dest, dest_po);
 }
 
-static void _free_hook(CoreObject *o)
+static void _po_free_hook(CoreObject *co)
 {
-	struct private_object_data *po = NULL;
+	PrivateObject *po = NULL;
 
-	CORE_OBJECT_CHECK(o, CORE_OBJECT_TYPE_SIM);
+	po = tcore_object_ref_object(co);
+	tcore_check_return(po != NULL);
 
-	po = tcore_object_ref_object(o);
-	if (po) {
-		free(po);
-		tcore_object_link_object(o, NULL);
-	}
-}
-
-static void _reverse(char* p_in, int length)
-{
-	int i, j = length - 1;
-	for (i = 0; i < j; i++) {
-		int t = p_in[i];
-		p_in[i] = p_in[j];
-		p_in[j--] = t;
-	}
-}
-
-static char* _acitoa(int n, char* str, int b)
-{
-	int i = 0;
-
-	do {
-		str[i++] = "0123456789ABCDEF"[n % b];
-	} while ((n /= b) > 0);
-
-	_reverse(str, i);
-
-	str[i] = '\0';
-
-	return str;
-}
-
-/*******************************************************************************
- Convert Digit to BCD (BCD to Digit)
-
- bcd		<--->	digit
- 0xa				0x2a '*'
- 0xb				0x23 '#'
- 0xc				0x70 'P'
- 0xd				'?'
- 0xf				0
- 1032547698		0123456789
-
- ********************************************************************************/
-/**
- * This function is used to Convert Digit to BCD (Digit to BCD)
- *
- * @return		None
- * @param[out]	bcdCode - BCD output
- * @param[in]		digits - Digit input
- * @param[in]		digitLen - digit length
- * @Interface		Synchronous.
- * @remark
- * @Refer
- */
-static void _digit_to_bcd(char* bcdCode, char* digits, int digitLen)
-{
-	int i, j, digit;
-	unsigned char higher, lower;
-
-	// 0123456789 -> 1032547698
-	for (i = 0, j = 0; i < digitLen; i = i + 2, j++) {
-		if (digits[i] == '*')
-			digit = 0x0A;
-		else if (digits[i] == '#')
-			digit = 0x0B;
-		else if (toupper((int) digits[i]) == 'P')
-			digit = 0x0C;
-		else if ((digits[i]) == '?')
-			digit = 0x0D;
-		else
-			digit = (int) digits[i];
-
-		lower = digit & 0x0F;
-
-		if (digitLen != i + 1) {
-			if (digits[i + 1] == '*')
-				digit = 0x0A;
-			else if (digits[i + 1] == '#')
-				digit = 0x0B;
-			else if (toupper((int) digits[i + 1]) == 'P')
-				digit = 0x0C;
-			else if (digits[i + 1] == '?')
-				digit = 0x0D;
-			else
-				digit = (int) digits[i + 1];
-			higher = digit & 0x0F;
-		} else {
-			higher = 0xFF;
-		}
-		bcdCode[j] = (higher << 4) | lower;
-	}
-}
-
-/**
- * This function is used to Convert BCD to Digit (BCD to Digit)
- *
- * @return		None
- * @param[out]	digit - Digit output output
- * @param[in]		bcdCode - BCD Input
- * @param[in]		bcdLen - BCD length
- * @Interface		Synchronous.
- * @remark
- * @Refer
- */
-static unsigned long _bcd_to_digit(char* digit, char* bcdCode, int bcdLen)
-{
-	int i, h, l;
-	char c[2];
-	unsigned char higher, lower;
-	unsigned long digitLen = 0;
-
-	// 0123456789 <- 1032547698
-	memset((void*) digit, 0, bcdLen * 2);
-
-	for (i = 0; i < bcdLen; i++) {
-		higher = (bcdCode[i] >> 4) & 0x0F; // get high nibble
-
-		if (higher == 0x0A)
-			higher = '*'; // =0x2A
-		else if (higher == 0x0B)
-			higher = '#'; // =0x23
-		else if (higher == 0x0C)
-			higher = 'P'; // =0x70, DTMF Control digit
-		else if (higher == 0x0D)
-			higher = '?';
-		else if (higher == 0x0F)
-			higher = 0;
-		else {
-			h = (int) higher;
-			_acitoa(h, c, 16);
-			higher = (char) toupper(*c);
-		}
-
-		lower = bcdCode[i] & 0x0F; // get low nibble
-
-		if (lower == 0x0A)
-			lower = '*';
-		else if (lower == 0x0B)
-			lower = '#';
-		else if (lower == 0x0C)
-			lower = 'P'; //DTMF Control digit
-		else if (lower == 0x0D)
-			lower = '?';
-		else if (lower == 0x0F)
-			lower = 0;
-		else {
-			l = (int) lower;
-			_acitoa(l, c, 16);
-			lower = (char) toupper(*c);
-		}
-		digit[i * 2] = lower;
-		digit[i * 2 + 1] = higher;
-	}
-
-	digitLen = (unsigned long) strlen(digit);
-	return digitLen;
-}
-
-/**
- * This function is used to get(decode) string name
- *
- * @return		length of string
- * @param[out]	palpha_id - Alpha string
- * @param[in]		pRecord - Input raw data
- * @param[in]		alphaIDMaxLen - Max size of alpha id array
- * @Interface		Synchronous.
- * @remark
- * @Refer
- */
-static unsigned long _get_string(unsigned char* palpha_id, unsigned char* pRecord,	unsigned long alphaIDMaxLen)
-{
-	unsigned long i, alphaIDLen = 0;
-	unsigned char *pAlphaID = (unsigned char*) palpha_id;
-
-	memset((void*) pAlphaID, 0, alphaIDMaxLen);
-
-	if (pRecord[0] == 0xFF)
-		return alphaIDLen;
-
-	for (i = 0; i < alphaIDMaxLen; i++) {
-		if (pRecord[0] <= 0x7F && pRecord[i] == 0xFF)
-			break;
-
-		pAlphaID[i] = pRecord[i];
-		alphaIDLen++;
-	}
-	return alphaIDLen;
-}
-
-/**
- * This function is used to set(encode) string name
- *
- * @return		length of string
- * @param[in]		palpha_id - Alpha string input
- * @param[out]	pRecord - output raw data
- * @param[in]		alphaIDMaxLen - Max size of alpha id array
- * @Interface		Synchronous.
- * @remark
- * @Refer
- */
-static void _set_string(unsigned char* pRecord, unsigned char* palpha_id, unsigned long alphaIDMaxLen)
-{
-	unsigned long i;
-	unsigned char* pAlphaID = (unsigned char*) palpha_id;
-
-	memset((void*) pRecord, 0xFF, alphaIDMaxLen);
-
-	for (i = 0; i < alphaIDMaxLen; i++)
-		pRecord[i] = pAlphaID[i];
-}
-
-static gboolean _is_empty(unsigned char* p_in, int in_length)
-{
-	int i;
-	for (i = 0; i < in_length; i++) {
-		if (p_in[i] != 0xFF)
-			return FALSE;
-	}
-	dbg("current index has empty data");
-	return TRUE;		// this is empty record.
-}
-
-/**
- * This function is used to get BCD length
- *
- * @return		length of string
- * @param[in]		pBcdData - BCD Input data
- * @param[in]		bcdMaxLen - BCD Max data Length
- * @Interface		Synchronous.
- * @remark
- * @Refer
- */
-static int _get_valid_bcd_byte(unsigned char* pBcdData, int bcdMaxLen)
-{
-	int i, bcd_length = 0;
-
-	for (i = 0; i < bcdMaxLen; i++) {
-		if (pBcdData[i] == 0xFF)
-			break;
-
-		bcd_length++;
-	}
-	return bcd_length;
-}
-
-/**
- * This function is used to get unpacked 8bit Format from GSM 7bit packed string.
- *
- * @return          the length of unpacked characters	.
- * @param[out]	out_string	Specifies the unpacked output string
- * @param[in]		in_string	Contains the input string to be unpacked
- * @param[in]		in_string_len	Contains the input string length
- * @remark
- */
-static int _unpack_7bit28bit(unsigned char* pInString, unsigned int inStringLen, unsigned char * pOutString)
-{
-	int i = 0;
-	unsigned int pos = 0;
-	unsigned short shift = 0;
-	int outlen = 0;
-	outlen = (short int) ((inStringLen * 8) / 7);
-
-	for (i = 0; pos < inStringLen; i++, pos++) {
-		pOutString[i] = (pInString[pos] << shift) & 0x7F;
-
-		if (pos != 0) {
-			/* except the first byte, a character contains some bits from the previous byte.*/
-			pOutString[i] |= pInString[pos - 1] >> (8 - shift);
-		}
-
-		shift++;
-
-		if (shift == 7) {
-			shift = 0;
-
-			/* a possible extra complete character is available */
-			i++;
-			pOutString[i] = pInString[pos] >> 1;
-		}
-	}
-
-	/*If a character is '\r'(13), change it to space(32) */
-	for (i = 0; i < outlen; i++)
-		if (pOutString[i] == 13) pOutString[i] = 32;
-
-	pOutString[outlen] = '\0';
-
-	dbg( "unpack is done with outlen[%d] and array index[%d], out string[%s]", outlen, i, pOutString);
-	return (unsigned int) (i);
-}
-
-static int _ucs2_to_utf8(int in_length, unsigned char *in_data, int *out_length,	unsigned char *out_data)
-{
-	int i, j;
-	i = j = 0;
-	if (in_length == 0 || in_data == NULL || out_data == NULL) {
-		dbg( "Unicode Decode Failed as text length is 0");
-		return FALSE;
-	}
-
-	if (0 != (in_length % 2)) {
-		dbg( " ##### Unicode decoding failed due to invalid text length [%d]",	in_length);
-		return FALSE;
-	}
-
-	for (i = 0; i < in_length; i++) {
-		out_data[i] = in_data[j];
-		j = j + 2;
-	}
-	*out_length = (in_length / 2);
-	out_data[i] = '\0';
-	return TRUE;
+	tcore_free(po->spn);
+	tcore_free(po->ops);
+	tcore_free(po);
+	tcore_object_link_object(co, NULL);
 }
 
 /**
  * According to ETSI 102.221 ( 3GPP specification refers it ), EF-ICCID is coded by BCD, left justified and padded with 'F'.
  * This EF is mandatory and byte length is fixed with 10 bytes. So actual maximum length of ICCID is 20 digits.
  */
-gboolean tcore_sim_decode_iccid(struct tel_sim_iccid *p_out, unsigned char *p_in, int in_length)
+gboolean tcore_sim_decode_iccid(unsigned char *enc_iccid, int enc_iccid_len, char *dec_iccid)
 {
 	int bcd_byte = 0;
-	int char_length = 0;
+	guint char_length = 0;
 
-	if (p_in == NULL || p_out == NULL)
+	tcore_check_return_value_assert(enc_iccid != NULL, FALSE);
+	tcore_check_return_value_assert(enc_iccid_len != 0, FALSE);
+	tcore_check_return_value_assert(dec_iccid != NULL, FALSE);
+
+	if (enc_iccid_len == 0 || enc_iccid_len > 10) {
+		err("invalid length");
 		return FALSE;
+	}
+	memset((void*) dec_iccid, 0, TEL_SIM_ICCID_LEN_MAX+1);
 
-	if (in_length == 0 || in_length > 10)
-		return FALSE;
+	bcd_byte = (int) tcore_util_get_valid_bcd_byte(enc_iccid, enc_iccid_len);
 
-	memset((void*) p_out->iccid, 0, SIM_ICCID_LEN_MAX+1);
+	char_length = tcore_util_convert_bcd_to_digit(dec_iccid, (char*)enc_iccid, bcd_byte);
+	dbg("ICCID string length is[%d]", char_length);
 
-	bcd_byte = _get_valid_bcd_byte(p_in, in_length);
-	dbg( "ICCID valid bcd byte is[%d]", bcd_byte);
-
-	char_length = _bcd_to_digit(p_out->iccid, (char*) p_in, bcd_byte);
-	dbg( "ICCID string length is[%d]", char_length);
-
-	*(p_out->iccid+char_length) = '\0';
+	dec_iccid[char_length] = '\0';
 
 	return TRUE;
 }
@@ -578,372 +228,366 @@ gboolean tcore_sim_decode_iccid(struct tel_sim_iccid *p_out, unsigned char *p_in
 /**
  * This function is used to decode EFLP (2G)
  */
-gboolean tcore_sim_decode_lp(struct tel_sim_language *p_out, unsigned char *p_in, int in_length)
+gboolean tcore_sim_decode_lp(unsigned char *enc_lang, int enc_lang_len, TelSimLanguagePreferenceCode *dec_lang)
 {
 	int i = 0;
 
-	memset((void*) p_out, 0xFF, sizeof(struct tel_sim_language));
-	p_out->language_count = 0;
+	tcore_check_return_value_assert(enc_lang != NULL, FALSE);
+	tcore_check_return_value_assert(enc_lang_len != 0, FALSE);
 
-	if (in_length == 0)
-		return FALSE;
+	*dec_lang = TEL_SIM_LP_LANG_UNSPECIFIED;
+
 	/*
 	 * Description of problem: language decoding was not correctly done if we used 7layers's test SIM
 	 * Patch Description : The tested SIM  at 7layers has 3 language codes like [ff][ff][01].
 	 In this case we could not decode 3rd language code.
 	 So, the below 2 lines checking the UNSPECIFIED language are commented.
 	 */
+	if (enc_lang_len > TEL_SIM_LANG_CNT_MAX)
+		enc_lang_len = TEL_SIM_LANG_CNT_MAX;
 
-	if (in_length > SIM_LANG_CNT_MAX)
-		in_length = SIM_LANG_CNT_MAX;
+	for (i = 0; i < enc_lang_len; i++) {
 
-	for (i = 0; i < in_length; i++) {
 		/*
 		 * Description of problem: Language decoding was not correctly done if we used some test SIM
 		 * Patch Description : Test SIM at some place has 3 language codes like  [ff][ff][01].
 		 * In this case we could not decode 3rd language code.
 		 * So, the below 2 lines checking the UNSPECIFIED language are commented.
 		 */
-		if (p_in[i] == 0xFF)
+		if (enc_lang[i] == 0xFF)
 			continue;
 
-		p_out->language[p_out->language_count] = (enum tel_sim_language_type) p_in[i];
-		dbg( "p_out->language[%d]=[%d] ", i, p_out->language[p_out->language_count]);
-		p_out->language_count++;
+		*dec_lang = (TelSimLanguagePreferenceCode)enc_lang[i];
 	}
-	dbg( "in_length %d, lang_cnt %d ", in_length, p_out->language_count);
+
+	dbg("enc_lang_len [%d] language[0x%x]", enc_lang_len, *dec_lang);
 	return TRUE;
 }
 
 /**
  * This function is used to encode EFLP (2G)
  */
-char* tcore_sim_encode_lp( int *out_length, struct tel_sim_language *p_in)
+gboolean tcore_sim_encode_lp(TelSimLanguagePreferenceCode dec_lang, char **enc_lang, int *enc_lang_len)
 {
-    int i = 0;
-    char *tmp_out = NULL;
+	char *language_code[] = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11",
+		"12", "13", "14", "15", "16", "17", "18" };
 
-    if ( out_length == NULL || p_in == NULL ){
-        dbg("out_length or p_in is null");
-        return NULL;
-    }
+	tcore_check_return_value_assert(enc_lang != NULL, FALSE);
+	tcore_check_return_value_assert(enc_lang_len != NULL, FALSE);
 
-    tmp_out = (char*)malloc(p_in->language_count);
-    memset((void*) tmp_out, 0xff, p_in->language_count);
+	*enc_lang = g_strdup_printf("%d", atoi(language_code[dec_lang]));
+	*enc_lang_len = strlen(*enc_lang);
+	dbg("Encoded Language: [%s] Length: [%d]", *enc_lang, *enc_lang_len);
 
-    for (i = 0; i < p_in->language_count; i++)
-        tmp_out[i] = p_in->language[i];
-
-    *out_length = i;
-    return tmp_out;
+	return TRUE;
 }
 
 /**
  * This function is used to decode LI (3G)
  */
-gboolean tcore_sim_decode_li(enum tel_sim_file_id file_id, struct tel_sim_language *p_out, unsigned char *p_in, int in_length)
+ /* TelSimFileID is replaced with int */
+gboolean tcore_sim_decode_li(unsigned char *enc_lang, int enc_lang_len, int file_id, TelSimLanguagePreferenceCode *dec_lang)
 {
 	int i;
-	unsigned short defaultLi;
-	unsigned char tempLi[3] = { 0, 0, 0 };
+	unsigned short default_li;
+	unsigned char temp_li[3] = { 0, 0, 0 };
 
-	memset((void*) p_out, 0xFF, sizeof(struct tel_sim_language));
-	p_out->language_count  = 0;
+	memset((void*) dec_lang, 0xFF, sizeof(TelSimLanguagePreferenceCode));
 
-	if (in_length == 0)
-		return FALSE;
+	tcore_check_return_value_assert(enc_lang != NULL, FALSE);
+	tcore_check_return_value_assert(enc_lang_len != 0, FALSE);
 
 	/*
 	 * Description of problem: language decoding was not correctly done if we used 7layers's test SIM
 	 * Patch Description : TS31.102 If the EFLI has the value 'FFFF' in its highest priority position,
 	 then the preferred language selection shall be the language preference in the EFPL
 	 */
-	if (/*TODO g_sim.CardType == SIM_TYPE_USIM && */(file_id == SIM_EF_USIM_LI || file_id == SIM_EF_LP)) {
-		defaultLi = p_in[0];
-		defaultLi = ((defaultLi << 8) & 0xFF00) + p_in[1];
+	if (/*TODO g_sim.CardType == SIM_TYPE_USIM && */(file_id == TEL_SIM_EF_USIM_LI || file_id == TEL_SIM_EF_LP)) {
+		default_li = enc_lang[0];
+		default_li = ((default_li << 8) & 0xFF00) + enc_lang[1];
 
-		if (defaultLi == 0xFFFF)	// 1st language is default.
+		if (default_li == 0xFFFF) {
+			// 1st language is default.
+			dbg("1st language is default");
 			return FALSE;
+		}
 	}
 
-	if (in_length > SIM_LANG_CNT_MAX)
-		in_length = SIM_LANG_CNT_MAX;
+	if (enc_lang_len > TEL_SIM_LANG_CNT_MAX)
+		enc_lang_len = TEL_SIM_LANG_CNT_MAX;
 
-	for (i = 0; i < in_length; i++) {
-		tempLi[0] = p_in[i++];
-		tempLi[1] = p_in[i];
+	for (i = 0; i < enc_lang_len; i++) {
+		temp_li[0] = enc_lang[i++];
+		temp_li[1] = enc_lang[i];
 /*
 		 Description of problem: language decoding was not correctly done if we used 7layers's test SIM
 		 Patch Description : The tested SIM at specific test lab has 3 language codes like [ff][ff][ff][ff][64][65].
 		 In this case we could not decode 3rd language code.
 		 So, the below 2 lines checking the UNSPECIFIED language are commented.
 */
-		if (tempLi[0] == 0xFF || tempLi[1] == 0xFF)  //this is always 2 bytes
+		if (temp_li[0] == 0xFF || temp_li[1] == 0xFF)  //this is always 2 bytes
 			continue;
 
-		p_out->language[p_out->language_count] = SIM_LANG_UNSPECIFIED;
+		*dec_lang = TEL_SIM_LP_LANG_UNSPECIFIED;
 
-		if (tempLi[0] == 'e') {
-			switch (tempLi[1]) {
-				case 'n':
-					p_out->language[p_out->language_count] = SIM_LANG_ENGLISH;
-					break;
-				case 's':
-					p_out->language[p_out->language_count] = SIM_LANG_SPANISH;
-					break;
-				case 'l':
-					p_out->language[p_out->language_count] = SIM_LANG_GREEK;
-					break;
+		if (temp_li[0] == 'e') {
+			switch (temp_li[1]) {
+			case 'n':
+				*dec_lang = TEL_SIM_LP_ENGLISH;
+			break;
+			case 's':
+				*dec_lang = TEL_SIM_LP_SPANISH;
+			break;
+			case 'l':
+				*dec_lang = TEL_SIM_LP_GREEK;
+			break;
 			}
-		} else if (tempLi[0] == 'd') {
-			switch (tempLi[1]) {
-				case 'e':
-					p_out->language[p_out->language_count] = SIM_LANG_GERMAN;
-					break;
+		} else if (temp_li[0] == 'd') {
+			switch (temp_li[1]) {
+			case 'e':
+				*dec_lang = TEL_SIM_LP_GERMAN;
+			break;
 
-				case 'a':
-					p_out->language[p_out->language_count] = SIM_LANG_DANISH;
-					break;
+			case 'a':
+				*dec_lang = TEL_SIM_LP_DANISH;
+			break;
 			}
-		} else if (tempLi[0] == 'i' && tempLi[1] == 't') {
-			p_out->language[p_out->language_count] = SIM_LANG_ITALIAN;
-		} else if (tempLi[0] == 'f' && tempLi[1] == 'r') {
-			p_out->language[p_out->language_count] = SIM_LANG_FRENCH;
-		} else if (tempLi[0] == 'n' && tempLi[1] == 'l') {
-			p_out->language[p_out->language_count] = SIM_LANG_DUTCH;
-		} else if (tempLi[0] == 's' && tempLi[1] == 'v') {
-			p_out->language[p_out->language_count] = SIM_LANG_SWEDISH;
-		} else if (tempLi[0] == 'f' && tempLi[1] == 'i') {
-			p_out->language[p_out->language_count] = SIM_LANG_FINNISH;
-		} else if (tempLi[0] == 'n' && tempLi[1] == 'o') {
-			p_out->language[p_out->language_count] = SIM_LANG_NORWEGIAN;
-		} else if (tempLi[0] == 't' && tempLi[1] == 'r') {
-			p_out->language[p_out->language_count] = SIM_LANG_TURKISH;
-		} else if (tempLi[0] == 'h' && tempLi[1] == 'u') {
-			p_out->language[p_out->language_count] = SIM_LANG_HUNGARIAN;
-		} else if (tempLi[0] == 'p') {
-			switch (tempLi[1]) {
-				case 'l':
-					p_out->language[p_out->language_count] = SIM_LANG_POLISH;
-					break;
-				case 't':
-					p_out->language[p_out->language_count] = SIM_LANG_PORTUGUESE;
-					break;
+		} else if (temp_li[0] == 'i' && temp_li[1] == 't') {
+			*dec_lang = TEL_SIM_LP_ITALIAN;
+		} else if (temp_li[0] == 'f' && temp_li[1] == 'r') {
+			*dec_lang = TEL_SIM_LP_FRENCH;
+		} else if (temp_li[0] == 'n' && temp_li[1] == 'l') {
+			*dec_lang = TEL_SIM_LP_DUTCH;
+		} else if (temp_li[0] == 's' && temp_li[1] == 'v') {
+			*dec_lang = TEL_SIM_LP_SWEDISH;
+		} else if (temp_li[0] == 'f' && temp_li[1] == 'i') {
+			*dec_lang = TEL_SIM_LP_FINNISH;
+		} else if (temp_li[0] == 'n' && temp_li[1] == 'o') {
+			*dec_lang = TEL_SIM_LP_NORWEGIAN;
+		} else if (temp_li[0] == 't' && temp_li[1] == 'r') {
+			*dec_lang = TEL_SIM_LP_TURKISH;
+		} else if (temp_li[0] == 'h' && temp_li[1] == 'u') {
+			*dec_lang = TEL_SIM_LP_HUNGARIAN;
+		} else if (temp_li[0] == 'p') {
+			switch (temp_li[1]) {
+			case 'l':
+				*dec_lang = TEL_SIM_LP_POLISH;
+			break;
+			case 't':
+				*dec_lang = TEL_SIM_LP_PORTUGUESE;
+			break;
 			}
-		} else if (tempLi[0] == 'k' && tempLi[1] == 'o') {
-			p_out->language[p_out->language_count] = SIM_LANG_KOREAN;
-		} else if (tempLi[0] == 'z' && tempLi[1] == 'h') {
-			p_out->language[p_out->language_count] = SIM_LANG_CHINESE;
-		} else if (tempLi[0] == 'r' && tempLi[1] == 'u') {
-			p_out->language[p_out->language_count] = SIM_LANG_RUSSIAN;
-		} else if (tempLi[0] == 'j' && tempLi[1] == 'a') {
-			p_out->language[p_out->language_count] = SIM_LANG_JAPANESE;
+		} else if (temp_li[0] == 'k' && temp_li[1] == 'o') {
+			*dec_lang = TEL_SIM_LP_KOREAN;
+		} else if (temp_li[0] == 'z' && temp_li[1] == 'h') {
+			*dec_lang = TEL_SIM_LP_CHINESE;
+		} else if (temp_li[0] == 'r' && temp_li[1] == 'u') {
+			*dec_lang = TEL_SIM_LP_RUSSIAN;
+		} else if (temp_li[0] == 'j' && temp_li[1] == 'a') {
+			*dec_lang = TEL_SIM_LP_JAPANESE;
 		}
 
-		dbg( "count %d & Codes %d ", p_out->language_count, p_out->language[p_out->language_count]);
-		p_out->language_count++;
+		dbg( "Language %d ", *dec_lang);
 	}
 
-	if (p_out->language_count == 0) {
-		dbg( "p_out->language_count = %d ", p_out->language_count);
-		return FALSE;
-	}
-	else {
-		return TRUE;
-	}
+	return TRUE;
 }
 
 /**
  * This function is used to encode EFLI (3G)
  */
-char* tcore_sim_encode_li( int *out_length, struct tel_sim_language *p_in)
+gboolean tcore_sim_encode_li(TelSimLanguagePreferenceCode dec_lang, char **en_lang, int *en_lang_len)
 {
-	int i = 0;
-    char *tmp_out = NULL;
-	char *LanguageCode[] = { "de", "en", "it", "fr", "es", "nl", "sv", "da", "pt", "fi", "no", "el",
-													"tr", "hu", "pl", "ko", "zh", "ru", "ja" };
+	char *language_code[] = { "de", "en", "it", "fr", "es", "nl", "sv", "da", "pt", "fi", "no", "el",
+		"tr", "hu", "pl", "ko", "zh", "ru", "ja" };
 
-    if ( out_length == NULL || p_in == NULL ){
-        dbg("out_length or p_in is null");
-        return NULL;
-    }
+	tcore_check_return_value_assert(en_lang != NULL, FALSE);
+	tcore_check_return_value_assert(en_lang_len != NULL, FALSE);
 
-    tmp_out = (char*)malloc((p_in->language_count) *2);
-    memset((void*) tmp_out, 0xff, (p_in->language_count)*2);
+	*en_lang_len = 0;
 
-	for (i = 0; i < p_in->language_count; i++) {
-		if (p_in->language[i] < SIM_LANG_UNSPECIFIED) {
-			strncpy((char *) &tmp_out[i * 2], LanguageCode[p_in->language[i]], 2);
-			dbg( "sim_encode_li: p_out[%s]:[%x][%x]", tmp_out, tmp_out[i*2], tmp_out[(i*2)+1]);
-		}
+	if (dec_lang < TEL_SIM_LP_LANG_UNSPECIFIED) {
+		*en_lang = (char *) tcore_strdup((gchar *)language_code[dec_lang]);
+		dbg( "sim_encode_li:tmp_out[%s]", *en_lang);
+		*en_lang_len = strlen(*en_lang);
 	}
-	*out_length = i*2;
-	return tmp_out;
+
+	return TRUE;
 }
 
-gboolean tcore_sim_decode_imsi(struct tel_sim_imsi *p_out, unsigned char *p_in, int in_length)
+gboolean tcore_sim_decode_imsi(unsigned char *en_imsi, int en_imsi_len, TelSimImsiInfo *dec_imsi)
 {
-	int i,j=0;
+	int i, j=0;
 	char imsi_raw[16];
+	unsigned int mnc_len = 0;
 
 	dbg( "Func Entrance");
 
-	if ((NULL == p_out) || (NULL == p_in))
-		return FALSE;
+	tcore_check_return_value_assert(dec_imsi != NULL, FALSE);
+	tcore_check_return_value_assert(en_imsi != NULL, FALSE);
 
 	/*
 		According to 3GPP specification, the length of raw IMSI data is 9 bytes.
 		first byte is length of IMSI
 		second byte byte has parity nibble, so second byte has one digit of IMSI. other byte has two digit of IMSI
 	*/
-	if ((in_length == 0) || (in_length == 0xff) || (4 > in_length) || (9 <in_length)) {
-		dbg("No valid IMSI present to convert - length:[%x]",	in_length);
+	if ((en_imsi_len == 0) || (en_imsi_len == 0xff) || (4 > en_imsi_len) || (9 <en_imsi_len)) {
+		dbg("No valid IMSI present to convert - length:[%x]",	en_imsi_len);
 		return FALSE;
 	}
-	dbg("imsi length[%d], input data length[%d]", p_in[0], in_length);
+	dbg("imsi length[%d], input data length[%d]", en_imsi[0], en_imsi_len);
 
 	/* Decode IMSI value from nibbles */
-	for (i = 1; i < in_length; i++) {
+	for (i = 1; i < en_imsi_len; i++) {
 		if (i == 1) { /* first byte, ignore lower nibble */
-			imsi_raw[j++] = ((p_in[i] & 0xF0) >> 4) + '0';
-		} else if (i == p_in[0]+1) { /* last byte */
-			imsi_raw[j++] = (p_in[i] & 0x0F)+ '0';
-			if (p_in[0]%2) /* count the last one if odd digits */
-				imsi_raw[j++] = ((p_in[i] & 0xF0) >> 4) + '0';
+			imsi_raw[j++] = ((en_imsi[i] & 0xF0) >> 4) + '0';
+		} else if (i == en_imsi[0]+1) { /* last byte */
+			imsi_raw[j++] = (en_imsi[i] & 0x0F)+ '0';
+			if (en_imsi[0]%2) /* count the last one if odd digits */
+				imsi_raw[j++] = ((en_imsi[i] & 0xF0) >> 4) + '0';
 		} else {
-			imsi_raw[j++] = (p_in[i]  & 0x0F) + '0';
-			imsi_raw[j++] = ((p_in[i] & 0xF0) >> 4) + '0';
+			imsi_raw[j++] = (en_imsi[i]  & 0x0F) + '0';
+			imsi_raw[j++] = ((en_imsi[i] & 0xF0) >> 4) + '0';
 		}
 	}
 	/* Terminate string */
 	imsi_raw[j] = '\0';
 	dbg("imsi_raw[%s], size[%d]", imsi_raw, strlen(imsi_raw));
 
-	memcpy(p_out->plmn, imsi_raw, 5);
-	p_out->plmn[5] = '\0';
-	memcpy(p_out->msin, imsi_raw+5, strlen(imsi_raw)-5);
-	p_out->msin[strlen(imsi_raw)-5] = '\0';
+	mnc_len = strlen(imsi_raw) - TEL_SIM_MSIN_LEN_MAX - TEL_SIM_MCC_MNC_LEN_MAX;
 
-	dbg("p_out->plmn[%s], p_out->msin[%s]", p_out->plmn, p_out->msin);
+	memcpy(dec_imsi->mcc, imsi_raw, TEL_SIM_MCC_MNC_LEN_MAX);
+	dec_imsi->mcc[TEL_SIM_MCC_MNC_LEN_MAX] = '\0';
+	memcpy(dec_imsi->mnc, imsi_raw+TEL_SIM_MCC_MNC_LEN_MAX, mnc_len);
+	dec_imsi->mnc[mnc_len] = '\0';
+	memcpy(dec_imsi->msin, imsi_raw+TEL_SIM_MCC_MNC_LEN_MAX+mnc_len, TEL_SIM_MSIN_LEN_MAX);
+	dec_imsi->msin[TEL_SIM_MSIN_LEN_MAX] = '\0';
+
+	dbg("dec_imsi->mcc[%s], dec_imsi->mcc[%s], dec_imsi->msin[%s]",
+				dec_imsi->mcc, dec_imsi->mnc, dec_imsi->msin);
 
 	return TRUE;
 }
 
-gboolean tcore_sim_decode_sst(struct tel_sim_sst *p_sst, unsigned char *p_in, int in_length)
+gboolean tcore_sim_decode_sst(unsigned char *enc_sst, int enc_sst_len, char *dec_sst)
 {
-	unsigned char sstByte, rast, mask = 0;
-	char simServiceID = 1;	// set "CHV1 disable function"
+	unsigned char sst_byte, rast, mask = 0;
+	char sim_service_id = 1;	// set "CHV1 disable function"
 	int i, svc_count;
-	char *p_index;
 
-	memset((void*)p_sst, 0, sizeof(struct tel_sim_sst));
+	tcore_check_return_value_assert(enc_sst != NULL, FALSE);
+	tcore_check_return_value_assert(enc_sst_len != 0, FALSE);
 
-	if (in_length == 0 || in_length > SIM_SST_LEN_MAX)
+	memset((void*)dec_sst, 0, TEL_SIM_SST_SERVICE_CNT_MAX);
+
+	if (enc_sst_len == 0 || enc_sst_len > TEL_SIM_SST_LEN_MAX) {
+		err("invalid length");
 		return FALSE;
+	}
 
 	// get count of SIM service id. one byte has four service status.
-	svc_count = in_length * 4;
+	svc_count = enc_sst_len * 4;
 
-	/*3GPP 51.011 SST shows 56 kinds of service types. current tel_sim_sst has also 56 elements*/
-	if (svc_count > SIM_SST_SERVICE_CNT_MAX)
-		svc_count = SIM_SST_SERVICE_CNT_MAX;
-
-	p_index = (char*)p_sst;
+	/*3GPP 51.011 SST shows 56 kinds of service types. current char *p_sst has also 56 elements*/
+	if (svc_count > TEL_SIM_SST_SERVICE_CNT_MAX)
+		svc_count = TEL_SIM_SST_SERVICE_CNT_MAX;
 
 	for (i = 0; i < svc_count; i++) {
-		sstByte = p_in[(simServiceID - 1) / 4];
-		rast = simServiceID - 4 * (simServiceID / 4);
+		sst_byte = enc_sst[(sim_service_id - 1) / 4];
+		rast = sim_service_id - 4 * (sim_service_id / 4);
 
 		switch (rast) {
-			case 1:
-				mask = 0x02;
-				break;
-			case 2:
-				mask = 0x08;
-				break;
-			case 3:
-				mask = 0x20;
-				break;
-			case 0:
-				mask = 0x80;
-				break;
+		case 0:
+			mask = 0x80;
+		break;
+		case 1:
+			mask = 0x02;
+		break;
+		case 2:
+			mask = 0x08;
+		break;
+		case 3:
+			mask = 0x20;
+		break;
 		}
 
-		if (sstByte & mask)
-			*p_index = 1;
+		if (sst_byte & mask)
+			*dec_sst = 1;
 		else
-			*p_index = 0;
+			*dec_sst = 0;
 
-		p_index += sizeof(char);
-		simServiceID++;	// next service id
+		*dec_sst += sizeof(char);
+		sim_service_id++;	// next service id
 	}
 	return TRUE;
 }
 
-gboolean tcore_sim_decode_spn(struct tel_sim_spn *p_spn, unsigned char *p_in, int in_length)
+gboolean tcore_sim_decode_spn(unsigned char *enc_spn, int enc_spn_len, TelSimSpn *dec_spn)
 {
 	int i;
 
-	if (in_length == 0)
-		return FALSE;
+	tcore_check_return_value_assert(enc_spn != NULL, FALSE);
+	tcore_check_return_value_assert(enc_spn_len != 0, FALSE);
+	tcore_check_return_value_assert(dec_spn != NULL, FALSE);
 
-	p_spn->display_condition = p_in[0];
-	dbg( "The display condition is [%d]", p_spn->display_condition);
+	dec_spn->display_condition = enc_spn[0];
+	dbg( "The display condition is [%d]", dec_spn->display_condition);
 
-	for (i = 1; i < SIM_SPN_LEN_MAX + 1; i++) {
-		if (p_in[i] == 0xFF)
+	for (i = 1; i < TEL_SIM_SPN_LEN_MAX + 1; i++) {
+		if (enc_spn[i] == 0xFF)
 			break; /* loop break*/
 
-		p_spn->spn[i - 1] = p_in[i];
-		dbg( "EF-SPN name[%d][%c]", i, p_in[i]);
+		dec_spn->spn[i - 1] = enc_spn[i];
+		dbg("EF-SPN name[%d][%c]", i, enc_spn[i]);
 	}
-	p_spn->spn[i-1] = '\0';
+	dec_spn->spn[i-1] = '\0';
 
 	return TRUE;
 }
 
-gboolean tcore_sim_decode_spdi(struct tel_sim_spdi *p_spdi, unsigned char *p_in, int in_length)
+gboolean tcore_sim_decode_spdi(unsigned char *enc_spdi, int enc_spdi_len, TelSimSpPlmnList *dec_spdi)
 {
-	int i, Src_plmn_start_len, total_data_len;
+	unsigned int i, src_plmn_start_len, total_data_len;
 
-	if (in_length == 0)
-		return FALSE;
+	tcore_check_return_value_assert(enc_spdi != NULL, FALSE);
+	tcore_check_return_value_assert(enc_spdi_len != 0, FALSE);
+	tcore_check_return_value_assert(dec_spdi != NULL, FALSE);
 
-	if(p_in[0] == 0xff){
+	if (enc_spdi[0] == 0xff){
 		dbg("file is exist but there is no valid records");
-		p_spdi->plmn_count = 0;
-		memset(p_spdi->list, 0x00, sizeof(unsigned char)*7*SIM_SPDI_PLMN_MAX);
+		dec_spdi->count = 0;
+		memset(dec_spdi->list, 0x00, sizeof(unsigned char)*7*TEL_SIM_SPDI_PLMN_MAX);
 		return TRUE;
 	}
 
 	//Display info tag('A3')
-	if (p_in[0] == 0xA3) {
-		total_data_len = p_in[1];
+	if (enc_spdi[0] == 0xA3) {
+		total_data_len = enc_spdi[1];
 		 //PLMN list tag('80')
-		if (p_in[2] == 0x80) {
-			p_spdi->plmn_count = p_in[3] / 3;
+		if (enc_spdi[2] == 0x80) {
+			dec_spdi->count = enc_spdi[3] / 3;
 
 			/*
 			 *  plmn tag 1byte
 			 *  length 1byte
 			 *  each plmn entry 3byte
 			 */
-			if (p_spdi->plmn_count > SIM_SPDI_PLMN_MAX)
-				p_spdi->plmn_count =	SIM_SPDI_PLMN_MAX;
+			if (dec_spdi->count > TEL_SIM_SPDI_PLMN_MAX)
+				dec_spdi->count = TEL_SIM_SPDI_PLMN_MAX;
 
-			Src_plmn_start_len = 4;
+			src_plmn_start_len = 4;
 
-			dbg( "p_spdi->num_of_plmn_entries[%d]", p_spdi->plmn_count);
+			dbg( "dec_spdi->num_of_plmn_entries[%d]", dec_spdi->count);
 
-			for (i = 0; i < p_spdi->plmn_count; i++) {
-				unsigned char packetInDigit[3 * 2 + 1];
-				_bcd_to_digit((char*) packetInDigit, (char*) &p_in[Src_plmn_start_len], 3);
+			for (i = 0; i < dec_spdi->count; i++) {
+				unsigned char packet_in_digit[3 * 2 + 1];
+				tcore_util_convert_bcd_to_digit((char*) packet_in_digit, (char*) &enc_spdi[src_plmn_start_len], 3);
 				// get MCC (mobile country code)
-				memcpy(p_spdi->list[i].plmn, &(packetInDigit[0]), 6);
-				p_spdi->list[i].plmn[6] = '\0';
-				dbg( "SPDI PLMN[%d][%s]", i, p_spdi->list[i].plmn);
+				memcpy(dec_spdi->list[i].plmn, &(packet_in_digit[0]), 6);
+				dec_spdi->list[i].plmn[6] = '\0';
+				dbg( "SPDI PLMN[%d][%s]", i, dec_spdi->list[i].plmn);
 
-				Src_plmn_start_len = Src_plmn_start_len + 3;
+				src_plmn_start_len = src_plmn_start_len + 3;
 			}
 			return TRUE;
 		}
@@ -954,82 +598,87 @@ gboolean tcore_sim_decode_spdi(struct tel_sim_spdi *p_spdi, unsigned char *p_in,
 	return FALSE;
 }
 
-gboolean tcore_sim_decode_msisdn(struct tel_sim_msisdn *p_msisdn, unsigned char *p_in, int in_length)
+gboolean tcore_sim_decode_msisdn(unsigned char *enc_msisdn,
+	int enc_msisdn_len, TelSimSubscriberInfo *dec_msisdn)
 {
 	int X = 0;	// alpha id max length
 	int alpha_id_length = 0;
 	int value_length = 0;
 	int bcd_byte = 0;	// dialing number max length
 
-	memset((void*) p_msisdn, 0, sizeof(struct tel_sim_msisdn));
+	tcore_check_return_value_assert(enc_msisdn != NULL, FALSE);
+	tcore_check_return_value_assert(enc_msisdn_len != 0, FALSE);
+	tcore_check_return_value_assert(dec_msisdn != NULL, FALSE);
 
-	if (in_length == 0)
-		return FALSE;
-
-	if (_is_empty(p_in, in_length) == TRUE) {
-		memset(p_msisdn, 0, sizeof(struct tel_sim_msisdn));
+	if (tcore_util_is_empty(enc_msisdn, enc_msisdn_len) == TRUE) {
+		err("empty record");
 		return FALSE;
 	}
 
-	X = in_length - 14;	// get alpha id max length
+	X = enc_msisdn_len - 14;	// get alpha id max length
 
 	if (X != 0) {
 		alpha_id_length = X;
 		dbg("alpha_id_length[%d]", alpha_id_length);
-		if(alpha_id_length > SIM_XDN_ALPHA_ID_LEN_MAX)
-			alpha_id_length = SIM_XDN_ALPHA_ID_LEN_MAX;
+		if (alpha_id_length > TEL_SIM_XDN_ALPHA_ID_LEN_MAX)
+			alpha_id_length = TEL_SIM_XDN_ALPHA_ID_LEN_MAX;
 
-		value_length =  _get_string((unsigned char *)p_msisdn->name, p_in, alpha_id_length);
-		p_msisdn->name[value_length] = '\0';
+		dec_msisdn->alpha_id = tcore_malloc0(alpha_id_length + 1);
+		value_length = tcore_util_get_string((guchar *)dec_msisdn->alpha_id,
+			enc_msisdn, alpha_id_length);
+		dec_msisdn->alpha_id[value_length] = '\0';
 	}
 
 	// get dialing number length
-	// p_in[X] is BCD length of dialing number length plus TON/NPI 1 bytes.
+	// in[X] is BCD length of dialing number length plus TON/NPI 1 bytes.
 	// Convert to digit length and subtract TON/NPI length.
-	if (p_in[X] != 0xFF) {
-		dbg( "Dialing number Length %d, BCD length 0x%x ",  (p_in[X] - 1) * 2, p_in[X]);
+	if (enc_msisdn[X] != 0xFF) {
+		dbg( "Dialing number Length %d, BCD length 0x%x ",  (enc_msisdn[X] - 1) * 2, enc_msisdn[X]);
 
 		// get TON and NPI
-		p_msisdn->ton = (p_in[X + 1] >> 4) & 0x07;
+		//p_msisdn->ton = (in[X + 1] >> 4) & 0x07;
 
 		// get actual dialing number length
-		bcd_byte = _get_valid_bcd_byte(&p_in[X + 2], SIM_XDN_NUMBER_LEN_MAX / 2);
+		bcd_byte = (int) tcore_util_get_valid_bcd_byte(&enc_msisdn[X + 2], TEL_SIM_XDN_NUMBER_LEN_MAX / 2);
 		dbg( "bcd_byte[%x]", bcd_byte);
 
 		// get dialing number/SSC string
-		value_length = _bcd_to_digit((char*) p_msisdn->num, (char*) &p_in[X + 2], bcd_byte); // actual dialing number length in BCD.
-		p_msisdn->num[value_length] = '\0';
-		dbg( "p_msisdn->num[%s]", p_msisdn->num);
+		dec_msisdn->num = tcore_malloc0((bcd_byte * 2) + 1);
+		value_length = tcore_util_convert_bcd_to_digit((char*)dec_msisdn->num,
+			(char*) &enc_msisdn[X + 2], bcd_byte); // actual dialing number length in BCD.
+		dec_msisdn->num[value_length] = '\0';
+		dbg( "dec_msisdn->num[%s]", dec_msisdn->num);
 	}
 	return TRUE;
 }
 
-gboolean tcore_sim_decode_xdn(struct tel_sim_dialing_number *p_xdn, unsigned char *p_in, int in_length)
+gboolean tcore_sim_decode_xdn(unsigned char *enc_xdn, int enc_xdn_len, char *alpha_id, char *num)
 {
 	int X;	// alpha id max length
 	int bcd_byte;	// dialing number max length
 
-	memset((void*) p_xdn, 0, sizeof(struct tel_sim_dialing_number));
+	memset((void*) alpha_id, 0, TEL_SIM_XDN_ALPHA_ID_LEN_MAX);
+	memset((void*) num, 0, TEL_SIM_XDN_NUMBER_LEN_MAX);
 
-	if (in_length == 0)
-		return FALSE;
+	tcore_check_return_value_assert(enc_xdn != NULL, FALSE);
+	tcore_check_return_value_assert(enc_xdn_len != 0, FALSE);
 
-	if (_is_empty(p_in, in_length) == TRUE) {
+	if (tcore_util_is_empty(enc_xdn, enc_xdn_len) == TRUE) {
+		err("empty record");
 		return FALSE;	// this is empty record
 	}
 
-	X = in_length - 14;	// get alpha id max length
+	X = enc_xdn_len - 14;	// get alpha id max length
 
 	if (X != 0) {
-		_get_string((unsigned char *)p_xdn->alpha_id, p_in, X);
-		p_xdn->alpha_id_max_len = X;
+		tcore_util_get_string((unsigned char *)alpha_id, enc_xdn, X);
 	}
 
 	// get dialing number length
-	// p_in[X] is BCD length of dialing number length plus TON/NPI 1 bytes.
+	// in[X] is BCD length of dialing number length plus TON/NPI 1 bytes.
 	// Convert to digit length and subtract TON/NPI length.
-	if (p_in[X] != 0xFF) {
-		dbg( "Dialing number Length %d, BCD length 0x%x ",	(p_in[X] - 1) * 2, p_in[X]);
+	if (enc_xdn[X] != 0xFF) {
+		dbg( "Dialing number Length %d, BCD length 0x%x ", (enc_xdn[X] - 1) * 2, enc_xdn[X]);
 
 /*		if (p_xdn->num_max_len > SIM_XDN_NUMBER_LEN_MAX)	{
 
@@ -1046,173 +695,172 @@ gboolean tcore_sim_decode_xdn(struct tel_sim_dialing_number *p_xdn, unsigned cha
 			 X+14	Extension1 Record Identifier	M	1 byte
 
 			 Anyway we are doing this check @
-			 bcd_byte = _get_valid_bcd_byte (&p_in[X+2], TAPI_SIM_XDN_DIALING_NUMBER_LEN/2);
+			 bcd_byte = (int) tcore_util_get_valid_bcd_byte (&in[X+2], TAPI_SIM_XDN_DIALING_NUMBER_LEN/2);
 			 by using the 20/2; so don`t return false.
 
-			if (p_in[X] == 0x00)
+			if (in[X] == 0x00)
 				p_xdn->num_max_len = 0;
 			else
 				p_xdn->num_max_len = SIM_XDN_NUMBER_LEN_MAX;
 		}*/
 
 		// get TON and NPI
-		p_xdn->ton = (p_in[X + 1] >> 4) & 0x07;
-		p_xdn->npi = p_in[X + 1] & 0x0F;
+		//p_xdn->ton = (in[X + 1] >> 4) & 0x07;
+		//p_xdn->npi = in[X + 1] & 0x0F;
 
 		// get actual dialing number length
-		bcd_byte = _get_valid_bcd_byte(&p_in[X + 2], SIM_XDN_NUMBER_LEN_MAX / 2);
+		bcd_byte = (int) tcore_util_get_valid_bcd_byte(&enc_xdn[X + 2], TEL_SIM_XDN_NUMBER_LEN_MAX / 2);
 		dbg( "bcd_byte[%x]", bcd_byte);
 
 		// get dialing number/SSC string
-		_bcd_to_digit((char*) p_xdn->num, (char*) &p_in[X + 2], bcd_byte); // actual dialing number length in BCD.
-		dbg( "p_xdn->DiallingNum[%s]", p_xdn->num);
+		tcore_util_convert_bcd_to_digit((char*) num, (char*) &enc_xdn[X + 2], bcd_byte); // actual dialing number length in BCD.
+		dbg( "p_xdn->DiallingNum[%s]", num);
 		// get Capability/Configuration id
-		p_xdn->cc_id = p_in[X + 12];
+		//p_xdn->cc_id = enc_xdn[X + 12];
 		// get Extension1 id
-		p_xdn->ext1_id = p_in[X + 13];
+		//p_xdn->ext1_id = enc_xdn[X + 13];
 	}
 	return TRUE;
 }
 
-char* tcore_sim_encode_xdn(int out_length, struct tel_sim_dialing_number *p_xdn)
+gboolean tcore_sim_encode_xdn(char *alpha_id, char *num, char *enc_xdn, int enc_xdn_len)
 {
 	int alpha_id_space =0, digit_len =0, str_len = 0;
-	char bcdCode[SIM_XDN_NUMBER_LEN_MAX / 2];
-	char * p_out = NULL;
-	p_out = calloc(out_length,1);
-	memset((void*) p_out, 0xFF, out_length);
+	char bcd_code[TEL_SIM_XDN_NUMBER_LEN_MAX / 2];
+	enc_xdn = tcore_malloc0(enc_xdn_len);
+	memset((void*) enc_xdn, 0xFF, enc_xdn_len);
+
+	tcore_check_return_value_assert(alpha_id != NULL, FALSE);
+	tcore_check_return_value_assert(num != NULL, FALSE);
 
 	// get alpha id max length
-	alpha_id_space = out_length - 14;
+	alpha_id_space = enc_xdn_len - 14;
 
 	// alpha id is too big
-	str_len = strlen(p_xdn->alpha_id);
+	str_len = strlen(alpha_id);
 	if (alpha_id_space < str_len) {
 		dbg("SIM space for alpha_id is [%d] but input alpha_id length is [%d]. so we will use [%d] byte",
 				alpha_id_space, str_len, alpha_id_space);
 		str_len = alpha_id_space;
 	}
 
-	digit_len = strlen(p_xdn->num);
+	digit_len = strlen(num);
 	// this is digit length
-	if ( digit_len > SIM_XDN_NUMBER_LEN_MAX) {
+	if ( digit_len > TEL_SIM_XDN_NUMBER_LEN_MAX) {
 		dbg("SIM space for number is [%d] but input number length is [%d]. so we will use [%d] byte",
-				SIM_XDN_NUMBER_LEN_MAX, digit_len, SIM_XDN_NUMBER_LEN_MAX);
-		digit_len = SIM_XDN_NUMBER_LEN_MAX;
+				TEL_SIM_XDN_NUMBER_LEN_MAX, digit_len, TEL_SIM_XDN_NUMBER_LEN_MAX);
+		digit_len = TEL_SIM_XDN_NUMBER_LEN_MAX;
 	}
 
-	_set_string((unsigned char *)p_out, (unsigned char *)p_xdn->alpha_id, str_len);
+	tcore_util_set_string((unsigned char *)enc_xdn, (unsigned char *)alpha_id, str_len);
 
 	// set length of BCD number/SSC contents
 	// p_xdn->diallingnumLen is maximum digit length. = 20 bytes.
 	// convert to BCD length and add 1 byte.
-	p_out[alpha_id_space] = ( (digit_len + 1) / 2 ) + 1;
+	enc_xdn[alpha_id_space] = ( (digit_len + 1) / 2 ) + 1;
 
-	// set TON and NPI
-	p_out[alpha_id_space + 1] = 0x80;
-	p_out[alpha_id_space + 1] |= (p_xdn->ton & 0x07) << 4;
-	p_out[alpha_id_space + 1] |= p_xdn->npi & 0x0F;
-
+	/* set TON and NPI
+	xdn[alpha_id_space + 1] = 0x80;
+	xdn[alpha_id_space + 1] |= (p_xdn->ton & 0x07) << 4;
+	xdn[alpha_id_space + 1] |= p_xdn->npi & 0x0F;
+	*/
 	// set dialing number/SSC string
-	memset((void*) bcdCode, 0xFF, SIM_XDN_NUMBER_LEN_MAX / 2);
+	memset((void*) bcd_code, 0xFF, TEL_SIM_XDN_NUMBER_LEN_MAX / 2);
 
-	_digit_to_bcd((char*) bcdCode, (char*) p_xdn->num, digit_len);
+	tcore_util_convert_digit_to_bcd((char*) bcd_code, (char*)num, digit_len);
 
-	memcpy((void*) &p_out[alpha_id_space + 2], bcdCode, SIM_XDN_NUMBER_LEN_MAX / 2);
+	memcpy((void*) &enc_xdn[alpha_id_space + 2], bcd_code, TEL_SIM_XDN_NUMBER_LEN_MAX / 2);
 
 	// set Capability/Configuration Identifier
-	p_out[alpha_id_space + 12] = (unsigned char) p_xdn->cc_id;
+	//out[alpha_id_space + 12] = (unsigned char) p_xdn->cc_id;
 	// set extension1 record Identifier
-	p_out[alpha_id_space + 13] = (unsigned char) p_xdn->ext1_id;
+	//out[alpha_id_space + 13] = (unsigned char) p_xdn->ext1_id;
 
-	return p_out;
+	return TRUE;
 }
 
-gboolean tcore_sim_decode_ecc(struct tel_sim_ecc_list *p_ecc, unsigned char *p_in, int in_length)
+gboolean tcore_sim_decode_ecc(unsigned char *enc_ecc, int enc_ecc_len, TelSimEccList *dec_ecc)
 {
 	int bcd_byte;	// dialing number max length
 	int i;
 	int valid_ecc_length;
-	memset((void*)p_ecc, 0x00, sizeof(struct tel_sim_ecc_list));
 
-	if(in_length%3 != 0) {
-		dbg("error - invalid data length");
+	tcore_check_return_value_assert(enc_ecc != NULL, FALSE);
+	tcore_check_return_value_assert(enc_ecc_len != 0, FALSE);
+	tcore_check_return_value_assert(dec_ecc != NULL, FALSE);
+
+	memset((void*)dec_ecc, 0x00, sizeof(TelSimEccList));
+
+	if (enc_ecc_len%3 != 0) {
+		err("error - invalid data length");
 		return FALSE;
 	}
 
-	for(i=0; i < in_length/3; i++){
+	for(i=0; i < enc_ecc_len/3; i++){
 		//get the BCD length of the ECC
-		bcd_byte = _get_valid_bcd_byte((unsigned char*) p_in+(i*3), 3);
-		if(bcd_byte != 0) {
-			valid_ecc_length = _bcd_to_digit(p_ecc->ecc[p_ecc->ecc_count].ecc_num, (char *)p_in+(i*3), bcd_byte);
-			p_ecc->ecc[p_ecc->ecc_count].ecc_num[valid_ecc_length] = '\0';
-			p_ecc->ecc_count++;
+		bcd_byte = (int) tcore_util_get_valid_bcd_byte((unsigned char*) enc_ecc+(i*3), 3);
+		if (bcd_byte != 0) {
+			valid_ecc_length = tcore_util_convert_bcd_to_digit(dec_ecc->list[dec_ecc->count].number, (char *)enc_ecc+(i*3), bcd_byte);
+			dec_ecc->list[dec_ecc->count].number[valid_ecc_length] = '\0';
+			dec_ecc->count++;
 		}
 	}
 	return TRUE;
 }
 
-gboolean tcore_sim_decode_ust(struct tel_sim_ust *p_ust, unsigned char *p_in, int in_length)
+gboolean tcore_sim_decode_ust(unsigned char *enc_ust, int enc_ust_len, char *dec_ust)
 {
 	int i, j;
 	char mask;
-	char *p_index;
-	memset((void*) p_ust, 0, sizeof(struct tel_sim_ust));
-	p_index = (char*)p_ust;
+
+	tcore_check_return_value_assert(enc_ust != NULL, FALSE);
+	tcore_check_return_value_assert(enc_ust_len != 0, FALSE);
+
+	memset((void*) dec_ust, 0, TEL_SIM_UST_SERVICE_CNT_MAX);
 
 /*	UST service is described to 74(1 byte includes 8 service status) in 31.102 r7.
-	current sim_ust_s has 64 services. so in_length should be under 8 byte. */
-	if (in_length > SIM_UST_BYTE_LEN_MAX)
-		in_length = SIM_UST_BYTE_LEN_MAX;
+	current sim_ust_s has 64 services. so enc_ust_len should be under 8 byte. */
+	if (enc_ust_len > TEL_SIM_UST_BYTE_LEN_MAX)
+		enc_ust_len = TEL_SIM_UST_BYTE_LEN_MAX;
 
-	for (i = 0; i < in_length; i++) {
+	for (i = 0; i < enc_ust_len; i++) {
 		mask = 0x01;	// reset mast to check first bit
 
 		for (j = 0; j < 8; j++) {
-			if (p_in[i] & mask) {
-				*p_index = 1;
+			if (enc_ust[i] & mask) {
+				*dec_ust = 1;
 			}
-			p_index += sizeof(char);
+			dec_ust += sizeof(char);
 			mask = mask << 1;
 		}
 	}
 	return TRUE;
 }
 
-gboolean tcore_sim_decode_est(struct tel_sim_est *p_est, unsigned char *p_in, int in_length)
-{
-	memset((void*) p_est, 0, sizeof(struct tel_sim_est));
-
-	if (*p_in & 0x01)
-		p_est->bFdnEnabled = TRUE;
-	if (*p_in & 0x02)
-		p_est->bBdnEnabled = TRUE;
-	if (*p_in & 0x04)
-		p_est->bAclEnabled = TRUE;
-
-	return TRUE;
-}
-
-gboolean tcore_sim_decode_uecc(struct tel_sim_ecc *p_ecc, unsigned char* p_in, int in_length)
+gboolean tcore_sim_decode_uecc(unsigned char* enc_uecc, int enc_uecc_len, TelSimEcc *dec_ecc)
 {
 	int bcd_byte;	// dialing number max length
-	unsigned char eccServiceCategory;
+	unsigned char ecc_service_category;
 
-	if (_is_empty(p_in, in_length) == TRUE) {
-		memset(p_ecc, 0, sizeof(struct tel_sim_ecc));
+	tcore_check_return_value_assert(enc_uecc != NULL, FALSE);
+	tcore_check_return_value_assert(enc_uecc_len != 0, FALSE);
+	tcore_check_return_value_assert(dec_ecc != NULL, FALSE);
+
+	if (tcore_util_is_empty(enc_uecc, enc_uecc_len) == TRUE) {
+		err("empty record");
 		return FALSE;
 	}
 
 	//get the BCD length of the ECC
-	bcd_byte = _get_valid_bcd_byte(&p_in[0], SIM_ECC_BYTE_LEN_MAX);
+	bcd_byte = (int) tcore_util_get_valid_bcd_byte(&enc_uecc[0], TEL_SIM_ECC_BYTE_LEN_MAX);
 
 	//get the ECC codes in digits and the length as well
-	_bcd_to_digit((char*) p_ecc->ecc_num, (char*) &p_in[0], bcd_byte);
+	tcore_util_convert_bcd_to_digit((char*) dec_ecc->number, (char*) &enc_uecc[0], bcd_byte);
 
 	//get the alpha identifier of ECC (
-	_get_string((unsigned char*) p_ecc->ecc_string, (unsigned char*) &p_in[3], in_length - 3);
+	tcore_util_get_string((unsigned char*) dec_ecc->name, (unsigned char*) &enc_uecc[3], enc_uecc_len - 3);
 
-	eccServiceCategory = p_in[in_length - 1] & 0x1F;	 // Check for the first 5 bits
+	ecc_service_category = enc_uecc[enc_uecc_len - 1] & 0x1F;	 // Check for the first 5 bits
 
 	/*
 	 Assign the service category
@@ -1229,985 +877,447 @@ gboolean tcore_sim_decode_uecc(struct tel_sim_ecc *p_ecc, unsigned char* p_in, i
 	 Bit 7	automatically initiated eCall
 	 Bit 8	is spare and set to "0"
 	 */
-	switch (eccServiceCategory) {
-		case 0x01:
-			p_ecc->ecc_category = SIM_ECC_POLICE;
-			break;
-		case 0x02:
-			p_ecc->ecc_category = SIM_ECC_AMBULANCE;
-			break;
-		case 0x04:
-			p_ecc->ecc_category = SIM_ECC_FIREBRIGADE;
-			break;
-		case 0x08:
-			p_ecc->ecc_category = SIM_ECC_MARAINEGUARD;
-			break;
-		case 0x10:
-			p_ecc->ecc_category = SIM_ECC_MOUTAINRESCUE;
-			break;
-		default:
-			p_ecc->ecc_category = SIM_ECC_SPARE;
-			break;
+	switch (ecc_service_category) {
+	case 0x01:
+		dec_ecc->category = TEL_SIM_ECC_ESC_POLICE;
+	break;
+	case 0x02:
+		dec_ecc->category = TEL_SIM_ECC_ESC_AMBULANCE;
+	break;
+	case 0x04:
+		dec_ecc->category = TEL_SIM_ECC_ESC_FIREBRIGADE;
+	break;
+	case 0x08:
+		dec_ecc->category = TEL_SIM_ECC_ESC_MARINEGUARD;
+	break;
+	case 0x10:
+		dec_ecc->category = TEL_SIM_ECC_ESC_MOUNTAINRESCUE;
+	break;
+	case 0x20:
+		dec_ecc->category = TEL_SIM_ECC_ESC_MANUAL_ECALL;
+	break;
+	case 0x40:
+		dec_ecc->category = TEL_SIM_ECC_ESC_AUTO_ECALL;
+	break;
+	default:
+		dec_ecc->category = TEL_SIM_ECC_ESC_DEFAULT;
+		dbg("default ecc->category");
 	}
 	return TRUE;
 }
 
-gboolean tcore_sim_decode_gid( struct tel_sim_gid *p_gid, unsigned char* p_in, int in_length)
+gboolean tcore_sim_decode_mbi(unsigned char *enc_mbi, int enc_mbi_len, TelSimMbi *dec_mbi)
 {
-	int i;
+	tcore_check_return_value_assert(enc_mbi != NULL, FALSE);
+	tcore_check_return_value_assert(enc_mbi_len != 0, FALSE);
+	tcore_check_return_value_assert(dec_mbi != NULL, FALSE);
 
-	memset((void*) p_gid, 0, sizeof(struct tel_sim_gid ));
-
-	if (in_length == 0)
-		return FALSE;
-
-/*regarding 31.102, EF-GID data byte is not defined. currently 10.*/
-	if (in_length >= SIM_GROUP_IDENTIFIER_LEN_MAX)
-		in_length = SIM_GROUP_IDENTIFIER_LEN_MAX;
-
-	for (i = 0; i < in_length; i++) {
-		if (p_in[i] == 0xFF)
-			break;
-
-		p_gid->szGroupIdentifier[i] = p_in[i];
-		p_gid->GroupIdentifierLen++;
-	}
-	return TRUE;
-}
-
-gboolean tcore_sim_decode_mbi(struct tel_sim_mbi *p_mbi, unsigned char *p_in, int in_length)
-{
 	/* EF-MBI is defined 4 mandatory, 1 optional byte in 31.102 */
-	if (in_length == 0 || in_length > SIM_MAIL_BOX_IDENTIFIER_LEN_MAX)
+	if (enc_mbi_len == 0 || enc_mbi_len > TEL_SIM_MAIL_BOX_IDENTIFIER_LEN_MAX) {
+		err("invalid length");
 		return FALSE;
+	}
 
-	if ( _is_empty(p_in, in_length) == TRUE) {
+	if ( tcore_util_is_empty(enc_mbi, enc_mbi_len) == TRUE) {
+		err("empty record");
 		return FALSE; // this is empty record
 	}
 
-	p_mbi->voice_index = p_in[0];
-	p_mbi->fax_index = p_in[1];
-	p_mbi->email_index = p_in[2];
-	p_mbi->other_index = p_in[3];
+	dec_mbi->voice_index = enc_mbi[0];
+	dec_mbi->fax_index = enc_mbi[1];
+	dec_mbi->email_index = enc_mbi[2];
+	dec_mbi->other_index = enc_mbi[3];
 
 	// 5th byte is optional
-	if (in_length == 5)
-		p_mbi->video_index = p_in[4];
+	if (enc_mbi_len == 5)
+		dec_mbi->video_index = enc_mbi[4];
 
 	return TRUE;
 }
 
-gboolean tcore_sim_encode_mbi(char *p_out, int out_length, struct tel_sim_mbi *p_mbi)
-{
-	p_out[0] = p_mbi->voice_index;
-	p_out[1] = p_mbi->fax_index;
-	p_out[2] = p_mbi->email_index;
-	p_out[3] = p_mbi->other_index;
-
-	if (out_length == 5)
-		p_out[4] = p_mbi->video_index;
-
-	return TRUE;
-}
-
-gboolean tcore_sim_decode_cff(struct tel_sim_cphs_cf *p_cff, unsigned char *p_in, int in_length)
-{
-	if (in_length == 0)
-		return FALSE;
-
-	dbg( "flag(0)=%x, packetlen=%d ", (unsigned int)p_in[0], in_length);
-	dbg( "flag(1)=%x", p_in[1]);
-
-	if ((p_in[0] & 0x0F) == 0x0A) {
-		p_cff->b_line1 = TRUE;
-	}
-	if ((p_in[0] & 0xF0) == 0xA0) {
-		p_cff->b_line2 = TRUE;
-	}
-
-	if (in_length > 1) {
-		if ((p_in[1] & 0x0F) == 0x0A) {
-			p_cff->b_fax = TRUE;
-		}
-		if ((p_in[1] & 0xF0) == 0xA0) {
-			p_cff->b_data = TRUE;
-		}
-	}
-
-	dbg("Line1 = %d, line2 = %d, Fax = %d, Data = %d ",
-			p_cff->b_line1,
-			p_cff->b_line2,
-			p_cff->b_fax,
-			p_cff->b_data);
-	return TRUE;
-}
-
-char* tcore_sim_encode_cff(const struct tel_sim_cphs_cf *cff)
-{
-	int i, j = 0;
-	char *p_out = NULL;
-	unsigned char* pTemp = (unsigned char*) cff;
-	unsigned char present = 0x0A;
-	unsigned char absent = 0x05;
-
-	p_out =  calloc(SIM_CPHS_CALL_FORWARDING_LEN_MAX+1, 1);
-
-	for (i = 0; i < SIM_CPHS_CALL_FORWARDING_LEN_MAX; i++) {
-		present = 0x0A;
-		absent = 0x05;
-
-		for (j = 0; j < 2; j++) {
-			if (*pTemp) {
-				p_out[i] = p_out[i] | present;
-			} else {
-				p_out[i] = p_out[i] | absent;
-			}
-			pTemp += sizeof(gboolean);
-			present = present << 4;
-			absent = absent << 4;
-		}
-	}
-	p_out[SIM_CPHS_CALL_FORWARDING_LEN_MAX] = '\0';
-	return p_out;
-}
-
-gboolean tcore_sim_decode_csp(struct tel_sim_cphs_csp *p_csp, unsigned char *p_in, int in_length)
-{
-	int i, j, k = 0;
-	unsigned char byteSignificance = 0x00;
-	unsigned char mask = 0x80;
-
-	if (in_length == 0)
-		return FALSE;
-
-	memset((void*) p_csp, 0, sizeof(struct tel_sim_cphs_csp));
-
-/* current telephony supports 22 byte cphs-csp data. 18 byte is mandatory, the other is optional. */
-	for (i = 0, j = 0; j < SIM_CPHS_CSP_ENTRY_CNT_MAX; i++, j++) {
-		p_csp->ServiceProfileEntry[j].CustomerServiceGroup = (enum tel_sim_cphs_csp_group) p_in[i];
-		byteSignificance = p_in[++i];
-		mask = 0x80;
-
-		switch (p_csp->ServiceProfileEntry[j].CustomerServiceGroup) {
-			case 0x01:
-				for (k = 0; k < 5; k++) {
-					switch (byteSignificance & mask) {
-						case 0x80:
-							p_csp->ServiceProfileEntry[j].u.CallOffering.bCallForwardingUnconditional = TRUE;
-							break;
-						case 0x40:
-							p_csp->ServiceProfileEntry[j].u.CallOffering.bCallForwardingOnUserBusy = TRUE;
-							break;
-						case 0x20:
-							p_csp->ServiceProfileEntry[j].u.CallOffering.bCallForwardingOnNoReply = TRUE;
-							break;
-						case 0x10:
-							p_csp->ServiceProfileEntry[j].u.CallOffering.bCallForwardingOnUserNotReachable = TRUE;
-							break;
-						case 0x08:
-							p_csp->ServiceProfileEntry[j].u.CallOffering.bCallTransfer = TRUE;
-							break;
-						default:
-							break;
-					}
-					mask = mask >> 1;
-				}
-				break;
-
-			case 0x02:
-				for (k = 0; k < 5; k++) {
-					switch (byteSignificance & mask) {
-						case 0x80:
-							p_csp->ServiceProfileEntry[j].u.CallRestriction.bBarringOfAllOutgoingCalls = TRUE;
-							break;
-						case 0x40:
-							p_csp->ServiceProfileEntry[j].u.CallRestriction.bBarringOfOutgoingInternationalCalls = TRUE;
-							break;
-						case 0x20:
-							p_csp->ServiceProfileEntry[j].u.CallRestriction.bBarringOfOutgoingInternationalCallsExceptHplmn = TRUE;
-							break;
-						case 0x10:
-							p_csp->ServiceProfileEntry[j].u.CallRestriction.bBarringOfAllIncomingCallsRoamingOutsideHplmn = TRUE;
-							break;
-						case 0x08:
-							p_csp->ServiceProfileEntry[j].u.CallRestriction.bBarringOfIncomingCallsWhenRoaming = TRUE;
-							break;
-						default:
-							break;
-					}
-					mask = mask >> 1;
-				}
-				break;
-
-			case 0x03:
-				for (k = 0; k < 5; k++) {
-					switch (byteSignificance & mask) {
-						case 0x80:
-							p_csp->ServiceProfileEntry[j].u.OtherSuppServices.bMultiPartyService = TRUE;
-							break;
-						case 0x40:
-							p_csp->ServiceProfileEntry[j].u.OtherSuppServices.bClosedUserGroup = TRUE;
-							break;
-						case 0x20:
-							p_csp->ServiceProfileEntry[j].u.OtherSuppServices.bAdviceOfCharge = TRUE;
-							break;
-						case 0x10:
-							p_csp->ServiceProfileEntry[j].u.OtherSuppServices.bPreferentialClosedUserGroup = TRUE;
-							break;
-						case 0x08:
-							p_csp->ServiceProfileEntry[j].u.OtherSuppServices.bClosedUserGroupOutgoingAccess = TRUE;
-							break;
-						default:
-							break;
-					}
-					mask = mask >> 1;
-				}
-				break;
-
-			case 0x04:
-				for (k = 0; k < 4; k++) {
-					switch (byteSignificance & mask) {
-						case 0x80:
-							p_csp->ServiceProfileEntry[j].u.CallComplete.bCallHold = TRUE;
-							break;
-						case 0x40:
-							p_csp->ServiceProfileEntry[j].u.CallComplete.bCallWaiting = TRUE;
-							break;
-						case 0x20:
-							p_csp->ServiceProfileEntry[j].u.CallComplete.bCompletionOfCallToBusySubscriber = TRUE;
-							break;
-						case 0x10:
-							p_csp->ServiceProfileEntry[j].u.CallComplete.bUserUserSignalling = TRUE;
-							break;
-						default:
-							break;
-					}
-					mask = mask >> 1;
-				}
-				break;
-
-			case 0x05:
-				for (k = 0; k < 7; k++) {
-					switch (byteSignificance & mask) {
-						case 0x80:
-							p_csp->ServiceProfileEntry[j].u.Teleservices.bShortMessageMobileTerminated = TRUE;
-							break;
-						case 0x40:
-							p_csp->ServiceProfileEntry[j].u.Teleservices.bShortMessageMobileOriginated = TRUE;
-							break;
-						case 0x20:
-							p_csp->ServiceProfileEntry[j].u.Teleservices.bShortMessageCellBroadcast = TRUE;
-							break;
-						case 0x10:
-							p_csp->ServiceProfileEntry[j].u.Teleservices.bShortMessageReplyPath = TRUE;
-							break;
-						case 0x08:
-							p_csp->ServiceProfileEntry[j].u.Teleservices.bShortMessageDeliveryConf = TRUE;
-							break;
-						case 0x04:
-							p_csp->ServiceProfileEntry[j].u.Teleservices.bShortMessageProtocolIdentifier = TRUE;
-							break;
-						case 0x02:
-							p_csp->ServiceProfileEntry[j].u.Teleservices.bShortMessageValidityPeriod = TRUE;
-							break;
-						default:
-							break;
-					}
-					mask = mask >> 1;
-				}
-				break;
-
-			case 0x06:
-				for (k = 0; k < 1; k++) {
-					switch (byteSignificance & mask) {
-						case 0x80:
-							p_csp->ServiceProfileEntry[j].u.CphsTeleservices.bAlternativeLineService =  TRUE;
-							break;
-						default:
-							break;
-					}
-					mask = mask >> 1;
-				}
-				break;
-
-			case 0x07:
-				for (k = 0; k < 1; k++) {
-					switch (byteSignificance & mask) {
-						case 0x80:
-							p_csp->ServiceProfileEntry[j].u.CphsFeatures.bStringServiceTable = TRUE;
-							break;
-						default:
-							break;
-					}
-					mask = mask >> 1;
-				}
-				break;
-
-			case 0x08:
-				for (k = 0; k < 8; k++) {
-					switch (byteSignificance & mask) {
-						case 0x80:
-							p_csp->ServiceProfileEntry[j].u.NumberIdentifiers.bCallingLineIdentificationPresent = TRUE;
-							break;
-						case 0x20:
-							p_csp->ServiceProfileEntry[j].u.NumberIdentifiers.bConnectedLineIdentificationRestrict = TRUE;
-							break;
-						case 0x10:
-							p_csp->ServiceProfileEntry[j].u.NumberIdentifiers.bConnectedLineIdentificationPresent = TRUE;
-							break;
-						case 0x08:
-							p_csp->ServiceProfileEntry[j].u.NumberIdentifiers.bMaliciousCallIdentifier = TRUE;
-							break;
-						case 0x02:
-							p_csp->ServiceProfileEntry[j].u.NumberIdentifiers.bCallingLineIdentificationSend = TRUE;
-							break;
-						case 0x01:
-							p_csp->ServiceProfileEntry[j].u.NumberIdentifiers.bCallingLineIdentificationBlock = TRUE;
-							break;
-						default:
-							break;
-					}
-					mask = mask >> 1;
-				}
-				break;
-
-			case 0x09:
-				for (k = 0; k < 6; k++) {
-					switch (byteSignificance & mask) {
-						case 0x80:
-							p_csp->ServiceProfileEntry[j].u.PhaseServices.bMenuForGprs = TRUE;
-							break;
-						case 0x40:
-							p_csp->ServiceProfileEntry[j].u.PhaseServices.bMenuForHighSpeedCsd = TRUE;
-							break;
-						case 0x20:
-							p_csp->ServiceProfileEntry[j].u.PhaseServices.bMenuForVoiceGroupCall = TRUE;
-							break;
-						case 0x10:
-							p_csp->ServiceProfileEntry[j].u.PhaseServices.bMenuForVoiceBroadcastService = TRUE;
-							break;
-						case 0x08:
-							p_csp->ServiceProfileEntry[j].u.PhaseServices.bMenuForMultipleSubscriberProfile = TRUE;
-							break;
-						case 0x04:
-							p_csp->ServiceProfileEntry[j].u.PhaseServices.bMenuForMultipleBand = TRUE;
-							break;
-						default:
-							break;
-					}
-					mask = mask >> 1;
-				}
-				break;
-
-			case 0xC0:
-				for (k = 0; k < 8; k++) {
-					switch (byteSignificance & mask) {
-						case 0x80:
-							p_csp->ServiceProfileEntry[j].u.ValueAddedServices.bRestrictMenuForManualSelection = TRUE;
-							break;
-						case 0x40:
-							p_csp->ServiceProfileEntry[j].u.ValueAddedServices.bRestrictMenuForVoiceMail = TRUE;
-							break;
-						case 0x20:
-							p_csp->ServiceProfileEntry[j].u.ValueAddedServices.bRestrictMenuForMoSmsAndPaging = TRUE;
-							break;
-						case 0x10:
-							p_csp->ServiceProfileEntry[j].u.ValueAddedServices.bRestrictMenuForMoSmsWithEmialType = TRUE;
-							break;
-						case 0x08:
-							p_csp->ServiceProfileEntry[j].u.ValueAddedServices.bRestrictMenuForFaxCalls = TRUE;
-							break;
-						case 0x04:
-							p_csp->ServiceProfileEntry[j].u.ValueAddedServices.bRestrictMenuForDataCalls = TRUE;
-							break;
-						case 0x01:
-							p_csp->ServiceProfileEntry[j].u.ValueAddedServices.bRestrictMenuForChangeLanguage = TRUE;
-							break;
-						default:
-							break;
-					}
-					mask = mask >> 1;
-				}
-				break;
-
-			case 0xD5:
-				for (k = 0; k < 8; k++) {
-					switch (byteSignificance & mask) {
-						case 0x80:
-						case 0x40:
-						case 0x20:
-						case 0x10:
-						case 0x08:
-						case 0x04:
-						case 0x02:
-						case 0x01:
-							p_csp->ServiceProfileEntry[j].u.InformationNumbers.bInformationNumbers = TRUE;
-							break;
-						default:
-							break;
-					}
-					mask = mask >> 1;
-				}
-				break;
-
-			default:
-				break;
-		}
-	}
-	return TRUE;
-}
-
-gboolean tcore_sim_encode_csp(unsigned char *p_out, int out_length, struct tel_sim_cphs_csp *p_csp)
-{
-	unsigned char i, j = 0;
-
-	if (out_length == 0)
-		return FALSE;
-
-	memset((void*) p_out, 0xFF, out_length);
-
-/* current telephony supports 22 byte cphs-csp data. 18 byte is mandatory, the other is optional.*/
-	for (i = 0, j = 0; j < SIM_CPHS_CSP_ENTRY_CNT_MAX; i++, j++) {
-		p_out[i] = (unsigned char) p_csp->ServiceProfileEntry[j].CustomerServiceGroup;
-		switch (p_out[i]) {
-			case 0x01:
-				p_out[++i] =	(((unsigned char) p_csp->ServiceProfileEntry[j].u.CallOffering.bCallForwardingUnconditional) << 7)
-								+ (((unsigned char) p_csp->ServiceProfileEntry[j].u.CallOffering.bCallForwardingOnUserBusy) << 6)
-								+ (((unsigned char) p_csp->ServiceProfileEntry[j].u.CallOffering.bCallForwardingOnNoReply) << 5)
-								+ (((unsigned char) p_csp->ServiceProfileEntry[j].u.CallOffering.bCallForwardingOnUserNotReachable) << 4)
-								+ (((unsigned char) p_csp->ServiceProfileEntry[j].u.CallOffering.bCallTransfer) << 3);
-				break;
-
-			case 0x02:
-				p_out[++i] =	(((unsigned char) p_csp->ServiceProfileEntry[j].u.CallRestriction.bBarringOfAllOutgoingCalls) << 7)
-								+ (((unsigned char) p_csp->ServiceProfileEntry[j].u.CallRestriction.bBarringOfOutgoingInternationalCalls) << 6)
-								+ (((unsigned char) p_csp->ServiceProfileEntry[j].u.CallRestriction.bBarringOfOutgoingInternationalCallsExceptHplmn) << 5)
-								+ (((unsigned char) p_csp->ServiceProfileEntry[j].u.CallRestriction.bBarringOfAllIncomingCallsRoamingOutsideHplmn) << 4)
-								+ (((unsigned char) p_csp->ServiceProfileEntry[j].u.CallRestriction.bBarringOfIncomingCallsWhenRoaming) << 3);
-				break;
-
-			case 0x03:
-				p_out[++i] =	(((unsigned char) p_csp->ServiceProfileEntry[j].u.OtherSuppServices.bMultiPartyService) << 7)
-								+ (((unsigned char) p_csp->ServiceProfileEntry[j].u.OtherSuppServices.bClosedUserGroup) << 6)
-								+ (((unsigned char) p_csp->ServiceProfileEntry[j].u.OtherSuppServices.bAdviceOfCharge) << 5)
-								+ (((unsigned char) p_csp->ServiceProfileEntry[j].u.OtherSuppServices.bPreferentialClosedUserGroup) << 4)
-								+ (((unsigned char) p_csp->ServiceProfileEntry[j].u.OtherSuppServices.bClosedUserGroupOutgoingAccess) << 3);
-				break;
-
-			case 0x04:
-				p_out[++i] = (((unsigned char) p_csp->ServiceProfileEntry[j].u.CallComplete.bCallHold) << 7)
-								+ (((unsigned char) p_csp->ServiceProfileEntry[j].u.CallComplete.bCallWaiting) << 6)
-								+ (((unsigned char) p_csp->ServiceProfileEntry[j].u.CallComplete.bCompletionOfCallToBusySubscriber) << 5)
-								+ (((unsigned char) p_csp->ServiceProfileEntry[j].u.CallComplete.bUserUserSignalling) << 4);
-				break;
-
-			case 0x05:
-				p_out[++i] = (((unsigned char) p_csp->ServiceProfileEntry[j].u.Teleservices.bShortMessageMobileTerminated) << 7)
-								+ (((unsigned char) p_csp->ServiceProfileEntry[j].u.Teleservices.bShortMessageMobileOriginated) << 6)
-								+ (((unsigned char) p_csp->ServiceProfileEntry[j].u.Teleservices.bShortMessageCellBroadcast) << 5)
-								+ (((unsigned char) p_csp->ServiceProfileEntry[j].u.Teleservices.bShortMessageReplyPath) << 4)
-								+ (((unsigned char) p_csp->ServiceProfileEntry[j].u.Teleservices.bShortMessageDeliveryConf) << 3)
-								+ (((unsigned char) p_csp->ServiceProfileEntry[j].u.Teleservices.bShortMessageProtocolIdentifier) << 2)
-								+ (((unsigned char) p_csp->ServiceProfileEntry[j].u.Teleservices.bShortMessageValidityPeriod) << 1);
-				break;
-
-			case 0x06:
-				p_out[++i] = (((unsigned char) p_csp->ServiceProfileEntry[j].u.CphsTeleservices.bAlternativeLineService) << 7);
-				break;
-
-			case 0x07:
-				p_out[++i] = (((unsigned char) p_csp->ServiceProfileEntry[j].u.CphsFeatures.bStringServiceTable) << 7);
-				break;
-
-			case 0x08:
-				p_out[++i] = (((unsigned char) p_csp->ServiceProfileEntry[j].u.NumberIdentifiers.bCallingLineIdentificationPresent) << 7)
-								+ (((unsigned char) p_csp->ServiceProfileEntry[j].u.NumberIdentifiers.bConnectedLineIdentificationRestrict) << 5)
-								+ (((unsigned char) p_csp->ServiceProfileEntry[j].u.NumberIdentifiers.bConnectedLineIdentificationPresent) << 4)
-								+ (((unsigned char) p_csp->ServiceProfileEntry[j].u.NumberIdentifiers.bMaliciousCallIdentifier) << 3)
-								+ (((unsigned char) p_csp->ServiceProfileEntry[j].u.NumberIdentifiers.bCallingLineIdentificationSend) << 1)
-								+ ((unsigned char) p_csp->ServiceProfileEntry[j].u.NumberIdentifiers.bCallingLineIdentificationBlock);
-				break;
-
-			case 0x09:
-				p_out[++i] =	(((unsigned char) p_csp->ServiceProfileEntry[j].u.PhaseServices.bMenuForGprs) << 7)
-								+ (((unsigned char) p_csp->ServiceProfileEntry[j].u.PhaseServices.bMenuForHighSpeedCsd) << 6)
-								+ (((unsigned char) p_csp->ServiceProfileEntry[j].u.PhaseServices.bMenuForVoiceGroupCall) << 5)
-								+ (((unsigned char) p_csp->ServiceProfileEntry[j].u.PhaseServices.bMenuForVoiceBroadcastService) << 4)
-								+ (((unsigned char) p_csp->ServiceProfileEntry[j].u.PhaseServices.bMenuForMultipleSubscriberProfile) << 3)
-								+ (((unsigned char) p_csp->ServiceProfileEntry[j].u.PhaseServices.bMenuForMultipleBand) << 2);
-				break;
-
-			case 0xC0:
-				p_out[++i] =	(((unsigned char) p_csp->ServiceProfileEntry[j].u.ValueAddedServices.bRestrictMenuForManualSelection) << 7)
-								+ (((unsigned char) p_csp->ServiceProfileEntry[j].u.ValueAddedServices.bRestrictMenuForVoiceMail) << 6)
-								+ (((unsigned char) p_csp->ServiceProfileEntry[j].u.ValueAddedServices.bRestrictMenuForMoSmsAndPaging) << 5)
-								+ (((unsigned char) p_csp->ServiceProfileEntry[j].u.ValueAddedServices.bRestrictMenuForMoSmsWithEmialType) << 4)
-								+ (((unsigned char) p_csp->ServiceProfileEntry[j].u.ValueAddedServices.bRestrictMenuForFaxCalls) << 3)
-								+ (((unsigned char) p_csp->ServiceProfileEntry[j].u.ValueAddedServices.bRestrictMenuForDataCalls) << 2)
-								+ ((unsigned char) p_csp->ServiceProfileEntry[j].u.ValueAddedServices.bRestrictMenuForChangeLanguage);
-				break;
-
-			case 0xD5:
-				if (p_csp->ServiceProfileEntry[j].u.InformationNumbers.bInformationNumbers)
-					p_out[++i] = 0xFF;
-				else
-					p_out[++i] = 0x00;
-				break;
-
-			default:
-				break;
-		}
-	}
-	return TRUE;
-}
-
-gboolean tcore_sim_decode_mwis(struct tel_sim_mw *pMwis, unsigned char *p_in, int in_length)
+gboolean tcore_sim_decode_cff(unsigned char *enc_cff, int enc_cff_len, TelSimMwis *dec_mwis)
 {
 	int i;
 	unsigned char type = 0;
 	unsigned char mask = 0x01;
 
-	if (in_length == 0)
-		return FALSE;
+	tcore_check_return_value_assert(enc_cff != NULL, FALSE);
+	tcore_check_return_value_assert(enc_cff_len != 0, FALSE);
+	tcore_check_return_value_assert(dec_mwis != NULL, FALSE);
 
-	memset((void*) pMwis, 0, sizeof(struct tel_sim_mw));
-
-	type = p_in[0];  //0x07
+	memset((void*) dec_mwis, 0, sizeof(TelSimMwis));
+	/* 1st byte is mandatory */
+	type = enc_cff[0];
 
 	if (type) {
-		for (i = 0; i < 5; i++) {
+		for (i = 0; i < 2; i++) {
 			switch (type & mask) {
-				case 0x01:
-					pMwis->indicator_status = pMwis->indicator_status | SIM_MWIS_VOICE;
-					break;
-				case 0x02:
-					pMwis->indicator_status = pMwis->indicator_status | SIM_MWIS_FAX;
-					break;
-				case 0x04:
-					pMwis->indicator_status = pMwis->indicator_status | SIM_MWIS_EMAIL;
-					break;
-				case 0x08:
-					pMwis->indicator_status = pMwis->indicator_status | SIM_MWIS_OTHER;
-					break;
-				case 0x10:
-					pMwis->indicator_status = pMwis->indicator_status | SIM_MWIS_VIDEO;
-					break;
-				default:
-					pMwis->indicator_status = pMwis->indicator_status | SIM_MWIS_NONE;
-					break;
+			case 0x01:
+				dec_mwis->profile_id = 1;
+				dec_mwis->msg_waiting[0].indication = TRUE;
+			break;
+			case 0x05:
+				dec_mwis->profile_id = 2;
+				dec_mwis->msg_waiting[0].indication = TRUE;
+			break;
+			default:
+				dbg("CFF is NONE");
 			}
 			mask = mask << 1;
 		}
-
-		pMwis->voice_count = p_in[1];
-		pMwis->fax_count = p_in[2];
-		pMwis->email_count = p_in[3];
-		pMwis->other_count = p_in[4];
-
-		if (in_length == 6)
-			pMwis->video_count = p_in[5];
-	}
-	return TRUE;
-}
-
-char* tcore_sim_encode_mwis( int *out_length, const struct tel_sim_mw *pMwis)
-{
-	char *p_out = NULL;
-
-	if (out_length == 0)
-		return FALSE;
-
-	p_out = calloc(6,1);
-
-	p_out[0] = (unsigned char) pMwis->indicator_status;
-	p_out[1] = pMwis->voice_count;
-	p_out[2] = pMwis->fax_count;
-	p_out[3] = pMwis->email_count;
-	p_out[4] = pMwis->other_count;
-	p_out[5] = pMwis->video_count;
-
-	*out_length = 6;
-	return p_out;
-}
-
-gboolean tcore_sim_decode_vmwf(struct tel_sim_cphs_mw *p_vmwf,	unsigned char* p_in, unsigned long in_length)
-{
-	int i, j = 0;
-	unsigned char* pTemp = (unsigned char*) p_vmwf;
-	unsigned char mask = 0x0F;
-	unsigned char voiceMsgFlg = 0;
-
-	if (in_length == 0){
-		dbg("fail - input length is zero");
-		return FALSE;
 	}
 
-/*	current telephony supports 2 byte cphs-vmwf data*/
-	for (i = 0; i < SIM_CPHS_VMWF_LEN_MAX; i++) {
-		voiceMsgFlg = p_in[i];
-		for (j = 0; j < 2; j++) {
-			if ((voiceMsgFlg & mask) == 0x0A) {
-				*pTemp = 1;  //TRUE
-			} else if ((voiceMsgFlg & mask) == 0x05) {
-				*pTemp = 0;  // FALSE
+	/* 2nd byte is optional */
+	if (enc_cff_len > 1) {
+		type = enc_cff[1];
+		if (type) {
+			for (i = 0; i < 2; i++) {
+				switch (type & mask) {
+				case 0x01:
+					dec_mwis->profile_id = 1;
+					dec_mwis->msg_waiting[1].indication = TRUE;
+				break;
+				case 0x05:
+					dec_mwis->profile_id = 2;
+					dec_mwis->msg_waiting[1].indication = TRUE;
+				break;
+				default:
+					dbg("CFF is NONE");
+				}
+				mask = mask << 1;
 			}
-			pTemp += sizeof(gboolean);
-			voiceMsgFlg = voiceMsgFlg >> 4;
 		}
 	}
 	return TRUE;
 }
 
-char* tcore_sim_encode_vmwf(int *out_length, const struct tel_sim_cphs_mw *p_vmwf)
+gboolean tcore_sim_decode_mwis(unsigned char *enc_mwis, int enc_mwis_len, TelSimMwis *dec_mwis)
 {
-	int i, j = 0;
-	char *p_out = NULL;
-	unsigned char* pTemp = (unsigned char*) p_vmwf;
-	unsigned char present = 0x0A;
-	unsigned char absent = 0x05;
+	guint i;
+	guchar indicator_status = 0;
+	guchar mask_bit = 0x01;
 
-	if (out_length == 0)
-		return NULL;
+	tcore_check_return_value_assert(enc_mwis != NULL, FALSE);
+	tcore_check_return_value_assert(enc_mwis_len != 0, FALSE);
+	tcore_check_return_value_assert(dec_mwis != NULL, FALSE);
 
-	p_out = calloc(2,1);
+	memset((void*)dec_mwis, 0x0, sizeof(TelSimMwis));
 
-	for (i = 0; i < 2; i++) {
-		present = 0x0A;
-		absent = 0x05;
+	/*
+	 * Indicator Status
+	 *	| b8 | b7 | b6 | b5 | b4 | b3 | b2 | b1 |
+	 *
+	 * b1 -Voicemail
+	 * b2 - Fax
+	 * b3 - Electronic Mail
+	 * b4 - Other
+	 * b5 - Videomail
+	 * b6-b8 - RFU
+	 */
+	indicator_status = enc_mwis[0];  //0x07
+	if (indicator_status) {
+		/* Count is valid */
+		dec_mwis->count_valid = TRUE;
 
-		p_out[i] = 0x00;
-
-		for (j = 0; j < 2; j++) {
-			if (*pTemp)
-				p_out[i] = p_out[i] | present;  //TRUE
-			else
-				p_out[i] = p_out[i] | absent;  //TRUE
-
-			pTemp += sizeof(gboolean);
-			present = present << 4;
-			absent = absent << 4;
+		/*
+		 * enc_mwis_len includes 'Indicator Status' byte also,
+		 * (-1) ensures that length doesn't consider 'Indicator Status'
+		 * byte.
+		 */
+		for (i = 0; i < enc_mwis_len-1; i++) {
+			/*
+			 * '0th' index of Encoded MWIS is dedicated to
+			 * 'Indicator Status'; 'i+1' while dereferencing 'enc_mwis'
+			 * ensures that this byte is skipped.
+			 */
+			switch (indicator_status & (mask_bit << i)) {
+			case TEL_SIM_MWIS_VOICE:
+				dec_mwis->msg_waiting[i].indication = TRUE;
+				dec_mwis->msg_waiting[i].count = enc_mwis[i+1];
+			break;
+			case TEL_SIM_MWIS_FAX:
+				dec_mwis->msg_waiting[i].indication = TRUE;
+				dec_mwis->msg_waiting[i].count = enc_mwis[i+1];
+			break;
+			case TEL_SIM_MWIS_EMAIL:
+				dec_mwis->msg_waiting[i].indication = TRUE;
+				dec_mwis->msg_waiting[i].count = enc_mwis[i+1];
+			break;
+			case TEL_SIM_MWIS_OTHER:
+				dec_mwis->msg_waiting[i].indication = TRUE;
+				dec_mwis->msg_waiting[i].count = enc_mwis[i+1];
+			break;
+			case TEL_SIM_MWIS_VIDEO:
+				dec_mwis->msg_waiting[i].indication = TRUE;
+				dec_mwis->msg_waiting[i].count = enc_mwis[i+1];
+			break;
+			default:
+				dbg("MWIS is NONE");
+			}
 		}
 	}
-	*out_length = 2;
-	return p_out;
+
+	return TRUE;
 }
 
-gboolean tcore_sim_decode_ons(unsigned char* p_out,unsigned  char* p_in, int in_length)
+gboolean tcore_sim_encode_mwis(const TelSimMwis *mwis, guint field_count,
+	gchar **encoded_mwis, guint *encoded_mwis_len)
+{
+	gchar *mwis_buf;
+	guint i;
+
+	tcore_check_return_value_assert(mwis != NULL, FALSE);
+	tcore_check_return_value_assert(field_count >= 5, FALSE);
+
+	/*
+	 * Allocate memory -
+	 *
+	 *	field_count >=5 (1 - Indicator status, 2-5 Mandatory fields)
+	 *		6 is possible if Videomail is supported (which is Optional)
+	 *	+1 - NULL termination
+	 */
+	mwis_buf = tcore_malloc(field_count + 1);
+
+	/*
+	 * 3GPP TS 31.102 version 11.6.0 Release 11
+	 *	4.2.63 EFMWIS (Message Waiting Indication Status)
+	 */
+	for (i = 1; i < field_count; i++) {
+		/*
+		 * '0th' index of Encoded MWIS contains 'Indicator Status',
+		 * hence 'i' starts from '1'.
+		 *
+		 * msg_waiting is aligned from 0-field_count, hence (i-1) is used.
+		 */
+		mwis_buf[i] = mwis->msg_waiting[i-1].count;
+
+		/*
+		 * Indicator Status
+		 *	| b8 | b7 | b6 | b5 | b4 | b3 | b2 | b1 |
+		 *
+		 * b1 -Voicemail
+		 * b2 - Fax
+		 * b3 - Electronic Mail
+		 * b4 - Other
+		 * b5 - Videomail
+		 * b6-b8 - RFU
+		 */
+		if (mwis_buf[i])
+			mwis_buf[0] |= (0x01 << (i-1));
+	}
+
+	*encoded_mwis = mwis_buf;
+	*encoded_mwis_len = field_count;
+
+	return TRUE;
+}
+
+gboolean tcore_sim_decode_vmwf(unsigned char* enc_vmwf, unsigned long enc_vmwf_len, TelSimMwis *dec_vmwf)
+{
+	int i, j = 0;
+	unsigned char* temp = (unsigned char*) dec_vmwf;
+	unsigned char mask = 0x0F;
+	unsigned char voice_msg_flg = 0;
+
+	tcore_check_return_value_assert(enc_vmwf != NULL, FALSE);
+	tcore_check_return_value_assert(enc_vmwf_len != 0, FALSE);
+	tcore_check_return_value_assert(dec_vmwf != NULL, FALSE);
+
+	/* current telephony supports 2 byte cphs-vmwf data */
+	for (i = 0; i < TEL_SIM_CPHS_VMWF_LEN_MAX; i++) {
+		voice_msg_flg = enc_vmwf[i];
+		for (j = 0; j < 2; j++) {
+			if ((voice_msg_flg & mask) == 0x0A) {
+				*temp = 1;  //TRUE
+			} else if ((voice_msg_flg & mask) == 0x05) {
+				*temp = 0;  // FALSE
+			}
+			temp += sizeof(gboolean);
+			voice_msg_flg = voice_msg_flg >> 4;
+		}
+	}
+
+	return TRUE;
+}
+
+gboolean tcore_sim_decode_ons(unsigned  char* enc_ons, int enc_ons_len, unsigned char *dec_ons)
 {
 	int length;
-	memset((void*) p_out, 0, SIM_CPHS_OPERATOR_NAME_LEN_MAX+1);
+	memset((void*) dec_ons, 0, TEL_SIM_CPHS_OPERATOR_NAME_LEN_MAX+1);
 
-	if (in_length == 0)
-		return FALSE;
+	tcore_check_return_value_assert(enc_ons != NULL, FALSE);
+	tcore_check_return_value_assert(enc_ons_len != 0, FALSE);
 
-	if (_is_empty(p_in, in_length) == TRUE) {
+	if (tcore_util_is_empty(enc_ons, enc_ons_len) == TRUE) {
+		err("empty record");
 		return FALSE;
 	}
 
 	/* current telephony supports 25 byte cphs-operator name string.*/
-	if (in_length >= SIM_CPHS_OPERATOR_NAME_LEN_MAX)
-		in_length = SIM_CPHS_OPERATOR_NAME_LEN_MAX;
+	if (enc_ons_len >= TEL_SIM_CPHS_OPERATOR_NAME_LEN_MAX)
+		enc_ons_len = TEL_SIM_CPHS_OPERATOR_NAME_LEN_MAX;
 
-	length = _get_string(p_out, p_in, in_length);
-	p_out[length] = '\0';
-	dbg( "Operator Name is (%s) & Length (%d) ",	p_out, length);
+	length = tcore_util_get_string(dec_ons, enc_ons, enc_ons_len);
+	dec_ons[length] = '\0';
+	dbg("Operator Name is (%s) & Length (%d) ", dec_ons, length);
 
 	return TRUE;
 }
 
-gboolean tcore_sim_decode_cfis(struct tel_sim_cfis *p_cfis, unsigned char *p_in, int in_length)
+gboolean tcore_sim_decode_cfis(unsigned char *enc_cfis, int enc_cfis_len, TelSimCfis *dec_cfis)
 {
-	int bcd_byte;	// dialing number max length
-	int digit_len;
+	unsigned char type = 0;
+	unsigned char mask = 0x01;
 	int i = 0;
-	if (in_length == 0)
-		return FALSE;
 
-	if (_is_empty(p_in, in_length) == TRUE) {
-		dbg("empty record. all data is set 0xff");
+	tcore_check_return_value_assert(enc_cfis != NULL, FALSE);
+	tcore_check_return_value_assert(enc_cfis_len != 0, FALSE);
+	tcore_check_return_value_assert(dec_cfis != NULL, FALSE);
+
+	if (tcore_util_is_empty(enc_cfis, enc_cfis_len) == TRUE) {
+		err("empty record. all data is set 0xff");
 		return TRUE;	// this is empty record
 	}
 
-	p_cfis->msp_num = p_in[i++];
-	p_cfis->cfu_status = p_in[i++];
+	dec_cfis->profile_id = enc_cfis[i++];
+	type = enc_cfis[i++];
 
+	if (type) {
+		for (i = 0; i < 5; i++) {
+			switch (type & mask) {
+			case 0x01:
+				dec_cfis->indication[0] = TRUE;
+			break;
+			case 0x02:
+				dec_cfis->indication[1] = TRUE;
+			break;
+			case 0x04:
+				dec_cfis->indication[2] = TRUE;
+			break;
+			case 0x08:
+				dec_cfis->indication[3] = TRUE;
+			break;
+			case 0x10:
+				dec_cfis->indication[4] = TRUE;
+			break;
+			default:
+				dbg("CFIS is NONE");
+			}
+			mask = mask << 1;
+		}
+	}
+#if 0
 	// get TON and NPI
-	p_cfis->ton = (p_in[++i] >> 4) & 0x07;
-	p_cfis->npi = p_in[i++] & 0x0F;
+	p_cfis->ton = (enc_cfis[++i] >> 4) & 0x07;
+	p_cfis->npi = enc_cfis[i++] & 0x0F;
 
 	// get actual dialing number length
 	/* current telephony supports 20 byte dialing number format. */
-	bcd_byte = _get_valid_bcd_byte(&p_in[i], SIM_XDN_NUMBER_LEN_MAX / 2);
+	bcd_byte = (int) tcore_util_get_valid_bcd_byte(&enc_cfis[i], SIM_XDN_NUMBER_LEN_MAX / 2);
 
 	// get dialing number/SSC string
-	digit_len = _bcd_to_digit((char*) p_cfis->cfu_num, (char*) &p_in[i], bcd_byte); // actual dialing number length in BCD.
+	digit_len = tcore_util_convert_bcd_to_digit((char*) p_cfis->cfu_num, (char*) &enc_cfis[i], bcd_byte); // actual dialing number length in BCD.
 	dbg( "Dialing number Length[%d]", digit_len);
 
 	i = i + SIM_XDN_NUMBER_LEN_MAX / 2;
 
 	// get Capability/Configuration id
-	p_cfis->cc2_id = p_in[i++];
+	p_cfis->cc2_id = enc_cfis[i++];
 
 	// get Extension1 id
-	p_cfis->ext7_id = p_in[i];
-
-	dbg( "MspNumber 0x%x", p_cfis->msp_num);
-	dbg( "Status 0x%x", p_cfis->cfu_status);
+	p_cfis->ext7_id = enc_cfis[i];
+#endif
+	dbg( "profile_id 0x%x", dec_cfis->profile_id);
+/*
 	dbg( "TypeOfNumber %d", p_cfis->ton);
 	dbg( "NumberingPlanIdent %d", p_cfis->npi);
 	dbg( "Dialing number[%s]", p_cfis->cfu_num);
-
+*/
 	return TRUE;
 }
 
-char* tcore_sim_encode_cfis(int *out_length, const struct tel_sim_cfis *p_cfis)
-{
-	char *encoded_o = NULL;
-	char bcd[10];
-
-	encoded_o = calloc(16, 1); // EF-CFIS record length is 16
-	memset(bcd, 0xff, 10);
-
-	/*
-	 Bytes	Description							M/O		Length
-	 1		MSP number							M		1 byte
-	 2		CFU indicator status					M		1 byte
-	 3		Length of BCD number					M		1 byte
-	 4		TON and NPI							M		1 byte
-	 5 to 14	Dialing Number						M		10 bytes. unused byte should be set with 'F'
-	 15		Capability/Configuration2 Record Identifier	M		1 byte
-	 16		Extension 7 Record Identifier				M		1 byte
-	 */
-	encoded_o[0] = p_cfis->msp_num;
-	encoded_o[1] = p_cfis->cfu_status;
-
-	encoded_o[2] = (strlen(p_cfis->cfu_num) +1) /2;
-
-	// set TON and NPI
-	encoded_o[3] = 0x80;
-	encoded_o[3] |= (p_cfis->ton & 0x07) << 4;
-	encoded_o[3] |= p_cfis->npi & 0x0F;
-
-	_digit_to_bcd(bcd, (char*)&p_cfis->cfu_num, strlen(p_cfis->cfu_num));
-	memcpy(&encoded_o[4], bcd, 10);
-
-	encoded_o[14] = p_cfis->cc2_id;
-	encoded_o[15] = p_cfis->ext7_id;
-
-	*out_length = 16;
-	return encoded_o;
-}
-
-gboolean tcore_sim_decode_dynamic_flag(struct tel_sim_cphs_dflag *p_df, unsigned char *p_in, int in_length)
-{
-	if (in_length == 0)
-		return FALSE;
-
-	memset((void*) p_df, 0, sizeof(struct tel_sim_cphs_dflag));
-
-	switch (p_in[0] & 0x01) {
-		case 0x00:
-			p_df->DynamicFlags = SIM_DYNAMIC_FLAGS_LINE2;
-			break;
-
-		case 0x01:
-			p_df->DynamicFlags = SIM_DYNAMIC_FLAGS_LINE1;
-			break;
-	}
-	return TRUE;
-}
-
-gboolean tcore_sim_decode_dynamic2_flag(struct tel_sim_cphs_dflag2 *p_d2f, unsigned char *p_in, int in_length)
-{
-	if (in_length == 0)
-		return FALSE;
-
-	memset((void*) p_d2f, 0, sizeof(struct tel_sim_cphs_dflag2));
-
-	switch (p_in[0] & 0x01) {
-		case 0x00:
-			p_d2f->Dynamic2Flag = SIM_PIN2_ACCESSIBLE_FLAGS_UNLOCKED;
-			break;
-		case 0x01:
-			p_d2f->Dynamic2Flag = SIM_PIN2_ACCESSIBLE_FLAGS_LOCKED;
-			break;
-	}
-	return TRUE;
-}
-
-gboolean tcore_sim_encode_dynamic_flag(char *p_out, int out_length, struct tel_sim_cphs_dflag *p_df)
-{
-	if (out_length == 0 || out_length > 1)
-		return FALSE;
-
-	memset((void*) p_out, 0xFF, out_length);
-	p_out[0] = p_df->DynamicFlags;
-	return TRUE;
-}
-
-gboolean tcore_sim_encode_dynamic2_flag(char *p_out, int out_length, struct tel_sim_cphs_dflag2 *p_d2f)
-{
-	if (out_length == 0 || out_length > 1)
-		return FALSE;
-
-	memset((void*) p_out, 0xFF, out_length);
-	p_out[0] = p_d2f->Dynamic2Flag;
-	return TRUE;
-}
-
-gboolean tcore_sim_decode_cphs_info(struct tel_sim_cphs_info *pCphsInfo, unsigned char *p_in, int in_length)
-{
-	int i, j = 0;
-	unsigned char mask = 0x03;
-	unsigned char* pTemp = (unsigned char*) &pCphsInfo->CphsServiceTable;
-
-	memset((void*) pCphsInfo, 0, sizeof(struct tel_sim_cphs_info));
-
-	if (in_length == 0)
-		return FALSE;
-
-	 /*CPHS info EF has 3 bytes data.*/
-	if (in_length >= SIM_CPHS_INFO_LEN_MAX)
-		in_length = SIM_CPHS_INFO_LEN_MAX;
-
-	switch (p_in[0]) {
-		case 0x01:
-			pCphsInfo->CphsPhase = SIM_CPHS_PHASE1;
-			break;
-		case 0x02:
-			pCphsInfo->CphsPhase = SIM_CPHS_PHASE2;
-			break;
-		default:
-			pCphsInfo->CphsPhase = SIM_CPHS_PHASE_RFU;
-			break;
-	}
-
-	dbg( "Cphs Phase %d \n", pCphsInfo->CphsPhase);
-
-	for (i = 1; i < in_length; i++)	{ //CPHS SST is only 2 bytes
-		mask = 0x03;	// reset mast to check first bit
-		for (j = 0; j < 4; j++) {
-			if (p_in[i] & mask) {
-				*pTemp = 1;
-			}
-			dbg( "Byte (%d), service (%d) ", i+1, *pTemp);
-			pTemp += sizeof(gboolean);
-			mask = mask << 2;
-		}
-	}
-	return TRUE;
-}
-
-gboolean tcore_sim_decode_short_ons(unsigned char *p_out, unsigned char *p_in, int in_length)
+gboolean tcore_sim_decode_short_ons(unsigned char *enc_short_ons, int enc_short_ons_len, unsigned char *dec_short_ons)
 {
 	int length;
 
-	memset(p_out, 0x00, SIM_CPHS_OPERATOR_NAME_SHORT_FORM_LEN_MAX+1);
+	tcore_check_return_value_assert(enc_short_ons != NULL, FALSE);
+	tcore_check_return_value_assert(enc_short_ons_len != 0, FALSE);
 
-	if (_is_empty(p_in, in_length) == TRUE){
+	memset(dec_short_ons, 0x00, TEL_SIM_CPHS_OPERATOR_NAME_SHORT_FORM_LEN_MAX+1);
+
+	if (tcore_util_is_empty(enc_short_ons, enc_short_ons_len) == TRUE){
+		err("empty record");
 		return FALSE;	// this is empty record
 	}
 
 	/*CPHS specification shows current EF include 10 bytes */
-	if (in_length == 0)
-		return FALSE;
+	tcore_check_return_value_assert(enc_short_ons_len != 0, FALSE);
 
-	if(in_length > SIM_CPHS_OPERATOR_NAME_SHORT_FORM_LEN_MAX)
-		in_length = SIM_CPHS_OPERATOR_NAME_SHORT_FORM_LEN_MAX;
+	if (enc_short_ons_len > TEL_SIM_CPHS_OPERATOR_NAME_SHORT_FORM_LEN_MAX)
+		enc_short_ons_len = TEL_SIM_CPHS_OPERATOR_NAME_SHORT_FORM_LEN_MAX;
 
-	length = _get_string( p_out, p_in, in_length );
-	p_out[length] = '\0';
-	dbg( "Operator short Name is (%s) &  length (%d)", p_out, length);
+	length = tcore_util_get_string(dec_short_ons, enc_short_ons, enc_short_ons_len);
+	dec_short_ons[length] = '\0';
+	dbg( "Operator short Name is (%s) &  length (%d)", dec_short_ons, length);
 	return TRUE;
 }
 
-gboolean tcore_sim_decode_information_number(struct tel_sim_cphs_info_number *p_info, unsigned char* p_in, int in_length)
+gboolean tcore_sim_decode_opl(unsigned char *enc_opl, int enc_opl_len, TelSimOpl *dec_opl)
 {
-	int i;
+	unsigned char packet_in_digit[3 * 2 + 1];
 
-	if (in_length == 0)
-		return FALSE;
+	tcore_check_return_value_assert(enc_opl != NULL, FALSE);
+	tcore_check_return_value_assert(enc_opl_len != 0, FALSE);
+	tcore_check_return_value_assert(dec_opl != NULL, FALSE);
 
-	for (i = 0; i < in_length; i++) {
-		dbg( " \t0x%04X.", p_in[i]);
-	}
-
-	if (_is_empty(p_in, in_length) == TRUE) {
+	if (tcore_util_is_empty(enc_opl, enc_opl_len) == TRUE) {
+		err("empty record");
 		return FALSE;	// this is empty record
 	}
-
-	p_info->AlphaIdLength = p_in[0];
-
-	if (p_in[1] & 0x0F)
-		p_info->IndexLevelIndicator =	(enum tel_sim_cphs_index_level) (p_in[1] & 0x0F);
-
-	if (p_in[1] & 0x10)
-		p_info->PremiumServiceIndicator = TRUE;
-
-	if (p_in[1] & 0x20)
-		p_info->PremiumServiceIndicator = TRUE;
-
-	_get_string(p_info->Alpha_id, &p_in[2],	p_info->AlphaIdLength);
-
-	p_info->DiallingnumLength = p_in[2 + p_info->AlphaIdLength] * 2;
-	p_info->TypeOfNumber = (p_in[3 + p_info->AlphaIdLength] >> 4) & 0x07;
-	p_info->NumberingPlanIdentity = p_in[3 + p_info->AlphaIdLength]	& 0x0F;
-
-	// get dialing number/SSC string
-	_bcd_to_digit((char*) p_info->DiallingnumLength, (char*) &p_in[4 + p_info->AlphaIdLength],	p_info->DiallingnumLength / 2); // actual dialing number length in BCD.
-	// get Extension1 id
-	p_info->Ext1RecordId = p_in[4 + p_info->AlphaIdLength + p_info->DiallingnumLength / 2];
-
-	return TRUE;
-}
-
-gboolean tcore_sim_decode_opl(struct tel_sim_opl *p_opl, unsigned char *p_in, int in_length)
-{
-	unsigned char packetInDigit[3 * 2 + 1];
-
-	if (_is_empty(p_in, in_length) == TRUE) {
-		memset(p_opl, 0x00, sizeof(struct tel_sim_opl));
-		return FALSE;	// this is empty record
-	}
-	_bcd_to_digit((char*) packetInDigit, (char*) &p_in[0], 3);
-	dbg( "AFTER _bcd_to_digit 4th[0x%x]", packetInDigit[3]);
+	tcore_util_convert_bcd_to_digit((char*) packet_in_digit, (char*) &enc_opl[0], 3);
+	dbg( "AFTER tcore_util_convert_bcd_to_digit 4th[0x%x]", packet_in_digit[3]);
 
 	// get MCC
-	memcpy(&p_opl->plmn, &(packetInDigit[0]), 3);
+	memcpy(&dec_opl->plmn, &(packet_in_digit[0]), 3);
 	// get MNC
-	if (packetInDigit[3] == 0x00){
-		memcpy(&(p_opl->plmn[3]), &(packetInDigit[3 + 1]), 2);
-		p_opl->plmn[5] = '\0';
+	if (packet_in_digit[3] == 0x00){
+		memcpy(&(dec_opl->plmn[3]), &(packet_in_digit[3 + 1]), 2);
+		dec_opl->plmn[5] = '\0';
 	} else{
-		memcpy(&(p_opl->plmn[3]), &(packetInDigit[3]), 3);
-		p_opl->plmn[6] = '\0';
+		memcpy(&(dec_opl->plmn[3]), &(packet_in_digit[3]), 3);
+		dec_opl->plmn[6] = '\0';
 	}
 
-	dbg( " PLMN Code[%s]", p_opl->plmn);
-	p_opl->lac_from = (*(p_in+3) << 8) | (*(p_in+4) & 0x00ff);
-	dbg( " Start value of the LAC range[%x]",	p_opl->lac_from);
-	p_opl->lac_to = (*(p_in+5) << 8) | (*(p_in+6) & 0x00ff);
-	dbg( " End value of the LAC range[%x]", p_opl->lac_to);
-	p_opl->rec_identifier = p_in[7];
-	dbg( " PNN Record identifier[%x]", p_opl->rec_identifier);
+	dbg( " PLMN Code[%s]", dec_opl->plmn);
+	dec_opl->lac_from = (*(enc_opl+3) << 8) | (*(enc_opl+4) & 0x00ff);
+	dbg( " Start value of the LAC range[%x]",	dec_opl->lac_from);
+	dec_opl->lac_to = (*(enc_opl+5) << 8) | (*(enc_opl+6) & 0x00ff);
+	dbg( " End value of the LAC range[%x]", dec_opl->lac_to);
+	dec_opl->rec_identifier = enc_opl[7];
+	dbg( " PNN Record identifier[%x]", dec_opl->rec_identifier);
 	return TRUE;
 }
 
-gboolean tcore_sim_decode_pnn(struct tel_sim_pnn *p_pnn, unsigned char* p_in, int in_length)
+gboolean tcore_sim_decode_pnn(unsigned char* enc_pnn, int enc_pnn_len, TelSimPnn *dec_pnn)
 {
-	int f_name_len = 0, s_name_len = 0;
-	int cvt_leng = 0, s_name_base = 0;
+	int full_name_len = 0, short_name_len = 0;
+	int cvt_leng = 0, short_name_base = 0;
+	unsigned char *full_name_str, *short_name_str;
 
-	if (_is_empty(p_in, in_length) == TRUE) {
-		memset(p_pnn, 0x00, sizeof(struct tel_sim_pnn));
+	tcore_check_return_value_assert(enc_pnn != NULL, FALSE);
+	tcore_check_return_value_assert(enc_pnn_len != 0, FALSE);
+	tcore_check_return_value_assert(dec_pnn != NULL, FALSE);
+
+	if (tcore_util_is_empty(enc_pnn, enc_pnn_len) == TRUE) {
+		err("empty record");
 		return FALSE;	// this is empty record
 	}
 
 	/*Full name for network IEI(Information Element Identifier),0x43*/
-	if (p_in[0] == 0x43) {
+	if (enc_pnn[0] == 0x43) {
 		dbg( " Full name of network IEI exist");
 		//f_name_part includes information byte.
-		f_name_len =  (int)p_in[1] - 1;
+		full_name_len =  (int)enc_pnn[1] - 1;
 
 		/* 3rd byte information element(according to TS 24.008 for Network Name)
 		 8 :ext1
@@ -2221,358 +1331,409 @@ gboolean tcore_sim_decode_pnn(struct tel_sim_pnn *p_pnn, unsigned char* p_in, in
 		 0	1	0		to	reserved
 		 1	1	1		to	reserved
 		 */
-		if ((p_in[2] & 0x70) >> 4 == 0) {
+		if ((enc_pnn[2] & 0x70) >> 4 == 0) {
 			dbg( "DCS:GSM7");
 			// In case of GSM7, 35byte packing data will be converted 40 bytes unpacking string.
-			if (f_name_len > (SIM_NW_FULL_NAME_LEN_MAX * 7) / 8)
-				f_name_len = (SIM_NW_FULL_NAME_LEN_MAX * 7) / 8;
+			if (full_name_len > (TEL_SIM_NW_FULL_NAME_LEN_MAX * 7) / 8)
+				full_name_len = (TEL_SIM_NW_FULL_NAME_LEN_MAX * 7) / 8;
 
-			_unpack_7bit28bit(p_in + 3, f_name_len, (unsigned char *) (p_pnn->full_name));
-		} else if ((p_in[2] & 0x70) >> 4 == 1) {
+			full_name_str = (unsigned char *) tcore_util_unpack_gsm7bit(enc_pnn + 3, full_name_len);
+			memcpy(&dec_pnn->full_name, full_name_str, TEL_SIM_NW_FULL_NAME_LEN_MAX+1);
+		} else if ((enc_pnn[2] & 0x70) >> 4 == 1) {
 			dbg( "DCS:UCS2");
 			/* current telephony supports 40 bytes network name string */
-			if (f_name_len > SIM_NW_FULL_NAME_LEN_MAX)
-				f_name_len = SIM_NW_FULL_NAME_LEN_MAX;
+			if (full_name_len > TEL_SIM_NW_FULL_NAME_LEN_MAX)
+				full_name_len = TEL_SIM_NW_FULL_NAME_LEN_MAX;
 
-			_ucs2_to_utf8(f_name_len, p_in + 3, (int*) &cvt_leng, (unsigned char *) (p_pnn->full_name));
+			tcore_util_convert_str_to_utf8((guchar *) (dec_pnn->full_name), (gushort *) &cvt_leng, TEL_UTIL_ALPHABET_FORMAT_UCS2, enc_pnn + 3, full_name_len);
 		} else {
 			dbg( "DCS:unknown");
 			return FALSE;
 		}
-		dbg( " Full name of network contents[%s]", p_pnn->full_name);
+		dbg( " Full name of network contents[%s]", dec_pnn->full_name);
 
-		s_name_base = (int)p_in[1] +2;
-		dbg( " short name base byte [0x%02x]", s_name_base);
+		short_name_base = (int)enc_pnn[1] +2;
+		dbg( " short name base byte [0x%02x]", short_name_base);
 
 		/*Short Name for network IEI(Information Element Identifier), 0x45*/
-		if (p_in[s_name_base] == 0x45) {
+		if (enc_pnn[short_name_base] == 0x45) {
 			dbg( " Short name of network IEI exist");
 			//s_name_part includes information byte.
-			s_name_len = p_in[s_name_base +1] -1;
+			short_name_len = enc_pnn[short_name_base +1] -1;
 
-			if ((p_in[s_name_base + 2] & 0x70) >> 4 == 0) {
+			if ((enc_pnn[short_name_base + 2] & 0x70) >> 4 == 0) {
 				dbg( "DCS:GSM7");
 				// In case of GSM7, 35byte packing data will be converted 40 bytes unpacking string.
-				if (s_name_len > (SIM_NW_FULL_NAME_LEN_MAX * 7) / 8)
-					s_name_len = (SIM_NW_FULL_NAME_LEN_MAX * 7) / 8;
+				if (short_name_len > (TEL_SIM_NW_FULL_NAME_LEN_MAX * 7) / 8)
+					short_name_len = (TEL_SIM_NW_FULL_NAME_LEN_MAX * 7) / 8;
 
-				_unpack_7bit28bit(p_in + s_name_base + 3, s_name_len, (unsigned char *) (p_pnn->short_name));
-			} else if ((p_in[s_name_base +2] & 0x70) >> 4 == 1) {
+				short_name_str = (unsigned char *) tcore_util_unpack_gsm7bit(enc_pnn + short_name_base + 3, short_name_len);
+				memcpy(&dec_pnn->short_name, short_name_str, TEL_SIM_NW_FULL_NAME_LEN_MAX+1);
+			} else if ((enc_pnn[short_name_base +2] & 0x70) >> 4 == 1) {
 				dbg( "DCS:UCS2");
-				if (s_name_len > SIM_NW_FULL_NAME_LEN_MAX)
-					s_name_len = SIM_NW_FULL_NAME_LEN_MAX;
+				if (short_name_len > TEL_SIM_NW_FULL_NAME_LEN_MAX)
+					short_name_len = TEL_SIM_NW_FULL_NAME_LEN_MAX;
 
-				_ucs2_to_utf8(s_name_len, p_in + s_name_base+ 3, (int*) &cvt_leng, (unsigned char *) (p_pnn->short_name));
+				tcore_util_convert_str_to_utf8((guchar *) (dec_pnn->short_name), (gushort*) &cvt_leng, TEL_UTIL_ALPHABET_FORMAT_UCS2, enc_pnn + short_name_base+ 3, short_name_len);
 			} else {
 				dbg( "DCS:unknown");
 				return FALSE;
 			}
-			dbg( " Short name of network contents[%s]", p_pnn->short_name);
+			dbg( " Short name of network contents[%s]", dec_pnn->short_name);
 		}
 		return TRUE;
 	}
 	return FALSE;
 }
 
-gboolean tcore_sim_decode_oplmnwact(struct tel_sim_oplmnwact_list *p_list, unsigned char *p_in, int in_length)
+gboolean tcore_sim_get_status(CoreObject *co, TelSimCardStatus *status)
 {
-	unsigned long m = 0;
-//unsigned long k, j, m = 0;
-//	unsigned char mask = 0x00;
+	PrivateObject *po = NULL;
 
-	//current raw data can include invalid OPLMN data(ex: ff ff ff 00 00). so we can`t decide the number of OPLMN records directly.
-	int rawOplmnWactCount = 0;
-	int i = 0;
+	po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
 
-	memset((void*) p_list, 0, sizeof(struct tel_sim_oplmnwact_list));
-
-	rawOplmnWactCount = in_length / 5;
-
-	dbg( "rawOplmnWactCount[%d]", rawOplmnWactCount);
-
-	for (i = 0; i < rawOplmnWactCount; i++) {
-		unsigned char packetInDigit[3 * 2 + 1];
-
-		//Regarding current IPC data, even if there`s no OPLMN value, IPC data is sending with 'ff ff ff 00 00'. so we should check for validation.
-		if (p_in[m] == 0xff) {
-			p_list->opwa_count = m / 5;
-			dbg("OPLMN(MCC+MNC) value is not found at p_in[m]=[%lu].So OPLMN count is [%d]", m, p_list->opwa_count);
-			return TRUE;
-		}
-
-		_bcd_to_digit((char*) packetInDigit, (char*) &p_in[m], 3);
-		dbg( "AFTER _bcd_to_digit 4th[0x%x]", packetInDigit[3]);
-
-		// get MCC
-		memcpy(&p_list->opwa[i].plmn, &(packetInDigit[0]), 3);
-		// get MNC
-		if (packetInDigit[3] == 0x00){
-			memcpy(&(p_list->opwa[i].plmn[3]), &(packetInDigit[3 + 1]), 2);
-			p_list->opwa[i].plmn[5] = '\0';
-		} else{
-			memcpy(&(p_list->opwa[i].plmn[3]), &(packetInDigit[3]), 3);
-			p_list->opwa[i].plmn[6] = '\0';
-		}
-		dbg( "[%d] OPLMN PLMN Code[%s]", i, p_list->opwa[i].plmn);
-
-		if(p_in[m+3] & 0x80)
-			p_list->opwa[i].b_umts = 1;
-
-		if(p_in[m+4] & 0x80)
-			p_list->opwa[i].b_gsm = 1;
-
-		m = m + 5;
-	}
-
-	p_list->opwa_count = rawOplmnWactCount;
-	dbg( "OPLMN count is p_list->opwa_count[%d]", p_list->opwa_count);
+	*status = po->sim_status;
 
 	return TRUE;
 }
 
-enum tel_sim_status tcore_sim_get_status(CoreObject *o)
+gboolean tcore_sim_set_status(CoreObject *co, TelSimCardStatus status)
 {
-	struct private_object_data *po = NULL;
-	po = tcore_object_ref_object(o);
-	if (!po) {
-		dbg("po access fail");
-		return -1;
-	}
-	return po->sim_status;
-}
+	PrivateObject *po = NULL;
 
-gboolean tcore_sim_set_status(CoreObject *o, enum tel_sim_status status)
-{
-	struct private_object_data *po = NULL;
-	po = tcore_object_ref_object(o);
-	if (!po) {
-		dbg("po access fail");
-		return FALSE;
-	}
+	po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
+
 	po->sim_status = status;
 
 	return TRUE;
 }
 
-gboolean tcore_sim_get_identification(CoreObject *o)
+gboolean tcore_sim_get_identification(CoreObject *co, TelSimCardChangeStatus *change_status)
 {
-	struct private_object_data *po = NULL;
-	po = tcore_object_ref_object(o);
-	if (!po) {
-		dbg("po access fail");
-		return -1;
-	}
-	return po->b_sim_changed;
-}
+	PrivateObject *po = NULL;
 
-gboolean tcore_sim_set_identification(CoreObject *o, gboolean b_changed)
-{
-	struct private_object_data *po = NULL;
-	po = tcore_object_ref_object(o);
-	if (!po) {
-		dbg("po access fail");
-		return FALSE;
-	}
-	po->b_sim_changed = b_changed;
+	po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
+
+	*change_status = po->change_status;
 
 	return TRUE;
 }
 
-enum tel_sim_type tcore_sim_get_type(CoreObject *o)
+gboolean tcore_sim_set_identification(CoreObject *co, TelSimCardChangeStatus change_status)
 {
-	struct private_object_data *po = NULL;
-	po = tcore_object_ref_object(o);
-	if (!po) {
-		dbg("po access fail");
-		return -1;
-	}
-	return po->type;
+	PrivateObject *po = NULL;
+
+	po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
+
+	po->change_status = change_status;
+
+	return TRUE;
 }
 
-gboolean tcore_sim_set_type(CoreObject *o, enum tel_sim_type type)
+gboolean tcore_sim_get_type(CoreObject *co, TelSimCardType *type)
 {
-	struct private_object_data *po = NULL;
-	po = tcore_object_ref_object(o);
-	if (!po) {
-		dbg("po access fail");
-		return FALSE;
-	}
+	PrivateObject *po = NULL;
+
+	po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
+
+	*type = po->type;
+
+	return TRUE;
+}
+
+gboolean tcore_sim_set_type(CoreObject *co, TelSimCardType type)
+{
+	PrivateObject *po = NULL;
+
+	po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
+
 	po->type = type;
+
 	return TRUE;
 }
 
-struct tel_sim_imsi* tcore_sim_get_imsi(CoreObject *o)
+gboolean tcore_sim_get_imsi(CoreObject *co, TelSimImsiInfo **imsi)
 {
-	struct tel_sim_imsi *tmp_imsi;
-	struct private_object_data *po = NULL;
-	po = tcore_object_ref_object(o);
-	if (!po) {
-		dbg("po access fail");
-		return NULL;
-	}
-	tmp_imsi =  calloc(1, sizeof(struct tel_sim_imsi));
-	memcpy(tmp_imsi, &po->imsi, sizeof(struct tel_sim_imsi));
-	return tmp_imsi;
-}
+	PrivateObject *po = NULL;
 
-gboolean tcore_sim_set_imsi(CoreObject *o, struct tel_sim_imsi *imsi)
-{
-	struct private_object_data *po = NULL;
-	po = tcore_object_ref_object(o);
-	if (!po) {
-		dbg("po access fail");
-		return FALSE;
-	}
-	memcpy(&po->imsi, imsi, sizeof(struct tel_sim_imsi));
+	po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
+
+	*imsi = (TelSimImsiInfo *)tcore_memdup((gconstpointer)&po->imsi, sizeof(TelSimImsiInfo));
+
 	return TRUE;
 }
 
-struct tel_sim_service_table* tcore_sim_get_service_table(CoreObject *o)
+gboolean tcore_sim_set_imsi(CoreObject *co, TelSimImsiInfo *imsi)
 {
-	struct tel_sim_service_table *tmp_svct;
-	struct private_object_data *po = NULL;
-	po = tcore_object_ref_object(o);
-	if (!po) {
-		dbg("po access fail");
-		return NULL;
-	}
-	tmp_svct =  calloc(1, sizeof(struct tel_sim_service_table));
-	memcpy(tmp_svct, &po->svct, sizeof(struct tel_sim_service_table));
-	return tmp_svct;
-}
+	PrivateObject *po = NULL;
 
-gboolean tcore_sim_set_service_table(CoreObject *o, struct tel_sim_service_table *svct)
-{
-	struct private_object_data *po = NULL;
-	po = tcore_object_ref_object(o);
-	if (!po) {
-		dbg("po access fail");
-		return FALSE;
-	}
-	memcpy(&po->svct, svct, sizeof(struct tel_sim_service_table));
+	po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
+
+	memcpy(&po->imsi, imsi, sizeof(TelSimImsiInfo));
+
 	return TRUE;
 }
 
-gboolean tcore_sim_get_cphs_status(CoreObject *o){
-	struct private_object_data *po = NULL;
-	po = tcore_object_ref_object(o);
-	if (!po) {
-		dbg("po access fail");
-		return FALSE;
-	}
-	return po->b_cphs;
-}
+gboolean tcore_sim_get_service_table(CoreObject *co, TelSimServiceTable **svct)
+{
+	PrivateObject *po = NULL;
 
-gboolean tcore_sim_set_cphs_status(CoreObject *o, gboolean b_support){
-	struct private_object_data *po = NULL;
-	po = tcore_object_ref_object(o);
-	if (!po) {
-		dbg("po access fail");
-		return FALSE;
-	}
-	po->b_cphs = b_support;
+	po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
+
+	*svct = (TelSimServiceTable *)tcore_memdup((gconstpointer)&po->svct, sizeof(TelSimServiceTable));
+
 	return TRUE;
 }
 
-gboolean tcore_sim_link_userdata(CoreObject *o, void *userdata)
+gboolean tcore_sim_set_service_table(CoreObject *co, TelSimServiceTable *svct)
 {
-	struct private_object_data *po = NULL;
-	po = tcore_object_ref_object(o);
-	if (!po) {
-		dbg("po access fail");
-		return FALSE;
-	}
+	PrivateObject *po = NULL;
+
+	po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
+
+	memcpy(&po->svct, svct, sizeof(TelSimServiceTable));
+
+	return TRUE;
+}
+
+gboolean tcore_sim_get_cphs_status(CoreObject *co, gboolean *is_supported)
+{
+	PrivateObject *po = NULL;
+
+	po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
+
+	*is_supported = po->is_cphs;
+
+	return TRUE;
+}
+
+gboolean tcore_sim_set_cphs_status(CoreObject *co, gboolean is_supported)
+{
+	PrivateObject *po = NULL;
+
+	po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
+
+	po->is_cphs = is_supported;
+
+	return TRUE;
+}
+
+gboolean tcore_sim_get_spn(CoreObject *co, gchar **spn)
+{
+	PrivateObject *po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
+	tcore_check_return_value_assert(spn != NULL, FALSE);
+
+	*spn = tcore_strdup(po->spn);
+
+	return TRUE;
+}
+
+gboolean tcore_sim_set_spn(CoreObject *co, gchar *spn)
+{
+	PrivateObject *po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
+
+	tcore_free(po->spn);
+	po->spn = tcore_strdup(spn);
+
+	return TRUE;
+}
+
+gboolean tcore_sim_get_disp_condition(CoreObject *co,
+		TelSimSpnDispCondition *disp_condition)
+{
+	PrivateObject *po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
+	tcore_check_return_value_assert(disp_condition != NULL, FALSE);
+
+	*disp_condition = po->disp_condition;
+
+	return TRUE;
+}
+
+gboolean tcore_sim_set_disp_condition(CoreObject *co,
+		TelSimSpnDispCondition disp_condition)
+{
+	PrivateObject *po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
+
+	po->disp_condition = disp_condition;
+
+	return TRUE;
+}
+
+gboolean tcore_sim_link_userdata(CoreObject *co, void *userdata)
+{
+	PrivateObject *po = NULL;
+	po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
+
 	po->userdata = userdata;
+
 	return TRUE;
 }
 
-void* tcore_sim_ref_userdata(CoreObject *o)
+void* tcore_sim_ref_userdata(CoreObject *co)
 {
-	struct private_object_data *po = NULL;
-	po = tcore_object_ref_object(o);
-	if (!po || !po->userdata) {
-		dbg("po access fail");
-		return NULL;
-	}
+	PrivateObject *po = NULL;
+	po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, NULL);
+	tcore_check_return_value_assert(po->userdata != NULL, NULL);
+
 	return po->userdata;
 }
 
-static void tcore_sim_initialize_context(CoreObject *o)
+static void tcore_sim_initialize_context(CoreObject *co)
 {
-	struct tcore_sim_operations *tmp_ops = NULL;
-	struct private_object_data *po = NULL;
-	po = tcore_object_ref_object(o);
-	if (!po) {
-		dbg("po access fail");
-		return;
-	}
+	TcoreSimOps *tmp_ops = NULL;
+	PrivateObject *po = NULL;
 
+	po = tcore_object_ref_object(co);
+	tcore_check_return_assert(po != NULL);
 	tmp_ops = po->ops;
-	memset(po, 0x00, sizeof(struct private_object_data));
+	memset(po, 0x00, sizeof(PrivateObject));
 	po->ops = tmp_ops;
-	po->sim_status = SIM_STATUS_UNKNOWN;
+	po->sim_status = TEL_SIM_STATUS_UNKNOWN;
 }
 
-void tcore_sim_override_ops(CoreObject *o, struct tcore_sim_operations *sim_ops)
+void tcore_sim_override_ops(CoreObject *co, TcoreSimOps *sim_ops)
 {
-	struct private_object_data *po = NULL;
+	PrivateObject *po = NULL;
+	po = (PrivateObject *)tcore_object_ref_object(co);
 
-	CORE_OBJECT_CHECK(o, CORE_OBJECT_TYPE_SIM);
+	tcore_check_return_assert(po != NULL);
+	tcore_check_return_assert(po->ops != NULL);
+	tcore_check_return_assert(sim_ops != NULL);
 
-	po = (struct private_object_data *)tcore_object_ref_object(o);
-	if (!po) {
-		return;
+	if (sim_ops->get_ecc)
+		po->ops->get_ecc = sim_ops->get_ecc;
+
+	if (sim_ops->get_iccid)
+		po->ops->get_iccid = sim_ops->get_iccid;
+
+	if (sim_ops->get_language)
+		po->ops->get_language = sim_ops->get_language;
+
+	if (sim_ops->set_language)
+		po->ops->set_language = sim_ops->set_language;
+
+	if (sim_ops->get_callforwarding_info)
+		po->ops->get_callforwarding_info = sim_ops->get_callforwarding_info;
+
+	if (sim_ops->get_messagewaiting_info)
+		po->ops->get_messagewaiting_info = sim_ops->get_messagewaiting_info;
+
+	if (sim_ops->set_messagewaiting_info)
+		po->ops->set_messagewaiting_info = sim_ops->set_messagewaiting_info;
+
+	if (sim_ops->get_mailbox_info)
+		po->ops->get_mailbox_info = sim_ops->get_mailbox_info;
+
+	if (sim_ops->set_mailbox_info)
+		po->ops->set_mailbox_info = sim_ops->set_mailbox_info;
+
+	if (sim_ops->get_msisdn)
+		po->ops->get_msisdn = sim_ops->get_msisdn;
+
+	if (sim_ops->get_spn)
+		po->ops->get_spn = sim_ops->get_spn;
+
+	if (sim_ops->get_cphs_netname)
+		po->ops->get_cphs_netname = sim_ops->get_cphs_netname;
+
+	if (sim_ops->get_sp_display_info)
+		po->ops->get_sp_display_info = sim_ops->get_sp_display_info;
+
+	if (sim_ops->req_authentication)
+		po->ops->req_authentication = sim_ops->req_authentication;
+
+	if (sim_ops->verify_pins)
+		po->ops->verify_pins = sim_ops->verify_pins;
+
+	if (sim_ops->verify_puks)
+		po->ops->verify_puks = sim_ops->verify_puks;
+
+	if (sim_ops->change_pins)
+		po->ops->change_pins = sim_ops->change_pins;
+
+	if (sim_ops->disable_facility)
+		po->ops->disable_facility = sim_ops->disable_facility;
+
+	if (sim_ops->enable_facility)
+		po->ops->enable_facility = sim_ops->enable_facility;
+
+	if (sim_ops->get_facility)
+		po->ops->get_facility = sim_ops->get_facility;
+
+	if (sim_ops->get_lock_info)
+		po->ops->get_lock_info = sim_ops->get_lock_info;
+
+	if (sim_ops->req_apdu)
+		po->ops->req_apdu = sim_ops->req_apdu;
+
+	if (sim_ops->req_atr)
+		po->ops->req_atr = sim_ops->req_atr;
+}
+
+gboolean tcore_sim_set_ops(CoreObject *co, TcoreSimOps *ops)
+{
+	PrivateObject *po;
+	tcore_check_return_value(co != NULL, FALSE);
+
+	po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
+
+	if (po->ops != NULL) {
+		tcore_free(po->ops);
+		po->ops = NULL;
 	}
 
-	if(sim_ops) {
-		_clone_sim_operations(po, sim_ops);
-	}
+	if (ops != NULL)
+		po->ops = tcore_memdup((gconstpointer)ops, sizeof(TcoreSimOps));
 
-	return;
+	return TRUE;
 }
 
 CoreObject *tcore_sim_new(TcorePlugin *p,
-			struct tcore_sim_operations *ops, TcoreHal *hal)
+			TcoreSimOps *ops, TcoreHal *hal)
 {
-	CoreObject *o = NULL;
-	struct private_object_data *po = NULL;
+	CoreObject *co = NULL;
+	PrivateObject *po = NULL;
 
-	if (!p)
-		return NULL;
+	tcore_check_return_value_assert(p != NULL, NULL);
 
-	o = tcore_object_new(p, hal);
-	if (!o)
-		return NULL;
+	co = tcore_object_new(p, hal);
+	tcore_check_return_value_assert(co != NULL, NULL);
 
-	po = calloc(1, sizeof(struct private_object_data));
-	if (!po) {
-		tcore_object_free(o);
-		return NULL;
-	}
+	po = tcore_malloc0(sizeof(PrivateObject));
+	po->ops = tcore_memdup(ops, sizeof(TcoreSimOps));
 
-	po->ops = ops;
+	tcore_object_set_type(co, CORE_OBJECT_TYPE_SIM);
+	tcore_object_link_object(co, po);
+	tcore_object_set_free_hook(co, _po_free_hook);
+	tcore_object_set_clone_hook(co, _po_clone_hook);
+	tcore_object_set_dispatcher(co, _dispatcher);
 
-	tcore_object_set_type(o, CORE_OBJECT_TYPE_SIM);
-	tcore_object_link_object(o, po);
-	tcore_object_set_free_hook(o, _free_hook);
-	tcore_object_set_clone_hook(o, _clone_hook);
-	tcore_object_set_dispatcher(o, _dispatcher);
+	tcore_sim_initialize_context(co);
 
-	tcore_sim_initialize_context(o);
-
-	return o;
+	return co;
 }
 
-void tcore_sim_free(CoreObject *o)
+void tcore_sim_free(CoreObject *co)
 {
-	struct private_object_data *po = NULL;
-
-	CORE_OBJECT_CHECK(o, CORE_OBJECT_TYPE_SIM);
-
-	po = tcore_object_ref_object(o);
-	if (!po)
-		return;
-
-	free(po);
-	tcore_object_free(o);
+	CORE_OBJECT_CHECK(co, CORE_OBJECT_TYPE_SIM);
+	tcore_object_free(co);
 }

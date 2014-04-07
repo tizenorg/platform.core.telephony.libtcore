@@ -1,9 +1,8 @@
 /*
  * libtcore
  *
- * Copyright (c) 2012 Samsung Electronics Co., Ltd. All rights reserved.
- *
- * Contact: Ja-young Gu <jygu@samsung.com>
+ * Copyright (c) 2013 Samsung Electronics Co. Ltd. All rights reserved.
+ * Copyright (c) 2013 Intel Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,286 +17,190 @@
  * limitations under the License.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
 #include <glib.h>
 
 #include "tcore.h"
 #include "plugin.h"
-#include "user_request.h"
 #include "co_modem.h"
-#include "hal.h"
 
-struct private_object_data {
-	struct tcore_modem_operations *ops;
+typedef struct {
+	TcoreModemOps *ops;
 
 	gboolean flight_mode;
 	gboolean powered;
-};
+} PrivateObject;
 
-static void _free_hook(CoreObject *o)
+static void _po_free_hook(CoreObject *co)
 {
-	struct private_object_data *po = NULL;
+	PrivateObject *po = tcore_object_ref_object(co);
+	tcore_check_return(po != NULL);
 
-	po = tcore_object_ref_object(o);
-	if (po) {
-		free(po);
-		tcore_object_link_object(o, NULL);
-	}
+	tcore_free(po->ops);
+	tcore_free(po);
+	tcore_object_link_object(co, NULL);
 }
 
-static void _clone_hook(CoreObject *src, CoreObject *dest)
+static void _po_clone_hook(CoreObject *src, CoreObject *dest)
 {
-	struct private_object_data *src_po = NULL;
-	struct private_object_data *dest_po = NULL;
+	PrivateObject *dest_po = NULL;
+	PrivateObject *src_po = tcore_object_ref_object(src);
 
-	if (!src || !dest)
-		return;
+	tcore_check_return_assert(src_po != NULL);
+	tcore_check_return_assert(src_po->ops != NULL);
 
-	dest_po = calloc(1, sizeof(struct private_object_data));
-	if (!dest_po) {
-		tcore_object_link_object(dest, NULL);
-		return;
-	}
-
-	src_po = tcore_object_ref_object(src);
-	dest_po->ops = src_po->ops;
-
+	dest_po = tcore_malloc0(sizeof(PrivateObject));
+	dest_po->ops = tcore_memdup(src_po->ops, sizeof(TcoreModemOps));
 	tcore_object_link_object(dest, dest_po);
 }
 
-static void _clone_modem_operations(struct private_object_data *po, struct tcore_modem_operations *modem_ops)
+static TelReturn _dispatcher(CoreObject *co,
+	TcoreCommand command, const void *request,
+	TcoreObjectResponseCallback cb, const void *user_data)
 {
-	if(modem_ops->power_on) {
-		po->ops->power_on = modem_ops->power_on;
-	}
-	if(modem_ops->power_off) {
-		po->ops->power_off = modem_ops->power_off;
-	}
-	if(modem_ops->power_reset) {
-		po->ops->power_reset = modem_ops->power_reset;
-	}
-	if(modem_ops->set_flight_mode) {
-		po->ops->set_flight_mode = modem_ops->set_flight_mode;
-	}
-	if(modem_ops->get_imei) {
-		po->ops->get_imei = modem_ops->get_imei;
-	}
-	if(modem_ops->get_version) {
-		po->ops->get_version = modem_ops->get_version;
-	}
-	if(modem_ops->get_sn) {
-		po->ops->get_sn = modem_ops->get_sn;
-	}
-	if(modem_ops->dun_pin_ctrl) {
-		po->ops->dun_pin_ctrl = modem_ops->dun_pin_ctrl;
-	}
-	if(modem_ops->get_flight_mode) {
-		po->ops->get_flight_mode = modem_ops->get_flight_mode;
-	}
+	TcoreModemOps *modem = NULL;
+	PrivateObject *po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, TEL_RETURN_INVALID_PARAMETER);
+	tcore_check_return_value_assert(po->ops != NULL, TEL_RETURN_INVALID_PARAMETER);
+	modem = po->ops;
 
-	return;
-}
-
-static TReturn _dispatcher(CoreObject *o, UserRequest *ur)
-{
-	enum tcore_request_command command;
-	struct private_object_data *po = NULL;
-
-	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_MODEM, TCORE_RETURN_EINVAL);
-
-	po = tcore_object_ref_object(o);
-	if (!po || !po->ops)
-		return TCORE_RETURN_ENOSYS;
-
-	command = tcore_user_request_get_command(ur);
 	switch (command) {
-		case TREQ_MODEM_POWER_ON:
-			if (!po->ops->power_on)
-				return TCORE_RETURN_ENOSYS;
+	case TCORE_COMMAND_MODEM_SET_POWER_STATUS:
+		if (modem->set_power_status)
+			return modem->set_power_status(co,
+					*((TelModemPowerStatus *)request),
+					cb, (void *)user_data);
+		break;
 
-			return po->ops->power_on(o, ur);
-			break;
+	case TCORE_COMMAND_MODEM_SET_FLIGHTMODE:
+		if (modem->set_flight_mode)
+			return modem->set_flight_mode(co,
+					*(gboolean *)request,
+					cb, (void *)user_data);
+		break;
 
-		case TREQ_MODEM_POWER_OFF:
-			if (!po->ops->power_off)
-				return TCORE_RETURN_ENOSYS;
+	case TCORE_COMMAND_MODEM_GET_IMEI:
+		if (modem->get_imei)
+			return modem->get_imei(co, cb, (void *)user_data);
+		break;
 
-			return po->ops->power_off(o, ur);
-			break;
+	case TCORE_COMMAND_MODEM_GET_VERSION:
+		if (modem->get_version)
+			return modem->get_version(co, cb, (void *)user_data);
+		break;
 
-		case TREQ_MODEM_POWER_RESET:
-			if (!po->ops->power_reset)
-				return TCORE_RETURN_ENOSYS;
+	case TCORE_COMMAND_MODEM_GET_FLIGHTMODE:
+		if (modem->get_flight_mode)
+			return modem->get_flight_mode(co, cb, (void *)user_data);
+		break;
 
-			return po->ops->power_reset(o, ur);
-			break;
-
-		case TREQ_MODEM_SET_FLIGHTMODE:
-			if (!po->ops->set_flight_mode)
-				return TCORE_RETURN_ENOSYS;
-
-			return po->ops->set_flight_mode(o, ur);
-			break;
-
-		case TREQ_MODEM_GET_IMEI:
-			if (!po->ops->get_imei)
-				return TCORE_RETURN_ENOSYS;
-
-			return po->ops->get_imei(o, ur);
-			break;
-
-		case TREQ_MODEM_GET_VERSION:
-			if (!po->ops->get_version)
-				return TCORE_RETURN_ENOSYS;
-
-			return po->ops->get_version(o, ur);
-			break;
-
-		case TREQ_MODEM_GET_SN:
-			if (!po->ops->get_sn)
-				return TCORE_RETURN_ENOSYS;
-
-			return po->ops->get_sn(o, ur);
-			break;
-
-		case TREQ_MODEM_SET_DUN_PIN_CONTROL:
-			if (!po->ops->dun_pin_ctrl)
-				return TCORE_RETURN_ENOSYS;
-
-			return po->ops->dun_pin_ctrl(o, ur);
-			break;
-
-		case TREQ_MODEM_GET_FLIGHTMODE:
-			if (!po->ops->get_flight_mode)
-				return TCORE_RETURN_ENOSYS;
-
-			return po->ops->get_flight_mode(o, ur);
-			break;
-
-		default:
-			return TCORE_RETURN_EINVAL;
+	default:
+		err("Unsupported Command [0x%x]", command);
+		break;
 	}
-
-	return TCORE_RETURN_SUCCESS;
+	err("Operation NOT Supported");
+	return TEL_RETURN_OPERATION_NOT_SUPPORTED;
 }
 
-void tcore_modem_override_ops(CoreObject *o, struct tcore_modem_operations *modem_ops)
+void tcore_modem_override_ops(CoreObject *co, TcoreModemOps *ops)
 {
-	struct private_object_data *po = NULL;
+	PrivateObject *po = tcore_object_ref_object(co);
 
-	CORE_OBJECT_CHECK(o, CORE_OBJECT_TYPE_MODEM);
+	tcore_check_return_assert(po != NULL);
+	tcore_check_return_assert(po->ops != NULL);
+	tcore_check_return_assert(ops != NULL);
 
-	po = (struct private_object_data *)tcore_object_ref_object(o);
-	if (!po) {
-		return;
+	if (ops->set_power_status)
+		po->ops->set_power_status = ops->set_power_status;
+	if (ops->set_flight_mode)
+		po->ops->set_flight_mode = ops->set_flight_mode;
+	if (ops->get_imei)
+		po->ops->get_imei = ops->get_imei;
+	if (ops->get_version)
+		po->ops->get_version = ops->get_version;
+	if (ops->get_flight_mode)
+		po->ops->get_flight_mode = ops->get_flight_mode;
+}
+
+gboolean tcore_modem_set_ops(CoreObject *co, TcoreModemOps *ops)
+{
+	PrivateObject *po;
+	tcore_check_return_value(co != NULL, FALSE);
+
+	po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
+
+	if (po->ops != NULL) {
+		tcore_free(po->ops);
+		po->ops = NULL;
 	}
 
-	if(modem_ops) {
-		_clone_modem_operations(po, modem_ops);
-	}
+	if (ops != NULL)
+		po->ops = tcore_memdup((gconstpointer)ops, sizeof(TcoreModemOps));
 
-	return;
+	return TRUE;
 }
 
 CoreObject *tcore_modem_new(TcorePlugin *p,
-			struct tcore_modem_operations *ops, TcoreHal *hal)
+			TcoreModemOps *ops, TcoreHal *hal)
 {
-	CoreObject *o = NULL;
-	struct private_object_data *po = NULL;
+	CoreObject *co = NULL;
+	PrivateObject *po = NULL;
+	tcore_check_return_value_assert(p != NULL, NULL);
 
-	//dbg("Entered");
-	if (!p)
-		return NULL;
+	co = tcore_object_new(p, hal);
+	tcore_check_return_value_assert(co != NULL, NULL);
 
-	o = tcore_object_new(p, hal);
-	if (!o)
-		return NULL;
+	po = tcore_malloc0(sizeof(PrivateObject));
 
-	po = calloc(1, sizeof(struct private_object_data));
-	if (!po) {
-		tcore_object_free(o);
-		return NULL;
-	}
+	if (ops != NULL)
+		po->ops = tcore_memdup(ops, sizeof(TcoreModemOps));
 
-	po->ops = ops;
-
-	tcore_object_set_type(o, CORE_OBJECT_TYPE_MODEM);
-	tcore_object_link_object(o, po);
-	tcore_object_set_free_hook(o, _free_hook);
-	tcore_object_set_clone_hook(o, _clone_hook);
-	tcore_object_set_dispatcher(o, _dispatcher);
-	return o;
+	tcore_object_set_type(co, CORE_OBJECT_TYPE_MODEM);
+	tcore_object_link_object(co, po);
+	tcore_object_set_free_hook(co, _po_free_hook);
+	tcore_object_set_clone_hook(co, _po_clone_hook);
+	tcore_object_set_dispatcher(co, _dispatcher);
+	return co;
 }
 
-void tcore_modem_free(CoreObject *o)
+void tcore_modem_free(CoreObject *co)
 {
-	struct private_object_data *po = NULL;
-
-	CORE_OBJECT_CHECK(o, CORE_OBJECT_TYPE_MODEM);
-
-	po = tcore_object_ref_object(o);
-	if (!po)
-		return;
-
-	free(po);
-	tcore_object_free(o);
+	CORE_OBJECT_CHECK(co, CORE_OBJECT_TYPE_MODEM);
+	tcore_object_free(co);
 }
 
-TReturn tcore_modem_set_flight_mode_state(CoreObject *o, gboolean flag)
+gboolean tcore_modem_set_flight_mode_state(CoreObject *co, gboolean state)
 {
-	struct private_object_data *po = NULL;
+	PrivateObject *po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
 
-	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_MODEM, TCORE_RETURN_EINVAL);
-
-	po = tcore_object_ref_object(o);
-	if (!po)
-		return TCORE_RETURN_EINVAL;
-
-	po->flight_mode = flag;
-
-	return TCORE_RETURN_SUCCESS;
+	po->flight_mode = state;
+	return TRUE;
 }
 
-gboolean tcore_modem_get_flight_mode_state(CoreObject *o)
+gboolean tcore_modem_get_flight_mode_state(CoreObject *co, gboolean *state)
 {
-	struct private_object_data *po = NULL;
+	PrivateObject *po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
 
-	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_MODEM, FALSE);
-
-	po = tcore_object_ref_object(o);
-	if (!po)
-		return FALSE;
-
-	return po->flight_mode;
+	*state = po->flight_mode;
+	return TRUE;
 }
 
-TReturn tcore_modem_set_powered(CoreObject *o, gboolean pwr)
+gboolean tcore_modem_set_powered(CoreObject *co, gboolean pwr)
 {
-	struct private_object_data *po;
-
-	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_MODEM, TCORE_RETURN_EINVAL);
-
-	po = tcore_object_ref_object(o);
-	if (!po)
-		return FALSE;
+	PrivateObject *po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
 
 	po->powered = pwr;
-
-	return TCORE_RETURN_SUCCESS;
+	return TRUE;
 }
 
-gboolean tcore_modem_get_powered(CoreObject *o)
+gboolean tcore_modem_get_powered(CoreObject *co, gboolean *pwr)
 {
-	struct private_object_data *po;
+	PrivateObject *po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
 
-	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_MODEM, FALSE);
-
-	po = tcore_object_ref_object(o);
-	if (!po)
-		return FALSE;
-
-	return po->powered;
+	*pwr = po->powered;
+	return TRUE;
 }

@@ -1,9 +1,8 @@
 /*
  * libtcore
  *
- * Copyright (c) 2012 Samsung Electronics Co., Ltd. All rights reserved.
- *
- * Contact: Ja-young Gu <jygu@samsung.com>
+ * Copyright (c) 2013 Samsung Electronics Co. Ltd. All rights reserved.
+ * Copyright (c) 2013 Intel Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,274 +29,353 @@
 #include "storage.h"
 
 struct tcore_storage_type {
-	const char *name;
-	struct storage_operations *ops;
-	GHashTable *callback;
-
+	char *name;
 	TcorePlugin *parent_plugin;
+
+	TcoreStorageOperations *ops;
+	GHashTable *callback;
 };
 
-struct storage_callback_type{
+typedef struct {
 	TcoreStorageKeyCallback cb_fn;
 	void *user_data;
-};
+} TcoreStorageCb;
 
-Storage *tcore_storage_new(TcorePlugin *plugin, const char *name,
-		struct storage_operations *ops)
+TcoreStorage *tcore_storage_new(TcorePlugin *plugin,
+	const char *name, TcoreStorageOperations *ops)
 {
-	Storage *strg;
+	TcoreStorage *strg;
 
-	strg = calloc(1, sizeof(struct tcore_storage_type));
-	if (!strg)
-		return NULL;
+	strg = tcore_malloc0(sizeof(TcoreStorage));
 
 	if (name)
-		strg->name = strdup(name);
+		strg->name = tcore_strdup(name);
 
 	strg->parent_plugin = plugin;
 	strg->ops = ops;
-	strg->callback = g_hash_table_new_full(g_str_hash,g_str_equal, g_free, NULL);
+	strg->callback =
+		g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
 
 	tcore_server_add_storage(tcore_plugin_ref_server(plugin), strg);
 
 	return strg;
 }
 
-void tcore_storage_free(Storage *strg)
+void tcore_storage_free(TcoreStorage *strg)
 {
-	if (!strg)
+	if (strg == NULL) {
+		err("Storage is NULL");
 		return;
+	}
 
-	if (strg->name)
-		free((void *)strg->name);
-
-	free(strg);
+	tcore_free(strg->name);
+	tcore_free(strg);
 }
 
-const char *tcore_storage_ref_name(Storage *strg)
+const char *tcore_storage_ref_name(TcoreStorage *strg)
 {
-	if (!strg)
+	if (strg == NULL) {
+		err("Storage is NULL");
 		return NULL;
+	}
 
-	return strg->name;
+	return (const char *)strg->name;
 }
 
-void *tcore_storage_create_handle(Storage *strg, const char *path)
+void *tcore_storage_create_handle(TcoreStorage *strg, const char *path)
 {
-	if (!path)
+	if (path == NULL) {
+		err("path is NULL");
 		return NULL;
+	}
 
-	if (!strg || !strg->ops || !strg->ops->create_handle) {
+	if ((strg == NULL) || (strg->ops == NULL)
+			|| (strg->ops->create_handle == NULL)) {
+		err("strg: [%p] strg->ops: [%p] strg->ops->create_handle: [%p]",
+			strg, (strg ? strg->ops : NULL), (strg ? (strg->ops ?
+			strg->ops->create_handle : NULL) : NULL));
 		return NULL;
 	}
 
 	return strg->ops->create_handle(strg, path);
 }
 
-gboolean tcore_storage_remove_handle(Storage *strg, void *handle)
+gboolean tcore_storage_remove_handle(TcoreStorage *strg, void *handle)
 {
-	if (!handle)
+	if (handle == NULL) {
+		err("handle is NULL");
 		return FALSE;
+	}
 
-	if (!strg || !strg->ops || !strg->ops->remove_handle) {
+	if ((strg == NULL) || (strg->ops == NULL)
+			|| (strg->ops->remove_handle == NULL)) {
+		err("strg: [%p] strg->ops: [%p] strg->ops->remove_handle: [%p]",
+			strg, (strg ? strg->ops : NULL), (strg ? (strg->ops ?
+			strg->ops->remove_handle : NULL) : NULL));
 		return FALSE;
 	}
 
 	return strg->ops->remove_handle(strg, handle);
 }
 
-gboolean tcore_storage_set_int(Storage *strg, enum tcore_storage_key key,
-		int value)
+gboolean tcore_storage_set_int(TcoreStorage *strg,
+	TcoreStorageKey key, int value)
 {
-	if (!strg || !strg->ops || !strg->ops->set_int) {
+	if ((strg == NULL) || (strg->ops == NULL)
+			|| (strg->ops->set_int == NULL)) {
+		err("strg: [%p] strg->ops: [%p] strg->ops->set_int: [%p]",
+			strg, (strg ? strg->ops : NULL), (strg ? (strg->ops ?
+			strg->ops->set_int : NULL) : NULL));
 		return FALSE;
 	}
 
 	return strg->ops->set_int(strg, key, value);
 }
 
-gboolean tcore_storage_set_string(Storage *strg, enum tcore_storage_key key,
-		const char *value)
+gboolean tcore_storage_set_string(TcoreStorage *strg,
+	TcoreStorageKey key, const char *value)
 {
-	if (!strg || !strg->ops || !strg->ops->set_string) {
+	if ((strg == NULL) || (strg->ops == NULL)
+			|| (strg->ops->set_string == NULL)) {
+		err("strg: [%p] strg->ops: [%p] strg->ops->set_string: [%p]",
+			strg, (strg ? strg->ops : NULL), (strg ? (strg->ops ?
+			strg->ops->set_string : NULL) : NULL));
 		return FALSE;
 	}
 
 	return strg->ops->set_string(strg, key, value);
 }
 
-gboolean tcore_storage_set_bool(Storage *strg, enum tcore_storage_key key,
-		gboolean value)
+gboolean tcore_storage_set_bool(TcoreStorage *strg,
+	TcoreStorageKey key, gboolean value)
 {
-	if (!strg || !strg->ops || !strg->ops->set_bool) {
+	if ((strg == NULL) || (strg->ops == NULL)
+			|| (strg->ops->set_bool == NULL)) {
+		err("strg: [%p] strg->ops: [%p] strg->ops->set_bool: [%p]",
+			strg, (strg ? strg->ops : NULL), (strg ? (strg->ops ?
+			strg->ops->set_bool : NULL) : NULL));
 		return FALSE;
 	}
 
 	return strg->ops->set_bool(strg, key, value);
 }
 
-int tcore_storage_get_int(Storage *strg, enum tcore_storage_key key)
+int tcore_storage_get_int(TcoreStorage *strg, TcoreStorageKey key)
 {
-	if (!strg || !strg->ops || !strg->ops->get_int) {
+	if ((strg == NULL) || (strg->ops == NULL)
+			|| (strg->ops->get_int == NULL)) {
+		err("strg: [%p] strg->ops: [%p] strg->ops->get_int: [%p]",
+			strg, (strg ? strg->ops : NULL), (strg ? (strg->ops ?
+			strg->ops->get_int : NULL) : NULL));
 		return -1;
 	}
 
 	return strg->ops->get_int(strg, key);
 }
 
-char *tcore_storage_get_string(Storage *strg, enum tcore_storage_key key)
+char *tcore_storage_get_string(TcoreStorage *strg, TcoreStorageKey key)
 {
-	if (!strg || !strg->ops || !strg->ops->get_string) {
+	if ((strg == NULL) || (strg->ops == NULL)
+			|| (strg->ops->get_string == NULL)) {
+		err("strg: [%p] strg->ops: [%p] strg->ops->get_string: [%p]",
+			strg, (strg ? strg->ops : NULL), (strg ? (strg->ops ?
+			strg->ops->get_string : NULL) : NULL));
 		return NULL;
 	}
 
 	return strg->ops->get_string(strg, key);
 }
 
-gboolean tcore_storage_get_bool(Storage *strg, enum tcore_storage_key key)
+gboolean tcore_storage_get_bool(TcoreStorage *strg, TcoreStorageKey key)
 {
-	if (!strg || !strg->ops || !strg->ops->get_bool) {
+	if ((strg == NULL) || (strg->ops == NULL)
+			|| (strg->ops->get_bool == NULL)) {
+		err("strg: [%p] strg->ops: [%p] strg->ops->get_bool: [%p]",
+			strg, (strg ? strg->ops : NULL), (strg ? (strg->ops ?
+			strg->ops->get_bool : NULL) : NULL));
 		return FALSE;
 	}
 
 	return strg->ops->get_bool(strg, key);
 }
 
-static void tcore_storage_vkey_callback_dispatcher(Storage *strg,
-		enum tcore_storage_key key, void *value)
+static void tcore_storage_vkey_callback_dispatcher(TcoreStorage *strg,
+		TcoreStorageKey key, void *value)
 {
-	gpointer tmp = NULL;
 	gchar *key_gen = NULL;
-	struct storage_callback_type *tmp_cb = NULL;
+	gpointer hash_node = NULL;
 
 	key_gen = g_strdup_printf("%d", key);
-	tmp = g_hash_table_lookup(strg->callback, key_gen);
 
-	if (tmp != NULL) {
-		GSList *cb_data = (GSList *)tmp;
+	/* Lookup for 'key' callback list node in Hash table */
+	hash_node = g_hash_table_lookup(strg->callback, key_gen);
+	if (hash_node != NULL) {
+		GSList *cb_list = (GSList *)hash_node;
+		TcoreStorageCb *cb_node;
 
 		do {
-			tmp_cb = cb_data->data;
-			tmp_cb->cb_fn(key, value, tmp_cb->user_data);
-			cb_data = g_slist_next(cb_data);
-		} while (cb_data != NULL);
+			cb_node = cb_list->data;
+			if (cb_node && cb_node->cb_fn)
+				cb_node->cb_fn(key, value, cb_node->user_data);
+
+			cb_list = g_slist_next(cb_list);
+		} while (cb_list != NULL);
 	}
 
-	g_free(key_gen);
-	return;
+	tcore_free(key_gen);
 }
 
-gboolean tcore_storage_set_key_callback(Storage *strg,
-		enum tcore_storage_key key, TcoreStorageKeyCallback cb, void *user_data)
+gboolean tcore_storage_set_key_callback(TcoreStorage *strg,
+	TcoreStorageKey key, TcoreStorageKeyCallback cb, void *user_data)
 {
-	gpointer tmp = NULL;
+	gpointer hash_node = NULL;
 	gchar *key_gen = NULL;
-	struct storage_callback_type *strg_cb_data = NULL;
-	struct storage_callback_type *tmp_cb = NULL;
+	TcoreStorageCb *strg_cb_data = NULL;
 
-	if (!strg || !strg->ops || !strg->ops->set_key_callback)
-	{
+	if ((strg == NULL) || (strg->ops == NULL)
+			|| (strg->ops->set_key_callback == NULL)) {
+		err("strg: [%p] strg->ops: [%p] strg->ops->set_key_callback: [%p]",
+			strg, (strg ? strg->ops : NULL), (strg ? (strg->ops ?
+			strg->ops->set_key_callback : NULL) : NULL));
 		return FALSE;
 	}
 
-	strg_cb_data = g_new0(struct storage_callback_type, 1);
+	/* Create callback node */
+	strg_cb_data = tcore_malloc0(sizeof(TcoreStorageCb));
 	strg_cb_data->cb_fn = cb;
 	strg_cb_data->user_data = user_data;
 
 	key_gen = g_strdup_printf("%d", key);
-	tmp = g_hash_table_lookup(strg->callback, key_gen);
-	if (tmp != NULL) {
-		GSList *cb_data = (GSList *) tmp;
+
+	/* Lookup for 'key' callback list node in Hash table */
+	hash_node = g_hash_table_lookup(strg->callback, key_gen);
+	if (hash_node != NULL) {
+		/*
+		 * There is a 'value' (hash_node) previously added
+		 * for the 'key'.
+		 *
+		 * 'callback' is appended to the list of callbacks if it doesn;t
+		 * match any of the previously added 'callbacks' for the 'key'.
+		 */
+		GSList *cb_list = (GSList *)hash_node;
+		TcoreStorageCb *cb_node = NULL;
 
 		do {
-			tmp_cb = cb_data->data;
-			if (tmp_cb->cb_fn == cb) {
-				g_free(key_gen);
-				g_free(strg_cb_data);
+			cb_node = cb_list->data;
+			if (cb_node && (cb_node->cb_fn == cb)) {
+				tcore_free(key_gen);
+				tcore_free(strg_cb_data);
 				return FALSE;
 			}
+		} while ((cb_list = g_slist_next(cb_list)));
 
-		} while ((cb_data = g_slist_next(cb_data)));
-
-		tmp = g_slist_append( (GSList *)tmp, strg_cb_data);
+		/* Append additional callback to same 'key' in Hash table */
+		hash_node = g_slist_append((GSList *)hash_node, strg_cb_data);
 	}
 	else {
+		/*
+		 * There is no 'value' (hash_node) previously added
+		 * for the 'key'.
+		 */
 		GSList *data = NULL;
 		data = g_slist_append(data, strg_cb_data);
-		g_hash_table_insert(strg->callback, g_strdup(key_gen), data);
-		strg->ops->set_key_callback(strg, key, tcore_storage_vkey_callback_dispatcher);
+
+		/* Add first entry to Hash table for 'key' */
+		g_hash_table_insert(strg->callback, tcore_strdup(key_gen), data);
+
+		/* Set Key callback dispatcher */
+		strg->ops->set_key_callback(strg,
+			key, tcore_storage_vkey_callback_dispatcher);
 	}
 
-	g_free(key_gen);
+	tcore_free(key_gen);
 	return TRUE;
 }
 
-gboolean tcore_storage_remove_key_callback(Storage *strg,
-		enum tcore_storage_key key, TcoreStorageKeyCallback cb)
+gboolean tcore_storage_remove_key_callback(TcoreStorage *strg,
+		TcoreStorageKey key, TcoreStorageKeyCallback cb)
 {
-	gpointer tmp = NULL;
+	gpointer hash_node = NULL;
 	gchar *key_gen = NULL;
-	GSList *cb_data = NULL;
+	GSList *cb_list = NULL;
 	int cb_cnt = 0;
-	struct storage_callback_type *tmp_cb = NULL;
+	TcoreStorageCb *cb_node = NULL;
 
-	if (!strg || !strg->ops || !strg->ops->remove_key_callback) {
+	if ((strg == NULL) || (strg->ops == NULL)
+			|| (strg->ops->remove_key_callback == NULL)) {
+		err("strg: [%p] strg->ops: [%p] strg->ops->remove_key_callback: [%p]",
+			strg, (strg ? strg->ops : NULL), (strg ? (strg->ops ?
+			strg->ops->remove_key_callback : NULL) : NULL));
 		return FALSE;
 	}
 
 	key_gen = g_strdup_printf("%d", key);
-	tmp = g_hash_table_lookup(strg->callback, key_gen);
 
-	if (tmp == NULL){
-		g_free(key_gen);
+	/* Lookup for 'key' callback list node in Hash table */
+	hash_node = g_hash_table_lookup(strg->callback, key_gen);
+	if (hash_node == NULL) {
+		tcore_free(key_gen);
 		return FALSE;
 	}
 
-	cb_data = (GSList *) tmp;
-
+	cb_list = (GSList *)hash_node;
 	do {
-		tmp_cb = cb_data->data;
-		if (tmp_cb->cb_fn == cb) {
-			tmp = g_slist_remove((GSList *) tmp, cb_data->data);
-			g_free(cb_data->data);
+		cb_node = cb_list->data;
+		if (cb_node && (cb_node->cb_fn == cb)) {
+			hash_node = g_slist_remove((GSList *) hash_node, cb_node);
+			tcore_free(cb_node);
 			break;
 		}
+	} while ((cb_list = g_slist_next(cb_list)));
 
-	} while ((cb_data = g_slist_next(cb_data)));
-
-	cb_cnt = g_slist_length( (GSList *) tmp );
-	dbg("glist cnt (%d)", cb_cnt);
-
-	if(cb_cnt == 0){
+	cb_cnt = g_slist_length((GSList *) hash_node);
+	dbg("Callback list count: [%d]", cb_cnt);
+	if (cb_cnt == 0) {
+		/*
+		 * No more callbacks registered for 'key',
+		 * remove callback list node from Hash table.
+		 */
 		g_hash_table_remove(strg->callback, key_gen);
 		strg->ops->remove_key_callback(strg, key);
 	}
 
-	g_free(key_gen);
+	tcore_free(key_gen);
 	return TRUE;
 }
 
-gboolean tcore_storage_update_query_database(Storage *strg, void *handle,
-		const char *query, GHashTable *in_param)
+gboolean tcore_storage_update_query_database(TcoreStorage *strg,
+	void *handle, const char *query, GHashTable *in_param)
 {
-	if (!strg || !handle || !query)
+	if ((strg == NULL) || (handle == NULL) || (query == NULL)) {
+		err("Storage: [%p] handle: [%p] query: [%p]", strg, handle, query);
 		return FALSE;
+	}
 
-	if (!strg->ops || !strg->ops->update_query_database) {
+	if ((strg == NULL) || (strg->ops == NULL)
+			|| (strg->ops->update_query_database == NULL)) {
+		err("strg: [%p] strg->ops: [%p] strg->ops->update_query_database: [%p]",
+			strg, (strg ? strg->ops : NULL), (strg ? (strg->ops ?
+			strg->ops->update_query_database : NULL) : NULL));
 		return FALSE;
 	}
 
 	return strg->ops->update_query_database(strg, handle, query, in_param);
 }
 
-gboolean tcore_storage_read_query_database(Storage *strg, void *handle,
-		const char *query, GHashTable *in_param,
-		GHashTable *out_param, int out_param_cnt)
+gboolean tcore_storage_read_query_database(TcoreStorage *strg,
+	void *handle, const char *query, GHashTable *in_param,
+	GHashTable *out_param, int out_param_cnt)
 {
-	if (!strg || !handle || !query)
+	if ((strg == NULL) || (handle == NULL) || (query == NULL)) {
+		err("Storage: [%p] handle: [%p] query: [%p]", strg, handle, query);
 		return FALSE;
+	}
 
-	if (!strg->ops || !strg->ops->read_query_database) {
+	if ((strg == NULL) || (strg->ops == NULL)
+			|| (strg->ops->read_query_database == NULL)) {
+		err("strg: [%p] strg->ops: [%p] strg->ops->read_query_database: [%p]",
+			strg, (strg ? strg->ops : NULL), (strg ? (strg->ops ?
+			strg->ops->read_query_database : NULL) : NULL));
 		return FALSE;
 	}
 
@@ -305,26 +383,38 @@ gboolean tcore_storage_read_query_database(Storage *strg, void *handle,
 			in_param, out_param, out_param_cnt);
 }
 
-gboolean tcore_storage_insert_query_database(Storage *strg, void *handle,
-		const char *query, GHashTable *in_param)
+gboolean tcore_storage_insert_query_database(TcoreStorage *strg,
+	void *handle, const char *query, GHashTable *in_param)
 {
-	if (!strg || !handle || !query)
+	if ((strg == NULL) || (handle == NULL) || (query == NULL)) {
+		err("Storage: [%p] handle: [%p] query: [%p]", strg, handle, query);
 		return FALSE;
+	}
 
-	if (!strg->ops || !strg->ops->insert_query_database) {
+	if ((strg == NULL) || (strg->ops == NULL)
+			|| (strg->ops->insert_query_database == NULL)) {
+		err("strg: [%p] strg->ops: [%p] strg->ops->insert_query_database: [%p]",
+			strg, (strg ? strg->ops : NULL), (strg ? (strg->ops ?
+			strg->ops->insert_query_database : NULL) : NULL));
 		return FALSE;
 	}
 
 	return strg->ops->insert_query_database(strg, handle, query, in_param);
 }
 
-gboolean tcore_storage_remove_query_database(Storage *strg, void *handle,
-		const char *query, GHashTable *in_param)
+gboolean tcore_storage_remove_query_database(TcoreStorage *strg,
+	void *handle, const char *query, GHashTable *in_param)
 {
-	if (!strg || !handle || !query)
+	if ((strg == NULL) || (handle == NULL) || (query == NULL)) {
+		err("Storage: [%p] handle: [%p] query: [%p]", strg, handle, query);
 		return FALSE;
+	}
 
-	if (!strg->ops || !strg->ops->remove_query_database) {
+	if ((strg == NULL) || (strg->ops == NULL)
+			|| (strg->ops->remove_query_database == NULL)) {
+		err("strg: [%p] strg->ops: [%p] strg->ops->remove_query_database: [%p]",
+			strg, (strg ? strg->ops : NULL), (strg ? (strg->ops ?
+			strg->ops->remove_query_database : NULL) : NULL));
 		return FALSE;
 	}
 

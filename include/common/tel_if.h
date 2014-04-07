@@ -1,9 +1,8 @@
 /*
- * libtcore
+ * tel-headers
  *
- * Copyright (c) 2012 Samsung Electronics Co., Ltd. All rights reserved.
- *
- * Contact: Ja-young Gu <jygu@samsung.com>
+ * Copyright (c) 2013 Samsung Electronics Co. Ltd. All rights reserved.
+ * Copyright (c) 2013 Intel Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,24 +17,17 @@
  * limitations under the License.
  */
 
-#ifndef __TYPE_GPS_H__
-#define __TYPE_GPS_H__
+#ifndef __TEL_IF_H__
+#define __TEL_IF_H__
 
-__BEGIN_DECLS
+/** Telephony service name */
+#define TELEPHONY_SERVICE      "org.tizen.telephony"
 
-struct treq_gps_set_frequency_aiding {
-	unsigned char enable;
-};
+/** Telephony object path */
+#define TELEPHONY_OBJECT_PATH "/org/tizen/telephony"
 
-struct tresp_gps_set_frequency_aiding {
-	TReturn result;
-};
-
-struct tnoti_gps_frequency_aiding {
-	unsigned char lock_status;
-	unsigned char afc_update;
-};
-
-__END_DECLS
-
+#ifdef __cplusplus
+}
 #endif
+
+#endif /* __TEL_IF_H__ */

@@ -1,9 +1,8 @@
 /*
  * libtcore
  *
- * Copyright (c) 2012 Samsung Electronics Co., Ltd. All rights reserved.
- *
- * Contact: Ja-young Gu <jygu@samsung.com>
+ * Copyright (c) 2013 Samsung Electronics Co. Ltd. All rights reserved.
+ * Copyright (c) 2013 Intel Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,11 +18,9 @@
  */
 
 #include <stdio.h>
-#include <string.h>
-#include <pthread.h>
+//#include <string.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <time.h>
 
 #include <glib.h>
 
@@ -32,12 +29,9 @@
 #include "at.h"
 #include "queue.h"
 #include "plugin.h"
-#include "user_request.h"
 #include "server.h"
 #include "mux.h"
 
-
-//#define IDLE_SEND_PRIORITY G_PRIORITY_DEFAULT
 #define IDLE_SEND_PRIORITY G_PRIORITY_HIGH
 
 struct hook_send_type {
@@ -52,73 +46,81 @@ struct recv_callback_item_type {
 
 struct tcore_hal_type {
 	TcorePlugin *parent_plugin;
-	TcoreQueue *queue;
-	char *name;
-	struct tcore_hal_operations *ops;
-	void *user_data;
-	GSList *callbacks;
+
+	gchar *name;
+	TcoreHalOperations *ops;
 	gboolean power_state;
+
+	TcoreQueue *queue;
+	void *user_data;
+
+	GSList *callbacks;
 	GSList *hook_list_send;
 
-	enum tcore_hal_mode mode;
+	TcoreHalMode mode;
 	TcoreAT *at;
 };
 
-static gboolean _hal_idle_send(void *user_data)
+typedef enum {
+	TCORE_HAL_SEND_DATA_SUCCESS,
+	TCORE_HAL_SEND_DATA_FAILURE,
+	TCORE_HAL_SEND_DATA_HOOK_STOP
+} TcoreHalSendData;
+
+static gboolean __hal_idle_send(void *user_data)
 {
 	TcoreHal *hal = user_data;
-	TcorePending *p = NULL;
-	TcoreQueue *q;
-	int ret = 0;
-	void *data = NULL;
-	unsigned int data_len = 0;
+	TcorePending *pending;
+	void *data;
+	guint data_len = 0;
+	TelReturn ret;
 	gboolean renew = FALSE;
 
-	if (hal == NULL)
+	if (hal == NULL) {
+		err("hal is NULL");
 		return FALSE;
+	}
 
 	msg("--[Queue SEND]-------------------");
 
-	p = tcore_queue_ref_next_pending(hal->queue);
-	if (p == NULL) {
-		dbg("next pending is NULL. no send, queue len=%d", tcore_queue_get_length(hal->queue));
+	pending = tcore_queue_ref_next_pending(hal->queue);
+	if (pending == NULL) {
+		dbg("Queue is empty!!! (queue length: %d)",
+			tcore_queue_get_length(hal->queue));
 		goto out;
 	}
 
-	data = tcore_pending_ref_request_data(p, &data_len);
-	dbg("queue len=%d, pending=0x%x, id=0x%x, data_len=%d",
-			tcore_queue_get_length(hal->queue), (unsigned int)p, tcore_pending_get_id(p), data_len);
+	data = tcore_pending_ref_request_data(pending, &data_len);
+	dbg("Queue length: [%d] pending: [%p] id: [0x%x] data_len: [%d]",
+	tcore_queue_get_length(hal->queue),
+		(guint)pending, tcore_pending_get_id(pending), data_len);
 
-	if (hal->mode == TCORE_HAL_MODE_AT) {
+	if (hal->mode == TCORE_HAL_MODE_AT)
 		ret = tcore_at_set_request(hal->at, data, TRUE);
-	}
-	else {
+	else
 		ret = tcore_hal_send_data(hal, data_len, data);
-	}
 
-	if (ret == TCORE_RETURN_SUCCESS) {
-		tcore_pending_emit_send_callback(p, TRUE);
-	}
-	else {
-		tcore_pending_emit_send_callback(p, FALSE);
-	}
+	tcore_pending_emit_send_callback(pending, ret);
 
-	if (ret != TCORE_RETURN_HOOK_STOP) {
-		if (tcore_pending_get_auto_free_status_after_sent(p)) {
-			q = tcore_hal_ref_queue(hal);
-			tcore_queue_pop_by_pending(q, p);
-			tcore_pending_free(p);
+	if (ret != (TelReturn)TCORE_HAL_SEND_DATA_HOOK_STOP) {
+		TcoreQueue *queue;
+
+		if (tcore_pending_get_auto_free_status_after_sent(pending)) {
+			queue = tcore_hal_ref_queue(hal);
+			tcore_queue_pop_by_pending(queue, pending);
+			tcore_pending_free(pending);
 
 			/* renew idler */
 			renew = TRUE;
 		}
 		else {
 			/* Send fail */
-			if (ret != TCORE_RETURN_SUCCESS) {
-				dbg("send fail.");
-				q = tcore_hal_ref_queue(hal);
-				p = tcore_queue_pop(q);
-				tcore_pending_free(p);
+			if (ret != TEL_RETURN_SUCCESS) {
+				err("HAL Send failed");
+
+				queue = tcore_hal_ref_queue(hal);
+				pending = tcore_queue_pop(queue);
+				tcore_pending_free(pending);
 			}
 		}
 	}
@@ -128,22 +130,26 @@ out:
 	return renew;
 }
 
-TcoreHal *tcore_hal_new(TcorePlugin *plugin, const char *name,
-		struct tcore_hal_operations *hops,
-		enum tcore_hal_mode mode)
+TcoreHal *tcore_hal_new(TcorePlugin *plugin, const gchar *name,
+	TcoreHalOperations *hops, TcoreHalMode mode)
 {
 	TcoreHal *hal;
 
-	if (name == NULL)
+	if (name == NULL) {
+		err("HAL name is NULL");
 		return NULL;
+	}
 
 	hal = g_try_new0(struct tcore_hal_type, 1);
-	if (hal == NULL)
+	if (hal == NULL) {
+		err("Failed to allocate memory");
 		return NULL;
+	}
 
 	hal->parent_plugin = plugin;
+	hal->name = tcore_strdup(name);
 	hal->ops = hops;
-	hal->name = g_strdup(name);
+
 	hal->queue = tcore_queue_new(hal);
 	hal->mode = mode;
 
@@ -156,49 +162,56 @@ TcoreHal *tcore_hal_new(TcorePlugin *plugin, const char *name,
 
 void tcore_hal_free(TcoreHal *hal)
 {
-	if (hal == NULL)
+	if (hal == NULL) {
+		err("HAL is NULL");
 		return;
+	}
 
-	dbg("hal=%s", hal->name);
+	dbg("hal: [%s]", hal->name);
 
 	/* Freeing HAL name */
-	g_free(hal->name);
+	tcore_free(hal->name);
 
 	/* Freeing HAL callbacks list */
-	g_slist_free(hal->callbacks);
+	g_slist_free_full(hal->callbacks, g_free);
 
 	/* Freeing HAL Queue */
 	tcore_queue_free(hal->queue);
 
 	/* Freeing AT parser linked to HAL */
-	tcore_at_free(hal->at);
+	if (hal->mode == TCORE_HAL_MODE_AT)
+		tcore_at_free(hal->at);
 
 	/* Freeing HAL */
-	g_free(hal);
+	tcore_free(hal);
 }
 
-TReturn tcore_hal_set_name(TcoreHal *hal, const char *name)
+TelReturn tcore_hal_set_name(TcoreHal *hal, const gchar *name)
 {
-	if (hal == NULL)
-		return TCORE_RETURN_EINVAL;
+	if (hal == NULL) {
+		err("HAL is NULL");
+		return TEL_RETURN_INVALID_PARAMETER;
+	}
 
 	/* Freeing the previously assigned HAL name */
-	g_free(hal->name);
+	tcore_free(hal->name);
 	hal->name = NULL;
 
 	/*
 	 * Assign the new HAL name irrespective of if 'name' is NULL,
 	 * g_strdup would take care of this scenario.
 	 */
-	hal->name = g_strdup(name);
+	hal->name = tcore_strdup(name);
 
-	return TCORE_RETURN_SUCCESS;
+	return TEL_RETURN_SUCCESS;
 }
 
-char *tcore_hal_get_name(TcoreHal *hal)
+gchar *tcore_hal_get_name(TcoreHal *hal)
 {
-	if (hal == NULL)
+	if (hal == NULL) {
+		err("HAL is NULL");
 		return NULL;
+	}
 
 	/*
 	 * Return copy of HAL name,
@@ -206,322 +219,383 @@ char *tcore_hal_get_name(TcoreHal *hal)
 	 * it CAN even be NULL if hal->name is NULL,
 	 * g_strdup will take care of this scenario.
 	 */
-	return g_strdup(hal->name);
+	return tcore_strdup(hal->name);
 }
 
 TcoreAT *tcore_hal_get_at(TcoreHal *hal)
 {
-	if (hal == NULL)
+	if (hal == NULL) {
+		err("HAL is NULL");
 		return NULL;
+	}
 
 	return hal->at;
 }
 
-enum tcore_hal_mode tcore_hal_get_mode(TcoreHal *hal)
+TcoreHalMode tcore_hal_get_mode(TcoreHal *hal)
 {
-	if (hal == NULL)
+	if (hal == NULL) {
+		err("HAL is NULL");
 		return TCORE_HAL_MODE_UNKNOWN;
+	}
 
 	return hal->mode;
 }
 
-TReturn tcore_hal_set_mode(TcoreHal *hal, enum tcore_hal_mode mode)
+TelReturn tcore_hal_set_mode(TcoreHal *hal, TcoreHalMode mode)
 {
-	if (hal == NULL)
-		return TCORE_RETURN_EINVAL;
+	if (hal == NULL) {
+		err("HAL is NULL");
+		return TEL_RETURN_INVALID_PARAMETER;
+	}
 
 	hal->mode = mode;
 
-	return TCORE_RETURN_SUCCESS;
+	return TEL_RETURN_SUCCESS;
 }
 
-TReturn tcore_hal_link_user_data(TcoreHal *hal, void *user_data)
+TelReturn tcore_hal_link_user_data(TcoreHal *hal, void *user_data)
 {
-	if (hal == NULL)
-		return TCORE_RETURN_EINVAL;
+	if (hal == NULL) {
+		err("HAL is NULL");
+		return TEL_RETURN_INVALID_PARAMETER;
+	}
 
 	hal->user_data = user_data;
 
-	return TCORE_RETURN_SUCCESS;
+	return TEL_RETURN_SUCCESS;
 }
 
 void *tcore_hal_ref_user_data(TcoreHal *hal)
 {
-	if (hal == NULL)
+	if (hal == NULL) {
+		err("HAL is NULL");
 		return NULL;
+	}
 
 	return hal->user_data;
 }
 
 /* Send data without Queue */
-TReturn tcore_hal_send_data(TcoreHal *hal, unsigned int data_len, void *data)
+TelReturn tcore_hal_send_data(TcoreHal *hal, guint data_len, void *data)
 {
 	struct hook_send_type *hook;
 	GSList *list;
 
-	if ((hal == NULL) || (hal->ops == NULL) || (hal->ops->send == NULL))
-		return TCORE_RETURN_EINVAL;
+	if ((hal == NULL) || (hal->ops == NULL) || (hal->ops->send == NULL)) {
+		err("hal: [%p] hal->ops: [%p] hal->ops->send: [%p]",
+			hal, (hal ? hal->ops : NULL),
+			(hal ? (hal->ops ? hal->ops->send : NULL) : NULL));
+
+		return TEL_RETURN_INVALID_PARAMETER;
+	}
 
 	for (list = hal->hook_list_send; list; list = list->next) {
 		hook = list->data;
-		if (hook == NULL) {
-			continue;
-		}
-
-		if (hook->func(hal, data_len, data, hook->user_data) == TCORE_HOOK_RETURN_STOP_PROPAGATION) {
-			return TCORE_RETURN_HOOK_STOP;
-		}
+		if (hook != NULL)
+			if (hook->func != NULL)
+				if (hook->func(hal, data_len, data, hook->user_data)
+					== TCORE_HOOK_RETURN_STOP_PROPAGATION)
+					return TCORE_HAL_SEND_DATA_HOOK_STOP;
 	}
 
 	return hal->ops->send(hal, data_len, data);
 }
 
 /* Send data by Queue */
-TReturn tcore_hal_send_request(TcoreHal *hal, TcorePending *pending)
+TelReturn tcore_hal_send_request(TcoreHal *hal, TcorePending *pending)
 {
-	int qlen = 0;
-	enum tcore_pending_priority priority;
-	dbg("HAL: [0x%x]", hal);
+	TcorePendingPriority priority;
+	TelReturn ret;
+	dbg("HAL: [%p]", hal);
 
-	if ((hal == NULL) || (pending == NULL))
-		return TCORE_RETURN_EINVAL;
+	if ((hal == NULL) || (pending == NULL)){
+		err("hal: [%p] pending: [%p]", hal, pending);
+		return TEL_RETURN_INVALID_PARAMETER;
+	}
 
-	if (hal->power_state == FALSE)
-		return TCORE_RETURN_FAILURE;
+	if (hal->power_state == FALSE) {
+		err("HAL Power: [OFF]");
+		return TEL_RETURN_FAILURE;
+	}
 
-	qlen = tcore_queue_get_length(hal->queue);
-	tcore_queue_push(hal->queue, pending);
+	ret = tcore_queue_push(hal->queue, pending);
+	if (ret != TEL_RETURN_SUCCESS) {
+		err("Failed to PUSH request to Queue");
+		return ret;
+	}
 
 	tcore_pending_get_priority(pending, &priority);
 	if (priority == TCORE_PENDING_PRIORITY_IMMEDIATELY) {
-		dbg("IMMEDIATELY pending !!");
-		_hal_idle_send(hal);
+		dbg("IMMEDIATELY pending !!!");
+		__hal_idle_send(hal);
 	}
 	else {
+		/* If it is the ONLY entry then add to g_idle_add_full */
 		if (tcore_queue_get_length(hal->queue) == 1) {
-			g_idle_add_full(IDLE_SEND_PRIORITY, _hal_idle_send, hal, NULL);
+			dbg("Single entry in pending  Queue!!!");
+			g_idle_add_full(IDLE_SEND_PRIORITY,
+				__hal_idle_send, hal, NULL);
 		}
 	}
 
-	return TCORE_RETURN_SUCCESS;
+	return TEL_RETURN_SUCCESS;
 }
 
-TReturn tcore_hal_send_force(TcoreHal *hal)
+TelReturn tcore_hal_send_force(TcoreHal *hal)
 {
-	if (hal == NULL)
-		return TCORE_RETURN_EINVAL;
+	if (hal == NULL) {
+		err("HAL is NULL");
+		return TEL_RETURN_INVALID_PARAMETER;
+	}
 
-	_hal_idle_send(hal);
+	__hal_idle_send(hal);
 
-	return TCORE_RETURN_SUCCESS;
+	return TEL_RETURN_SUCCESS;
 }
 
-TReturn tcore_hal_dispatch_response_data(TcoreHal *hal, int id,
-		unsigned int data_len, const void *data)
+TelReturn tcore_hal_dispatch_response_data(TcoreHal *hal, guint id,
+		guint data_len, const void *data)
 {
-	TcorePending *p = NULL;
+	TcorePending *pending = NULL;
 
-	if (hal == NULL)
-		return TCORE_RETURN_EINVAL;
+	if (hal == NULL) {
+		err("HAL is NULL");
+		return TEL_RETURN_INVALID_PARAMETER;
+	}
 
-	if (data_len > 0 && data == NULL)
-		return TCORE_RETURN_EINVAL;
+	if ((data_len == 0) || (data == NULL)) {
+		err("data_len: [%d] data: [%p]", data_len, data);
+		return TEL_RETURN_INVALID_PARAMETER;
+	}
 
 	if (hal->mode == TCORE_HAL_MODE_AT) {
 		gboolean ret;
 		ret = tcore_at_process(hal->at, data_len, data);
 		if (ret) {
 			/* Send next request in queue */
-			g_idle_add_full(IDLE_SEND_PRIORITY, _hal_idle_send, hal, NULL );
+			g_idle_add_full(IDLE_SEND_PRIORITY,
+				__hal_idle_send, hal, NULL);
 		}
 	}
 	else {
 		if(hal->mode == TCORE_HAL_MODE_CUSTOM) {
 			dbg("TCORE_HAL_MODE_CUSTOM");
-			p = tcore_queue_pop_by_id(hal->queue, id);
-			if (p == NULL) {
-				dbg("unknown pending (id=0x%x)", id);
-				return TCORE_RETURN_PENDING_WRONG_ID;
+			pending = tcore_queue_pop_by_id(hal->queue, id);
+			if (pending == NULL) {
+				err("unknown pending (id=0x%x)", id);
+				return TEL_RETURN_INVALID_PARAMETER;
 			}
 
-			tcore_pending_emit_response_callback(p, data_len, data);
-			tcore_user_request_free(tcore_pending_ref_user_request(p));
-			tcore_pending_free(p);
+			/* Emit response callback */
+			tcore_pending_emit_response_callback(pending,
+				data_len, data);
+
+			/* Free pending request */
+			tcore_pending_free(pending);
 		}
 		else if(hal->mode == TCORE_HAL_MODE_TRANSPARENT) {
 			dbg("TCORE_HAL_MODE_TRANSPARENT");
 
 			/* Invoke CMUX receive API for decoding */
-			tcore_cmux_rcv_from_hal(hal, (unsigned char *)data, data_len);
+			tcore_cmux_rcv_from_hal(hal, (guchar *)data, data_len);
 		}
 
 		/* Send next request in queue */
-		g_idle_add_full(IDLE_SEND_PRIORITY, _hal_idle_send, hal, NULL );
+		g_idle_add_full(IDLE_SEND_PRIORITY, __hal_idle_send, hal, NULL);
 	}
 
-	return TCORE_RETURN_SUCCESS;
+	return TEL_RETURN_SUCCESS;
 }
 
-TReturn tcore_hal_add_recv_callback(TcoreHal *hal, TcoreHalReceiveCallback func,
+TelReturn tcore_hal_add_recv_callback(TcoreHal *hal, TcoreHalReceiveCallback func,
 		void *user_data)
 {
 	struct recv_callback_item_type *item;
 
-	if (hal == NULL)
-		return TCORE_RETURN_EINVAL;
+	if (hal == NULL) {
+		err("HAL is NULL");
+		return TEL_RETURN_INVALID_PARAMETER;
+	}
 
 	item = g_try_new0(struct recv_callback_item_type, 1);
-	if (item == NULL)
-		return TCORE_RETURN_ENOMEM;
+	if (item == NULL) {
+		err("Failed to allocate memory");
+		return TEL_RETURN_MEMORY_FAILURE;
+	}
 
 	item->func = func;
 	item->user_data = user_data;
 
 	hal->callbacks = g_slist_append(hal->callbacks, item);
 
-	return TCORE_RETURN_SUCCESS;
+	return TEL_RETURN_SUCCESS;
 }
 
-TReturn tcore_hal_remove_recv_callback(TcoreHal *hal, TcoreHalReceiveCallback func)
+TelReturn tcore_hal_remove_recv_callback(TcoreHal *hal, TcoreHalReceiveCallback func)
 {
 	struct recv_callback_item_type *item;
 	GSList *list;
 
-	if (hal == NULL)
-		return TCORE_RETURN_EINVAL;
+	if (hal == NULL) {
+		err("HAL is NULL");
+		return TEL_RETURN_INVALID_PARAMETER;
+	}
 
 	for (list = hal->callbacks; list; list = list->next) {
 		item = list->data;
-		if (item == NULL) {
-			continue;
-		}
+		if (item != NULL) {
+			if (item->func == func) {
+				hal->callbacks =
+					g_slist_remove(hal->callbacks, item);
+				tcore_free(item);
+				if (hal->callbacks == NULL)
+					break;
 
-		if (item->func == func) {
-			hal->callbacks = g_slist_remove(hal->callbacks, item);
-			g_free(item);
-			if (hal->callbacks == NULL)
-				break;
-
-			list = hal->callbacks;
+				list = hal->callbacks;
+			}
 		}
 	}
 
-	return TCORE_RETURN_SUCCESS;
+	return TEL_RETURN_SUCCESS;
 }
 
-TReturn tcore_hal_emit_recv_callback(TcoreHal *hal, unsigned int data_len,
+TelReturn tcore_hal_emit_recv_callback(TcoreHal *hal, guint data_len,
 		const void *data)
 {
 	GSList *list;
 	struct recv_callback_item_type *item;
 
-	if (hal == NULL)
-		return TCORE_RETURN_EINVAL;
+	if (hal == NULL) {
+		err("HAL is NULL");
+		return TEL_RETURN_INVALID_PARAMETER;
+	}
 
 	for (list = hal->callbacks; list; list = list->next) {
 		item = list->data;
-
-		if (item) {
-			item->func(hal, data_len, data, item->user_data);
-		}
+		if (item != NULL)
+			if (item->func)
+				item->func(hal, data_len, data, item->user_data);
 	}
 
-	return TCORE_RETURN_SUCCESS;
+	return TEL_RETURN_SUCCESS;
 }
 
 
-TReturn tcore_hal_add_send_hook(TcoreHal *hal, TcoreHalSendHook func, void *user_data)
+TelReturn tcore_hal_add_send_hook(TcoreHal *hal,
+	TcoreHalSendHook func, void *user_data)
 {
 	struct hook_send_type *hook;
 
-	if ((hal == NULL) || (func == NULL))
-		return TCORE_RETURN_EINVAL;
+	if ((hal == NULL) || (func == NULL)) {
+		err("hal: [%p] func: [%p]", hal, func);
+		return TEL_RETURN_INVALID_PARAMETER;
+	}
 
 	hook = g_try_new0(struct hook_send_type, 1);
-	if (hook == NULL)
-		return TCORE_RETURN_ENOMEM;
+	if (hook == NULL) {
+		err("Failed to allocate memory");
+		return TEL_RETURN_MEMORY_FAILURE;
+	}
 
 	hook->func = func;
 	hook->user_data = user_data;
 
 	hal->hook_list_send = g_slist_append(hal->hook_list_send, hook);
 
-	return TCORE_RETURN_SUCCESS;
+	return TEL_RETURN_SUCCESS;
 }
 
-TReturn tcore_hal_remove_send_hook(TcoreHal *hal, TcoreHalSendHook func)
+TelReturn tcore_hal_remove_send_hook(TcoreHal *hal, TcoreHalSendHook func)
 {
 	struct hook_send_type *hook;
 	GSList *list;
 
-	if (hal == NULL)
-		return TCORE_RETURN_EINVAL;
+	if (hal == NULL) {
+		err("HAL is NULL");
+		return TEL_RETURN_INVALID_PARAMETER;
+	}
 
 	for (list = hal->hook_list_send; list; list = list->next) {
 		hook = list->data;
-		if (hook == NULL) {
-			continue;
-		}
+		if (hook != NULL) {
+			if (hook->func == func) {
+				hal->hook_list_send =
+					g_slist_remove(hal->hook_list_send, hook);
 
-		if (hook->func == func) {
-			hal->hook_list_send = g_slist_remove(hal->hook_list_send, hook);
-			g_free(hook);
-			list = hal->hook_list_send;
+				tcore_free(hook);
+				list = hal->hook_list_send;
+			}
 		}
 	}
 
-	return TCORE_RETURN_SUCCESS;
+	return TEL_RETURN_SUCCESS;
 }
 
 TcoreQueue *tcore_hal_ref_queue(TcoreHal *hal)
 {
-	if (hal == NULL)
+	if (hal == NULL) {
+		err("HAL is NULL");
 		return NULL;
+	}
 
 	return hal->queue;
 }
 
 TcorePlugin *tcore_hal_ref_plugin(TcoreHal *hal)
 {
-	if (hal == NULL)
+	if (hal == NULL) {
+		err("HAL is NULL");
 		return NULL;
+	}
 
 	return hal->parent_plugin;
 }
 
-TReturn tcore_hal_set_power_state(TcoreHal *hal, gboolean flag)
+TelReturn tcore_hal_set_power_state(TcoreHal *hal, gboolean flag)
 {
-	if (hal == NULL)
-		return TCORE_RETURN_EINVAL;
+	if (hal == NULL) {
+		err("HAL is NULL");
+		return TEL_RETURN_INVALID_PARAMETER;
+	}
 
 	hal->power_state = flag;
 
-	return TCORE_RETURN_SUCCESS;
+	return TEL_RETURN_SUCCESS;
 }
 
 gboolean tcore_hal_get_power_state(TcoreHal *hal)
 {
-	if (hal == NULL)
+	if (hal == NULL) {
+		err("HAL is NULL");
 		return FALSE;
+	}
 
 	return hal->power_state;
 }
 
-TReturn tcore_hal_set_power(TcoreHal *hal, gboolean flag)
+TelReturn tcore_hal_set_power(TcoreHal *hal, gboolean flag)
 {
-	if ((hal == NULL) || (hal->ops == NULL) || (hal->ops->power == NULL))
-		return TCORE_RETURN_EINVAL;
+	if ((hal == NULL) || (hal->ops == NULL) || (hal->ops->power == NULL)) {
+		err("hal: [%p] hal->ops: [%p] hal->ops->power: [%p]",
+			hal, (hal ? hal->ops : NULL),
+			(hal ? (hal->ops ? hal->ops->power : NULL) : NULL));
+		return TEL_RETURN_INVALID_PARAMETER;
+	}
 
 	return hal->ops->power(hal, flag);
 }
 
-TReturn tcore_hal_setup_netif(TcoreHal *hal, CoreObject *co,
-				TcoreHalSetupNetifCallback func,
-				void *user_data, unsigned int cid,
-				gboolean enable)
+TelReturn tcore_hal_setup_netif(TcoreHal *hal, CoreObject *co,
+	TcoreHalSetupNetifCallback func, void *user_data,
+	guint cid, gboolean enable)
 {
-	if ((hal == NULL) || (hal->ops == NULL) || (hal->ops->setup_netif == NULL))
-		return TCORE_RETURN_EINVAL;
+	if ((hal == NULL) || (hal->ops == NULL) || (hal->ops->setup_netif == NULL)) {
+		err("hal: [%p] hal->ops: [%p] hal->ops->setup_netif: [%p]",
+			hal, (hal ? hal->ops : NULL),
+			(hal ? (hal->ops ? hal->ops->setup_netif : NULL) : NULL));
+		return TEL_RETURN_INVALID_PARAMETER;
+	}
 
 	return hal->ops->setup_netif(co, func, user_data, cid, enable);
 }

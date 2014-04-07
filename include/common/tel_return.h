@@ -1,5 +1,5 @@
 /*
- * libtcore
+ * tel-headers
  *
  * Copyright (c) 2013 Samsung Electronics Co. Ltd. All rights reserved.
  * Copyright (c) 2013 Intel Corporation. All rights reserved.
@@ -17,33 +17,38 @@
  * limitations under the License.
  */
 
-#ifndef __CO_GPS_H__
-#define __CO_GPS_H__
+#ifndef __TEL_RETURN_H__
+#define __TEL_RETURN_H__
 
-#include "core_object.h"
-#include <tel_gps.h>
-#include <tel_return.h>
+/**
+*  @addtogroup TAPI_COMMON
+*  @{
+*
+*  @file tel_return.h
+*  @brief TAPI return values
+*/
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-typedef struct {
-    TelReturn (*confirm_measure_pos)(CoreObject *co, const TelGpsDataInfo *gps_data,
-				TcoreObjectResponseCallback cb, void *cb_data);
-    TelReturn (*set_frequency_aiding)(CoreObject *co, gboolean state,
-				TcoreObjectResponseCallback cb, void *cb_data);
-} TcoreGpsOps;
-
-
-CoreObject *tcore_gps_new(TcorePlugin *plugin, TcoreGpsOps *ops, TcoreHal *hal);
-void tcore_gps_free(CoreObject *co);
-
-gboolean tcore_gps_set_ops(CoreObject *co, TcoreGpsOps *ops);
-void tcore_gps_override_ops(CoreObject *co, TcoreGpsOps *ops);
+/**
+ * @enum TelReturn
+ * TAPI return values
+ */
+typedef enum {
+	TEL_RETURN_SUCCESS, /**< Operation completed successfully */
+	TEL_RETURN_FAILURE, /**< Operation Failed */
+	TEL_RETURN_INVALID_PARAMETER, /**< Invalid input parameters */
+	TEL_RETURN_MEMORY_FAILURE, /**< Memory allocation failed */
+	TEL_RETURN_OPERATION_NOT_SUPPORTED, /**< Operation not supported */
+	TEL_RETURN_UNKNOWN_FAILURE /**< Unknown failure */
+} TelReturn;
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif/* __CO_GPS_H__ */
+/** @}*/
+
+#endif /* __TEL_RETURN_H__ */

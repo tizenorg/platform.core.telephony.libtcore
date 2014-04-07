@@ -8,5 +8,5 @@ Description: SLP Telephony core API
 Version: 1.0
 Requires: glib-2.0 gobject-2.0 gudev-1.0
 Libs: -L${libdir} -ltcore -ldl
-Cflags: -I${includedir}/tcore
+Cflags: -I${includedir}/tcore -I${includedir}/tcore/common
 

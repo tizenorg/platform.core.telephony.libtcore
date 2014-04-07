@@ -1,9 +1,8 @@
 /*
  * libtcore
  *
- * Copyright (c) 2012 Samsung Electronics Co., Ltd. All rights reserved.
- *
- * Contact: Ja-young Gu <jygu@samsung.com>
+ * Copyright (c) 2013 Samsung Electronics Co. Ltd. All rights reserved.
+ * Copyright (c) 2013 Intel Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,396 +17,316 @@
  * limitations under the License.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
 #include <glib.h>
+#include <string.h>
 
 #include "tcore.h"
 #include "plugin.h"
-#include "queue.h"
-#include "user_request.h"
 #include "co_ss.h"
-
-#define _check_null( name, value, err ) { \
-	if ( !value ) { \
-		dbg("[error] %s : NULL", name ); \
-		return err; \
-	} \
-}
 
 struct ussd_session {
 	gboolean session;
-	enum tcore_ss_ussd_type type;
-	void* data;
-	int data_len;
+	TelSsUssdType type;
+	void *data;
+	guint data_len;
 };
 
-struct private_object_data {
-	struct ussd_session ussd_s;
-	struct tcore_ss_operations *ops;
-};
+typedef struct {
+	UssdSession ussd_s;
+	TcoreSsOps *ops;
+} PrivateObject;
 
-static void _clone_ss_operations(struct private_object_data *po, struct tcore_ss_operations *ss_ops)
+static TelReturn _dispatcher(CoreObject *co,
+	TcoreCommand command, const void *request,
+	TcoreObjectResponseCallback cb, const void *user_data)
 {
-	if(ss_ops->barring_activate) {
-		po->ops->barring_activate = ss_ops->barring_activate;
-	}
-	if(ss_ops->barring_deactivate) {
-		po->ops->barring_deactivate = ss_ops->barring_deactivate;
-	}
-	if(ss_ops->barring_change_password) {
-		po->ops->barring_change_password = ss_ops->barring_change_password;
-	}
-	if(ss_ops->barring_get_status) {
-		po->ops->barring_get_status = ss_ops->barring_get_status;
-	}
-	if(ss_ops->forwarding_activate) {
-		po->ops->forwarding_activate = ss_ops->forwarding_activate;
-	}
-	if(ss_ops->forwarding_deactivate) {
-		po->ops->forwarding_deactivate = ss_ops->forwarding_deactivate;
-	}
-	if(ss_ops->forwarding_register) {
-		po->ops->forwarding_register = ss_ops->forwarding_register;
-	}
-	if(ss_ops->forwarding_deregister) {
-		po->ops->forwarding_deregister = ss_ops->forwarding_deregister;
-	}
-	if(ss_ops->forwarding_get_status) {
-		po->ops->forwarding_get_status = ss_ops->forwarding_get_status;
-	}
-	if(ss_ops->waiting_activate) {
-		po->ops->waiting_activate = ss_ops->waiting_activate;
-	}
-	if(ss_ops->waiting_deactivate) {
-		po->ops->waiting_deactivate = ss_ops->waiting_deactivate;
-	}
-	if(ss_ops->waiting_get_status) {
-		po->ops->waiting_get_status = ss_ops->waiting_get_status;
-	}
-	if(ss_ops->cli_activate) {
-		po->ops->cli_activate = ss_ops->cli_activate;
-	}
-	if(ss_ops->cli_deactivate) {
-		po->ops->cli_deactivate = ss_ops->cli_deactivate;
-	}
-	if(ss_ops->cli_get_status) {
-		po->ops->cli_get_status = ss_ops->cli_get_status;
-	}
-	if(ss_ops->send_ussd) {
-		po->ops->send_ussd = ss_ops->send_ussd;
-	}
-	if(ss_ops->set_aoc) {
-		po->ops->set_aoc = ss_ops->set_aoc;
-	}
-	if(ss_ops->get_aoc) {
-		po->ops->get_aoc = ss_ops->get_aoc;
-	}
+	TcoreSsOps *ss = NULL;
+	PrivateObject *po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, TEL_RETURN_INVALID_PARAMETER);
+	tcore_check_return_value_assert(po->ops != NULL, TEL_RETURN_INVALID_PARAMETER);
 
-	return;
-}
+	ss = po->ops;
 
-static TReturn _dispatcher(CoreObject *o, UserRequest *ur)
-{
-	enum tcore_request_command command;
-	TReturn ret = 0;
-
-	struct private_object_data *po = NULL;
-	po = tcore_object_ref_object(o);
-
-	_check_null( "po", po, TCORE_RETURN_FAILURE);
-	_check_null( "po->ops", po->ops, TCORE_RETURN_FAILURE);
-	_check_null( "ur", ur, TCORE_RETURN_FAILURE);
-
-	command = tcore_user_request_get_command(ur);
 	switch (command) {
-		case TREQ_SS_BARRING_ACTIVATE:
-			ret = po->ops->barring_activate(o, ur);
-			break;
+	case TCORE_COMMAND_SS_SET_BARRING:
+		if (ss->set_barring)
+			return ss->set_barring(co,
+				(TelSsBarringInfo *)request,
+				cb, (void *)user_data);
+		break;
 
-		case TREQ_SS_BARRING_DEACTIVATE:
-			ret = po->ops->barring_deactivate(o, ur);
-			break;
+	case TCORE_COMMAND_SS_GET_BARRING_STATUS:
+		if (ss->get_barring_status)
+			return ss->get_barring_status(co,
+				(TelSsBarringGetInfo *)request,
+				cb, (void *)user_data);
+		break;
 
-		case TREQ_SS_BARRING_CHANGE_PASSWORD:
-			ret = po->ops->barring_change_password(o, ur);
-			break;
+	case TCORE_COMMAND_SS_CHANGE_BARRING_PASSWORD:
+		if (ss->change_barring_password)
+			return ss->change_barring_password(co,
+				(TelSsBarringPwdInfo *)request,
+				cb, (void *)user_data);
+		break;
 
-		case TREQ_SS_BARRING_GET_STATUS:
-			ret = po->ops->barring_get_status(o, ur);
-			break;
+	case TCORE_COMMAND_SS_SET_FORWARDING:
+		if (ss->set_forwarding)
+			return ss->set_forwarding(co,
+				(TelSsForwardInfo *)request,
+				cb, (void *)user_data);
+		break;
 
-		case TREQ_SS_FORWARDING_ACTIVATE:
-			ret = po->ops->forwarding_activate(o, ur);
-			break;
+	case TCORE_COMMAND_SS_GET_FORWARDING_STATUS:
+		if (ss->get_forwarding_status)
+			return ss->get_forwarding_status(co,
+				(TelSsForwardGetInfo *)request,
+				cb, (void *)user_data);
+		break;
 
-		case TREQ_SS_FORWARDING_DEACTIVATE:
-			ret = po->ops->forwarding_deactivate(o, ur);
-			break;
+	case TCORE_COMMAND_SS_SET_WAITING:
+		if (ss->set_waiting)
+			return ss->set_waiting(co,
+				(TelSsWaitingInfo *)request,
+				cb, (void *)user_data);
+		break;
 
-		case TREQ_SS_FORWARDING_REGISTER:
-			ret = po->ops->forwarding_register(o, ur);
-			break;
+	case TCORE_COMMAND_SS_GET_WAITING_STATUS:
+		if (ss->get_waiting_status)
+			return ss->get_waiting_status(co,
+				*(TelSsClass *)request,
+				cb, (void *)user_data);
+		break;
 
-		case TREQ_SS_FORWARDING_DEREGISTER:
-			ret = po->ops->forwarding_deregister(o, ur);
-			break;
+	case TCORE_COMMAND_SS_SET_CLI:
+		if (ss->set_cli)
+			return ss->set_cli(co,
+				(TelSsCliInfo *)request,
+				cb, (void *)user_data);
+		break;
 
-		case TREQ_SS_FORWARDING_GET_STATUS:
-			ret = po->ops->forwarding_get_status(o, ur);
-			break;
+	case TCORE_COMMAND_SS_GET_CLI_STATUS:
+		if (ss->get_cli_status)
+			return ss->get_cli_status(co,
+				*(TelSsCliType *)request,
+				cb, (void *)user_data);
+		break;
 
-		case TREQ_SS_WAITING_ACTIVATE:
-			ret = po->ops->waiting_activate(o, ur);
-			break;
+	case TCORE_COMMAND_SS_SEND_USSD_REQUEST:
+		if (ss->send_ussd_request)
+			return ss->send_ussd_request(co,
+				(TelSsUssdInfo *)request,
+				cb, (void *)user_data);
+		break;
 
-		case TREQ_SS_WAITING_DEACTIVATE:
-			ret = po->ops->waiting_deactivate(o, ur);
-			break;
-
-		case TREQ_SS_WAITING_GET_STATUS:
-			ret = po->ops->waiting_get_status(o, ur);
-			break;
-
-		case TREQ_SS_CLI_ACTIVATE:
-			ret = po->ops->cli_activate(o, ur);
-			break;
-
-		case TREQ_SS_CLI_DEACTIVATE:
-			ret = po->ops->cli_deactivate(o, ur);
-			break;
-
-		case TREQ_SS_CLI_GET_STATUS:
-			ret = po->ops->cli_get_status(o, ur);
-			break;
-
-		case TREQ_SS_SEND_USSD:
-			ret = po->ops->send_ussd(o, ur);
-			break;
-
-		case TREQ_SS_SET_AOC:
-			ret = po->ops->set_aoc(o, ur);
-			break;
-
-		case TREQ_SS_GET_AOC:
-			ret = po->ops->get_aoc(o, ur);
-			break;
-
-		default:
-			break;
+	default:
+		err("Unsupported Command [0x%x]", command);
+		return TEL_RETURN_INVALID_PARAMETER;
 	}
 
-	return ret;
+	err("Operation NOT Supported, Command: [0x%x]", command);
+	return TEL_RETURN_OPERATION_NOT_SUPPORTED;
 }
 
-static void _clone_hook(CoreObject *src, CoreObject *dest)
+static void _po_clone_hook(CoreObject *src, CoreObject *dest)
 {
-	struct private_object_data *src_po = NULL;
-	struct private_object_data *dest_po = NULL;
+	PrivateObject *dest_po = NULL;
+	PrivateObject *src_po = tcore_object_ref_object(src);
 
-	if (!src || !dest)
-		return;
+	tcore_check_return_assert(src_po != NULL);
+	tcore_check_return_assert(src_po->ops != NULL);
 
-	dest_po = calloc(1, sizeof(struct private_object_data));
-	if (!dest_po) {
-		tcore_object_link_object(dest, NULL);
-		return;
-	}
-
-	src_po = tcore_object_ref_object(src);
-	dest_po->ops = src_po->ops;
-
+	dest_po = tcore_malloc0(sizeof(PrivateObject));
+	dest_po->ops = tcore_memdup(src_po->ops, sizeof(TcoreSsOps));
 	tcore_object_link_object(dest, dest_po);
 }
 
-static void _free_hook(CoreObject *o)
+static void _po_free_hook(CoreObject *co)
 {
-	struct private_object_data *po = NULL;
+	PrivateObject *po = tcore_object_ref_object(co);
 
-	po = tcore_object_ref_object(o);
-	if (!po)
-		return;
+	tcore_check_return(po != NULL);
 
-	free(po);
-	tcore_object_link_object(o, NULL);
+	tcore_free(po->ops);
+	tcore_free(po);
+	tcore_object_link_object(co, NULL);
 }
 
-static void _ussd_session_init(struct ussd_session *ussd_s)
+UssdSession *tcore_ss_ussd_create_session(CoreObject *co,
+	TelSsUssdType type, void *data, guint data_len)
 {
-	ussd_s->session = FALSE;
-	ussd_s->type = 0;
-	ussd_s->data = 0;
-	ussd_s->data_len = 0;
-}
+	PrivateObject *po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, NULL);
 
-struct ussd_session* tcore_ss_ussd_create_session(CoreObject *o,
-				enum tcore_ss_ussd_type type, void *data, int data_len)
-{
-	struct private_object_data *po = NULL;
-
-	po = tcore_object_ref_object(o);
-	if (!po)
-		return 0;
-
-	if (type < TCORE_SS_USSD_TYPE_USER_INITIATED
-			|| type > TCORE_SS_USSD_TYPE_NETWORK_INITIATED) {
-		dbg("[ error ] wrong ussd type : (0x%x)", type);
-		return 0;
+	if (type > TEL_SS_USSD_TYPE_USER_REL) {
+		err("USSD type is Invalid");
+		return NULL;
 	}
 
 	if (!po->ussd_s.session) {
 		po->ussd_s.session = TRUE;
 		po->ussd_s.type = type;
+		po->ussd_s.data_len = data_len;
 		po->ussd_s.data = data;
 
-		if (data_len < 0)
-			po->ussd_s.data_len = 0;
-		else
-			po->ussd_s.data_len = data_len;
+		return &po->ussd_s;
+	}
 
+	warn("USSD session already exists, type: [%d]", po->ussd_s.type);
+	return NULL;
+}
+
+void tcore_ss_ussd_destroy_session(UssdSession *ussd_s)
+{
+	tcore_check_return_assert(ussd_s != NULL);
+
+	memset(ussd_s, 0x00, sizeof(UssdSession));
+}
+
+UssdSession *tcore_ss_ussd_get_session(CoreObject *co)
+{
+	PrivateObject *po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, NULL);
+
+	if (po->ussd_s.session)
 		return &po->ussd_s;
 
-	}
-	else {
-		dbg("[ error ] already exist ussd session, type : (0x%x)", po->ussd_s.type);
-		return 0;
-	}
+	err("ussd session does not exist");
+	return NULL;
 }
 
-void tcore_ss_ussd_destroy_session(struct ussd_session *ussd_s)
+gboolean tcore_ss_ussd_get_session_type(UssdSession *ussd_s,
+	TelSsUssdType *ussd_type)
 {
-	if (!ussd_s || !ussd_s->session) {
-		return;
-	}
-	else {
+	tcore_check_return_value_assert(ussd_s != NULL, FALSE);
+	tcore_check_return_value_assert(ussd_type != NULL, FALSE);
 
-		_ussd_session_init(ussd_s);
+	if (ussd_s->session) {
+		*ussd_type = ussd_s->type;
+		return TRUE;
 	}
+
+	err("ussd session does not exist");
+	return FALSE;
 }
 
-struct ussd_session* tcore_ss_ussd_get_session(CoreObject *o)
+gboolean tcore_ss_ussd_set_session_type(UssdSession *ussd_s,
+				TelSsUssdType type)
 {
-	struct private_object_data *po = NULL;
+	tcore_check_return_value_assert(ussd_s != NULL, FALSE);
 
-	po = tcore_object_ref_object(o);
-	if (!po)
-		return 0;
-
-	if (!po->ussd_s.session)
-		return 0;
-	else
-		return &po->ussd_s;
-}
-
-enum tcore_ss_ussd_type tcore_ss_ussd_get_session_type(struct ussd_session *ussd_s)
-{
-	if (!ussd_s || !ussd_s->session) {
-		dbg("[ error ] there is no session");
-		return 0;
-
-	}
-	else {
-		return ussd_s->type;
-	}
-}
-
-void tcore_ss_ussd_set_session_type(struct ussd_session* ussd_s,
-				enum tcore_ss_ussd_type type)
-{
-	if (!ussd_s || !ussd_s->session) {
-		dbg("[ error ] there is no session");
-		return;
-
-	}
-	else {
+	if (ussd_s->session) {
 		ussd_s->type = type;
+		return TRUE;
 	}
+
+	err("ussd session does not exist");
+	return FALSE;
 }
 
-int tcore_ss_ussd_get_session_data(struct ussd_session* ussd_s, void **data)
+gboolean tcore_ss_ussd_get_session_data(UssdSession *ussd_s,
+	void **data, guint *data_len)
 {
-	if (!ussd_s || !ussd_s->session) {
-		dbg("[ error ] there is no session");
-		return -1;
+	tcore_check_return_value_assert(ussd_s != NULL, FALSE);
+	tcore_check_return_value_assert(data != NULL, FALSE);
+	tcore_check_return_value_assert(data_len != NULL, FALSE);
 
-	}
-	else {
-
+	if (ussd_s->session) {
 		*data = ussd_s->data;
-		return ussd_s->data_len;
+		*data_len = ussd_s->data_len;
+		return TRUE;
 	}
+
+	err("ussd session does not exist");
+	return FALSE;
 }
 
-void tcore_ss_ussd_set_session_data(struct ussd_session* ussd_s,
-				void* data, int data_len)
+gboolean tcore_ss_ussd_set_session_data(UssdSession *ussd_s,
+				void *data, guint data_len)
 {
-	if (!ussd_s || !ussd_s->session) {
-		dbg("[ error ] there is no session");
-		return ;
+	tcore_check_return_value_assert(ussd_s != NULL, FALSE);
 
-	}
-	else {
-
+	if (ussd_s->session) {
 		ussd_s->data = data;
 		ussd_s->data_len = data_len;
+		return TRUE;
 	}
+
+	err("Session does not exist");
+	return FALSE;
 }
 
-void tcore_ss_override_ops(CoreObject *o, struct tcore_ss_operations *ss_ops)
+void tcore_ss_override_ops(CoreObject *co, TcoreSsOps *ops)
 {
-	struct private_object_data *po = NULL;
+	PrivateObject *po = tcore_object_ref_object(co);
+	tcore_check_return_assert(po != NULL);
+	tcore_check_return_assert(ops != NULL);
+	tcore_check_return_assert(po -> ops != NULL);
 
-	CORE_OBJECT_CHECK(o, CORE_OBJECT_TYPE_SS);
-
-	po = (struct private_object_data *)tcore_object_ref_object(o);
-	if (!po) {
-		return;
-	}
-
-	if(ss_ops) {
-		_clone_ss_operations(po, ss_ops);
-	}
-
-	return;
+	if (ops->set_barring)
+		po->ops->set_barring = ops->set_barring;
+	if (ops->get_barring_status)
+		po->ops->get_barring_status = ops->get_barring_status;
+	if (ops->change_barring_password)
+		po->ops->change_barring_password = ops->change_barring_password;
+	if (ops->set_forwarding)
+		po->ops->set_forwarding = ops->set_forwarding;
+	if (ops->get_forwarding_status)
+		po->ops->get_forwarding_status = ops->get_forwarding_status;
+	if (ops->set_waiting)
+		po->ops->set_waiting = ops->set_waiting;
+	if (ops->get_waiting_status)
+		po->ops->get_waiting_status = ops->get_waiting_status;
+	if (ops->set_cli)
+		po->ops->set_cli = ops->set_cli;
+	if (ops->get_cli_status)
+		po->ops->get_cli_status = ops->get_cli_status;
+	if (ops->send_ussd_request)
+		po->ops->send_ussd_request = ops->send_ussd_request;
 }
 
-CoreObject *tcore_ss_new(TcorePlugin *p,
-				struct tcore_ss_operations *ops, TcoreHal *hal)
+gboolean tcore_ss_set_ops(CoreObject *co, TcoreSsOps *ops)
 {
-	CoreObject *o = NULL;
-	struct private_object_data *po = NULL;
+	PrivateObject *po;
+	tcore_check_return_value(co != NULL, FALSE);
 
-	if (!p)
-		return NULL;
+	po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
 
-	o = tcore_object_new(p, hal);
-	if (!o)
-		return NULL;
-
-	po = calloc(1, sizeof(struct private_object_data));
-	if (!po) {
-		tcore_object_free(o);
-		return NULL;
+	if (po->ops != NULL) {
+		tcore_free(po->ops);
+		po->ops = NULL;
 	}
 
-	po->ops = ops;
+	if (ops != NULL)
+		po->ops = tcore_memdup((gconstpointer)ops, sizeof(TcoreSsOps));
 
-	_ussd_session_init(&po->ussd_s);
-
-	tcore_object_set_type(o, CORE_OBJECT_TYPE_SS);
-	tcore_object_link_object(o, po);
-	tcore_object_set_free_hook(o, _free_hook);
-	tcore_object_set_clone_hook(o, _clone_hook);
-	tcore_object_set_dispatcher(o, _dispatcher);
-
-	return o;
+	return TRUE;
 }
 
-void tcore_ss_free(CoreObject *o)
+CoreObject *tcore_ss_new(TcorePlugin *p, TcoreSsOps *ops, TcoreHal *hal)
 {
-	CORE_OBJECT_CHECK(o, CORE_OBJECT_TYPE_SS);
+	CoreObject *co = NULL;
+	PrivateObject *po = NULL;
+	tcore_check_return_value_assert(p != NULL, NULL);
 
-	tcore_object_free(o);
+	co = tcore_object_new(p, hal);
+	tcore_check_return_value_assert(co != NULL, NULL);
+
+	po = tcore_malloc0(sizeof(PrivateObject));
+
+	if (ops != NULL)
+		po->ops = tcore_memdup(ops, sizeof(TcoreSsOps));
+
+	tcore_object_set_type(co, CORE_OBJECT_TYPE_SS);
+	tcore_object_link_object(co, po);
+	tcore_object_set_free_hook(co, _po_free_hook);
+	tcore_object_set_clone_hook(co, _po_clone_hook);
+	tcore_object_set_dispatcher(co, _dispatcher);
+	return co;
+}
+
+void tcore_ss_free(CoreObject *co)
+{
+	CORE_OBJECT_CHECK(co, CORE_OBJECT_TYPE_SS);
+	tcore_object_free(co);
 }

@@ -1,9 +1,8 @@
 /*
  * libtcore
  *
- * Copyright (c) 2012 Samsung Electronics Co., Ltd. All rights reserved.
- *
- * Contact: Ja-young Gu <jygu@samsung.com>
+ * Copyright (c) 2013 Samsung Electronics Co. Ltd. All rights reserved.
+ * Copyright (c) 2013 Intel Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,26 +17,27 @@
  * limitations under the License.
  */
 
-#ifndef __TCORE_CORE_OBJECT_H__
-#define __TCORE_CORE_OBJECT_H__
+#ifndef __CORE_OBJECT_H__
+#define __CORE_OBJECT_H__
 
-__BEGIN_DECLS
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-#define CORE_OBJECT_TYPE_DEFAULT		0xB0000000
-#define CORE_OBJECT_TYPE_MODEM			(CORE_OBJECT_TYPE_DEFAULT | TCORE_TYPE_MODEM)
-#define CORE_OBJECT_TYPE_CALL			(CORE_OBJECT_TYPE_DEFAULT | TCORE_TYPE_CALL)
-#define CORE_OBJECT_TYPE_SS				(CORE_OBJECT_TYPE_DEFAULT | TCORE_TYPE_SS)
-#define CORE_OBJECT_TYPE_NETWORK		(CORE_OBJECT_TYPE_DEFAULT | TCORE_TYPE_NETWORK)
-#define CORE_OBJECT_TYPE_PS				(CORE_OBJECT_TYPE_DEFAULT | TCORE_TYPE_PS)
+#define CORE_OBJECT_TYPE_DEFAULT	0xB0000000
+#define CORE_OBJECT_TYPE_MODEM	(CORE_OBJECT_TYPE_DEFAULT | TCORE_TYPE_MODEM)
+#define CORE_OBJECT_TYPE_CALL		(CORE_OBJECT_TYPE_DEFAULT | TCORE_TYPE_CALL)
+#define CORE_OBJECT_TYPE_SS		(CORE_OBJECT_TYPE_DEFAULT | TCORE_TYPE_SS)
+#define CORE_OBJECT_TYPE_NETWORK	(CORE_OBJECT_TYPE_DEFAULT | TCORE_TYPE_NETWORK)
+#define CORE_OBJECT_TYPE_PS		(CORE_OBJECT_TYPE_DEFAULT | TCORE_TYPE_PS)
 #define CORE_OBJECT_TYPE_PS_CONTEXT	(CORE_OBJECT_TYPE_DEFAULT | TCORE_TYPE_PDP)
-#define CORE_OBJECT_TYPE_SIM			(CORE_OBJECT_TYPE_DEFAULT | TCORE_TYPE_SIM)
-#define CORE_OBJECT_TYPE_SAT			(CORE_OBJECT_TYPE_DEFAULT | TCORE_TYPE_SAT)
-#define CORE_OBJECT_TYPE_SAP			(CORE_OBJECT_TYPE_DEFAULT | TCORE_TYPE_SAP)
-#define CORE_OBJECT_TYPE_SMS			(CORE_OBJECT_TYPE_DEFAULT | TCORE_TYPE_SMS)
-#define CORE_OBJECT_TYPE_PHONEBOOK		(CORE_OBJECT_TYPE_DEFAULT | TCORE_TYPE_PHONEBOOK)
-#define CORE_OBJECT_TYPE_SOUND			(CORE_OBJECT_TYPE_DEFAULT | TCORE_TYPE_SOUND)
-#define CORE_OBJECT_TYPE_CUSTOM		(CORE_OBJECT_TYPE_DEFAULT | TCORE_TYPE_CUSTOM)
-#define CORE_OBJECT_TYPE_GPS			(CORE_OBJECT_TYPE_DEFAULT | TCORE_TYPE_GPS)
+#define CORE_OBJECT_TYPE_SIM		(CORE_OBJECT_TYPE_DEFAULT | TCORE_TYPE_SIM)
+#define CORE_OBJECT_TYPE_SAT		(CORE_OBJECT_TYPE_DEFAULT | TCORE_TYPE_SAT)
+#define CORE_OBJECT_TYPE_SAP		(CORE_OBJECT_TYPE_DEFAULT | TCORE_TYPE_SAP)
+#define CORE_OBJECT_TYPE_SMS		(CORE_OBJECT_TYPE_DEFAULT | TCORE_TYPE_SMS)
+#define CORE_OBJECT_TYPE_PHONEBOOK	(CORE_OBJECT_TYPE_DEFAULT | TCORE_TYPE_PHONEBOOK)
+#define CORE_OBJECT_TYPE_CUSTOM	(CORE_OBJECT_TYPE_DEFAULT | TCORE_TYPE_CUSTOM)
+#define CORE_OBJECT_TYPE_GPS		(CORE_OBJECT_TYPE_DEFAULT | TCORE_TYPE_GPS)
 
 #define CORE_OBJECT_CHECK(co,t) \
 	if (co == NULL) { warn("core_object is NULL"); return; } \
@@ -53,98 +53,126 @@ __BEGIN_DECLS
 		return r; \
 	}
 
-typedef struct tcore_object_mapping_tbl object_mapping_table_t;
+#define GET_OBJECT_TYPE(command)	((command & 0x0FF00000) | CORE_OBJECT_TYPE_DEFAULT)
 
-typedef void (*tcore_object_free_hook)(CoreObject *co);
-typedef void (*tcore_object_clone_hook)(CoreObject *src, CoreObject *dest);
-typedef gboolean (*tcore_object_callback)(CoreObject *co,
-				const void *event_info, void *user_data);
-typedef TReturn (*tcore_object_dispatcher)(CoreObject *co, UserRequest *ur);
+typedef struct tcore_object_mapping_tbl TcoreObjectMappingTable;
 
+typedef void (*TcoreObjectFreeHook)(CoreObject *co);
+typedef void (*TcoreObjectCloneHook)(CoreObject *src, CoreObject *dest);
+typedef gboolean (*TcoreObjectCallback)(CoreObject *co,
+	const void *event_info, void *user_data);
 
-typedef gboolean (*tcore_object_init)(TcorePlugin *plugin, CoreObject *co);
-typedef void (*tcore_object_deinit)(TcorePlugin *plugin, CoreObject *co);
+typedef gboolean (*TcoreObjectInit)(TcorePlugin *plugin, CoreObject *co);
+typedef void (*TcoreObjectDeinit)(TcorePlugin *plugin, CoreObject *co);
 
 /* Core Object Initializers */
-struct object_initializer {
-	tcore_object_init modem_init;
-	tcore_object_init sim_init;
-	tcore_object_init sat_init;
-	tcore_object_init sap_init;
-	tcore_object_init network_init;
-	tcore_object_init ps_init;
-	tcore_object_init call_init;
-	tcore_object_init ss_init;
-	tcore_object_init sms_init;
-	tcore_object_init phonebook_init;
-	tcore_object_init gps_init;
+typedef struct {
+	TcoreObjectInit modem_init;
+	TcoreObjectInit sim_init;
+	TcoreObjectInit sat_init;
+	TcoreObjectInit sap_init;
+	TcoreObjectInit network_init;
+	TcoreObjectInit ps_init;
+	TcoreObjectInit call_init;
+	TcoreObjectInit ss_init;
+	TcoreObjectInit sms_init;
+	TcoreObjectInit phonebook_init;
+	TcoreObjectInit gps_init;
 	/* To be updated based on New modules */
-};
+} TcoreObjectInitializer;
 
 /* Core Object De-initializers */
-struct object_deinitializer {
-	tcore_object_deinit modem_deinit;
-	tcore_object_deinit sim_deinit;
-	tcore_object_deinit sat_deinit;
-	tcore_object_deinit sap_deinit;
-	tcore_object_deinit network_deinit;
-	tcore_object_deinit ps_deinit;
-	tcore_object_deinit call_deinit;
-	tcore_object_deinit ss_deinit;
-	tcore_object_deinit sms_deinit;
-	tcore_object_deinit phonebook_deinit;
-	tcore_object_deinit gps_deinit;
+typedef struct {
+	TcoreObjectDeinit modem_deinit;
+	TcoreObjectDeinit sim_deinit;
+	TcoreObjectDeinit sat_deinit;
+	TcoreObjectDeinit sap_deinit;
+	TcoreObjectDeinit network_deinit;
+	TcoreObjectDeinit ps_deinit;
+	TcoreObjectDeinit call_deinit;
+	TcoreObjectDeinit ss_deinit;
+	TcoreObjectDeinit sms_deinit;
+	TcoreObjectDeinit phonebook_deinit;
+	TcoreObjectDeinit gps_deinit;
 	/* To be updated based on New modules */
-};
+} TcoreObjectDeinitializer;
 
 CoreObject *tcore_object_new(TcorePlugin *plugin, TcoreHal *hal);
 void tcore_object_free(CoreObject *co);
 
-TReturn tcore_object_set_free_hook(CoreObject *co, tcore_object_free_hook free_hook);
-TReturn tcore_object_set_clone_hook(CoreObject *co, tcore_object_clone_hook clone_hook);
+TelReturn tcore_object_set_free_hook(CoreObject *co,
+		TcoreObjectFreeHook free_hook);
+TelReturn tcore_object_set_clone_hook(CoreObject *co,
+		TcoreObjectCloneHook clone_hook);
 
 CoreObject *tcore_object_clone(CoreObject *src, TcorePlugin *new_parent);
 CoreObject *tcore_object_clone_template_object(TcorePlugin *p,
-					unsigned int co_type);
+		guint co_type);
 
-TReturn tcore_object_set_plugin(CoreObject *co, TcorePlugin *plugin);
+TelReturn tcore_object_set_plugin(CoreObject *co, TcorePlugin *plugin);
 TcorePlugin *tcore_object_ref_plugin(CoreObject *co);
 
-TReturn tcore_object_link_object(CoreObject *co, void *object);
+TelReturn tcore_object_link_object(CoreObject *co, void *object);
 void *tcore_object_ref_object(CoreObject *co);
 
-TReturn tcore_object_set_type(CoreObject *co, unsigned int type);
-unsigned int tcore_object_get_type(CoreObject *co);
+TelReturn tcore_object_set_type(CoreObject *co, guint type);
+guint tcore_object_get_type(CoreObject *co);
 
-TReturn tcore_object_set_hal(CoreObject *co, TcoreHal *hal);
+TelReturn tcore_object_set_hal(CoreObject *co, TcoreHal *hal);
 TcoreHal *tcore_object_get_hal(CoreObject *co);
 
-TReturn tcore_object_link_user_data(CoreObject *co, void *user_data);
+TelReturn tcore_object_link_user_data(CoreObject *co, void *user_data);
 void *tcore_object_ref_user_data(CoreObject *co);
 
-TReturn tcore_object_set_dispatcher(CoreObject *co, tcore_object_dispatcher func);
-TReturn tcore_object_dispatch_request(CoreObject *co, UserRequest *ur);
+TelReturn tcore_object_set_dispatcher(CoreObject *co, TcoreObjectDispatcher func);
+TelReturn tcore_object_dispatch_request(CoreObject *co,
+		gboolean exec_hooks, TcoreCommand command,
+		const void *request, guint request_len,
+		TcorePluginResponseCallback cb, const void *user_data);
 
-TReturn tcore_object_add_callback(CoreObject *co, const char *event, tcore_object_callback callback, void *user_data);
-TReturn tcore_object_del_callback(CoreObject *co, const char *event, tcore_object_callback callback);
-TReturn tcore_object_override_callback(CoreObject *co, const char *event, tcore_object_callback callback, void *user_data);
-TReturn tcore_object_emit_callback(CoreObject *co, const char *event, const void *event_info);
+TelReturn tcore_object_add_callback(CoreObject *co, const gchar *event,
+		TcoreObjectCallback callback, void *user_data);
+TelReturn tcore_object_del_callback(CoreObject *co, const gchar *event,
+		TcoreObjectCallback callback);
+TelReturn tcore_object_override_callback(CoreObject *co, const gchar *event,
+		TcoreObjectCallback callback, void *user_data);
+TelReturn tcore_object_emit_callback(CoreObject *co, const gchar *event,
+		const void *event_info);
+
+TelReturn tcore_object_add_request_hook(CoreObject *co,
+		TcoreCommand command, TcoreRequestHook func, void *user_data);
+void tcore_object_remove_request_hook(CoreObject *co,
+		TcoreCommand command, TcoreRequestHook func);
+
+TelReturn tcore_object_add_response_hook(CoreObject *co,
+		TcoreCommand command, const void *request,
+		TcoreResponseHook func, void *user_data);
+void tcore_object_remove_response_hook(CoreObject *co,
+		TcoreCommand command, TcoreResponseHook func);
+
+TelReturn tcore_object_add_notification_hook(CoreObject *co,
+	TcoreNotification command, TcoreNotificationHook func, void *user_data);
+void tcore_object_remove_notification_hook(CoreObject *co,
+	TcoreNotification command, TcoreNotificationHook func);
+TelReturn tcore_object_send_notification(CoreObject *co,
+	TcoreNotification command, guint data_len, void *data);
 
 void *tcore_object_add_mapping_tbl_entry(void *mapping_tbl,
-						unsigned int object_type, TcoreHal *hal);
+		guint object_type, TcoreHal *hal);
 void tcore_object_remove_mapping_tbl(void *mapping_tbl);
 void *tcore_object_remove_mapping_tbl_entry(void *mapping_tbl, TcoreHal *hal);
 void tcore_object_remove_mapping_tbl_entry_by_type(void *mapping_tbl,
-							unsigned int co_type);
+		guint co_type);
 
 void tcore_object_print_mapping_tbl(void *mapping_tbl);
 
-TReturn tcore_object_init_objects(TcorePlugin *plugin,
-						struct object_initializer *initializer_list);
+TelReturn tcore_object_init_objects(TcorePlugin *plugin,
+		TcoreObjectInitializer *initializer_list);
 void tcore_object_deinit_objects(TcorePlugin *plugin,
-						struct object_deinitializer *deinitializer_list);
+		TcoreObjectDeinitializer *deinitializer_list);
 
-
-__END_DECLS
-
+#ifdef __cplusplus
+}
 #endif
+
+#endif	/* __CORE_OBJECT_H__ */

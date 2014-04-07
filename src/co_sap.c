@@ -1,9 +1,8 @@
 /*
  * libtcore
  *
- * Copyright (c) 2012 Samsung Electronics Co., Ltd. All rights reserved.
- *
- * Contact: Ja-young Gu <jygu@samsung.com>
+ * Copyright (c) 2013 Samsung Electronics Co. Ltd. All rights reserved.
+ * Copyright (c) 2013 Intel Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,219 +17,179 @@
  * limitations under the License.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
 #include <glib.h>
 
 #include "tcore.h"
 #include "plugin.h"
-#include "queue.h"
-#include "user_request.h"
 #include "co_sap.h"
 
-struct private_object_data {
-	struct tcore_sap_operations *ops;
-};
+typedef struct {
+	TcoreSapOps *ops;
+} PrivateObject;
 
-static void _clone_sap_operations(struct private_object_data *po, struct tcore_sap_operations *sap_ops)
+static TelReturn _dispatcher(CoreObject *co,
+	TcoreCommand command, const void *request,
+	TcoreObjectResponseCallback cb, const void *user_data)
 {
-	if(sap_ops->connect) {
-		po->ops->connect = sap_ops->connect;
-	}
-	if(sap_ops->disconnect) {
-		po->ops->disconnect = sap_ops->disconnect;
-	}
-	if(sap_ops->req_status) {
-		po->ops->req_status = sap_ops->req_status;
-	}
-	if(sap_ops->set_transport_protocol) {
-		po->ops->set_transport_protocol = sap_ops->set_transport_protocol;
-	}
-	if(sap_ops->set_power) {
-		po->ops->set_power = sap_ops->set_power;
-	}
-	if(sap_ops->get_atr) {
-		po->ops->get_atr = sap_ops->get_atr;
-	}
-	if(sap_ops->transfer_apdu) {
-		po->ops->transfer_apdu = sap_ops->transfer_apdu;
-	}
-	if(sap_ops->get_cardreader_status) {
-		po->ops->get_cardreader_status = sap_ops->get_cardreader_status;
-	}
+	TcoreSapOps *sap = NULL;
+	PrivateObject *po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, TEL_RETURN_INVALID_PARAMETER);
+	tcore_check_return_value_assert(po->ops != NULL, TEL_RETURN_INVALID_PARAMETER);
 
-	return;
-}
+	sap = po->ops;
 
-static TReturn _dispatcher(CoreObject *o, UserRequest *ur)
-{
-	enum tcore_request_command command;
-	struct private_object_data *po = NULL;
-
-	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_SAP, TCORE_RETURN_EINVAL);
-
-	po = tcore_object_ref_object(o);
-	if (!po || !po->ops)
-		return TCORE_RETURN_ENOSYS;
-
-	command = tcore_user_request_get_command(ur);
 	switch (command) {
-		case TREQ_SAP_REQ_CONNECT:
-			po = tcore_object_ref_object(o);
-			if (!po->ops->connect)
-				return TCORE_RETURN_ENOSYS;
+	case TCORE_COMMAND_SAP_REQ_CONNECT:
+		if (sap->req_connect)
+			return sap->req_connect(co,
+				*(unsigned int *)request,
+				cb, (void*)user_data);
+		break;
 
-			return po->ops->connect(o, ur);
-			break;
+	case TCORE_COMMAND_SAP_REQ_DISCONNECT:
+		if (sap->req_disconnect)
+			return sap->req_disconnect(co, cb, (void*)user_data);
+		break;
 
-		case TREQ_SAP_REQ_DISCONNECT:
-			if (!po->ops->disconnect)
-				return TCORE_RETURN_ENOSYS;
+	case TCORE_COMMAND_SAP_GET_ATR:
+		if (sap->get_atr)
+			return sap->get_atr(co, cb, (void*)user_data);
+		break;
 
-			return po->ops->disconnect(o, ur);
-			break;
+	case TCORE_COMMAND_SAP_REQ_TRANSFER_APDU:
+		if (sap->req_transfer_apdu)
+			return sap->req_transfer_apdu(co,
+				(const TelSapApdu *)request,
+				cb, (void*)user_data);
+		break;
 
-		case TREQ_SAP_REQ_STATUS:
-			if (!po->ops->req_status)
-				return TCORE_RETURN_ENOSYS;
+	case TCORE_COMMAND_SAP_REQ_TRANSPORT_PROTOCOL:
+		if (sap->req_transport_protocol)
+			return sap->req_transport_protocol(co,
+				*(TelSimSapProtocol *)request,
+				cb, (void*)user_data);
+		break;
 
-			return po->ops->req_status(o, ur);
-			break;
+	case TCORE_COMMAND_SAP_REQ_POWER_OPERATION:
+		if (sap->req_power_operation)
+			return sap->req_power_operation(co,
+				*(TelSapPowerMode *)request,
+				cb, (void*)user_data);
+		break;
 
-		case TREQ_SAP_REQ_ATR:
-			if (!po->ops->get_atr)
-				return TCORE_RETURN_ENOSYS;
+	case TCORE_COMMAND_SAP_GET_CARDREADER_STATUS:
+		if (sap->get_cardreader_status)
+			return sap->get_cardreader_status(co, cb, (void*)user_data);
+		break;
 
-			return po->ops->get_atr(o, ur);
-			break;
-
-		case TREQ_SAP_TRANSFER_APDU:
-			if (!po->ops->transfer_apdu)
-				return TCORE_RETURN_ENOSYS;
-
-			return po->ops->transfer_apdu(o, ur);
-			break;
-
-		case TREQ_SAP_SET_PROTOCOL:
-			if (!po->ops->set_transport_protocol)
-				return TCORE_RETURN_ENOSYS;
-
-			return po->ops->set_transport_protocol(o, ur);
-			break;
-
-		case TREQ_SAP_SET_POWER:
-			if (!po->ops->set_power)
-				return TCORE_RETURN_ENOSYS;
-
-			return po->ops->set_power(o, ur);
-			break;
-
-		case TREQ_SAP_REQ_CARDREADERSTATUS:
-			if (!po->ops->get_cardreader_status)
-				return TCORE_RETURN_ENOSYS;
-
-			return po->ops->get_cardreader_status(o, ur);
-			break;
-
-		default:
-			break;
+	default:
+		err("Unsupported command [0x%x]", command);
+		return TEL_RETURN_INVALID_PARAMETER;
 	}
-	return TCORE_RETURN_SUCCESS;
+
+	err("Operation not Supported");
+	return TEL_RETURN_OPERATION_NOT_SUPPORTED;
 }
 
-static void _clone_hook(CoreObject *src, CoreObject *dest)
+static void _po_clone_hook(CoreObject *src, CoreObject *dest)
 {
-	struct private_object_data *src_po = NULL;
-	struct private_object_data *dest_po = NULL;
+	PrivateObject *dest_po = NULL;
+	PrivateObject *src_po = tcore_object_ref_object(src);
 
-	if (!src || !dest)
-		return;
+	tcore_check_return_assert(src_po != NULL);
+	tcore_check_return_assert(src_po->ops != NULL);
+	tcore_check_return_assert(dest != NULL);
 
-	dest_po = calloc(1, sizeof(struct private_object_data));
-	if (!dest_po) {
-		tcore_object_link_object(dest, NULL);
-		return;
-	}
-
-	src_po = tcore_object_ref_object(src);
-	dest_po->ops = src_po->ops;
+	dest_po = tcore_malloc0(sizeof(PrivateObject));
+	dest_po->ops = tcore_memdup(src_po->ops, sizeof(TcoreSapOps));
 
 	tcore_object_link_object(dest, dest_po);
 }
 
-static void _free_hook(CoreObject *o)
+static void _po_free_hook(CoreObject *co)
 {
-	struct private_object_data *po = NULL;
+	PrivateObject *po = tcore_object_ref_object(co);
+ 	tcore_check_return(po != NULL);
 
-	CORE_OBJECT_CHECK(o, CORE_OBJECT_TYPE_SAP);
-
-	po = tcore_object_ref_object(o);
-	if (po) {
-		free(po);
-		tcore_object_link_object(o, NULL);
-	}
+	tcore_free(po->ops);
+	tcore_free(po);
+	tcore_object_link_object(co, NULL);
 }
 
-void tcore_sap_override_ops(CoreObject *o, struct tcore_sap_operations *sap_ops)
+void tcore_sap_override_ops(CoreObject *co, TcoreSapOps *ops)
 {
-	struct private_object_data *po = NULL;
+	PrivateObject *po = tcore_object_ref_object(co);
 
-	CORE_OBJECT_CHECK(o, CORE_OBJECT_TYPE_SAP);
+	tcore_check_return_assert(po != NULL);
+	tcore_check_return_assert(po->ops != NULL);
+	tcore_check_return_assert(ops != NULL);
 
-	po = (struct private_object_data *)tcore_object_ref_object(o);
-	if (!po) {
-		return;
-	}
+	if (ops->req_connect)
+		po->ops->req_connect = ops->req_connect;
 
-	if(sap_ops) {
-		_clone_sap_operations(po, sap_ops);
-	}
+	if (ops->req_disconnect)
+		po->ops->req_disconnect = ops->req_disconnect;
 
-	return;
+	if (ops->get_atr)
+		po->ops->get_atr = ops->get_atr;
+
+	if (ops->req_transfer_apdu)
+		po->ops->req_transfer_apdu = ops->req_transfer_apdu;
+
+	if (ops->req_transport_protocol)
+		po->ops->req_transport_protocol = ops->req_transport_protocol;
+
+	if (ops->req_power_operation)
+		po->ops->req_power_operation = ops->req_power_operation;
+
+	if (ops->get_cardreader_status)
+		po->ops->get_cardreader_status = ops->get_cardreader_status;
 }
 
-CoreObject *tcore_sap_new(TcorePlugin *p,
-			struct tcore_sap_operations *ops, TcoreHal *hal)
+gboolean tcore_sap_set_ops(CoreObject *co, TcoreSapOps *ops)
 {
-	CoreObject *o = NULL;
-	struct private_object_data *po = NULL;
+	PrivateObject *po;
+	tcore_check_return_value(co != NULL, FALSE);
 
-	if (!p)
-		return NULL;
+	po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
 
-	o = tcore_object_new(p, hal);
-	if (!o)
-		return NULL;
-
-	po = calloc(1, sizeof(struct private_object_data));
-	if (!po) {
-		tcore_object_free(o);
-		return NULL;
+	if (po->ops != NULL) {
+		tcore_free(po->ops);
+		po->ops = NULL;
 	}
 
-	po->ops = ops;
+	if (ops != NULL)
+		po->ops = tcore_memdup((gconstpointer)ops, sizeof(TcoreSapOps));
 
-	tcore_object_set_type(o, CORE_OBJECT_TYPE_SAP);
-	tcore_object_link_object(o, po);
-	tcore_object_set_free_hook(o, _free_hook);
-	tcore_object_set_clone_hook(o, _clone_hook);
-	tcore_object_set_dispatcher(o, _dispatcher);
-
-	return o;
+	return TRUE;
 }
 
-void tcore_sap_free(CoreObject *o)
+CoreObject *tcore_sap_new(TcorePlugin *plugin, TcoreSapOps *ops, TcoreHal *hal)
 {
-	struct private_object_data *po = NULL;
+	CoreObject *co = NULL;
+	PrivateObject *po = NULL;
+	tcore_check_return_value_assert(plugin != NULL, NULL);
 
-	CORE_OBJECT_CHECK(o, CORE_OBJECT_TYPE_SAP);
+	co = tcore_object_new(plugin, hal);
+	tcore_check_return_value_assert(co != NULL, NULL);
 
-	po = tcore_object_ref_object(o);
-	if (!po)
-		return;
+	po = tcore_malloc0(sizeof(PrivateObject));
 
-	free(po);
-	tcore_object_free(o);
+	if (ops != NULL)
+		po->ops = tcore_memdup(ops, sizeof(TcoreSapOps));
+
+	tcore_object_set_type(co, CORE_OBJECT_TYPE_SAP);
+	tcore_object_link_object(co, po);
+	tcore_object_set_free_hook(co, _po_free_hook);
+	tcore_object_set_clone_hook(co, _po_clone_hook);
+	tcore_object_set_dispatcher(co, _dispatcher);
+
+	return co;
+}
+
+void tcore_sap_free(CoreObject *co)
+{
+	CORE_OBJECT_CHECK(co, CORE_OBJECT_TYPE_SAP);
+	tcore_object_free(co);
 }

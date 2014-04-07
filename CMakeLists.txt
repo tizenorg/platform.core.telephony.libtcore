@@ -18,6 +18,8 @@ ENDFOREACH(flag)
 
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -I${CMAKE_SOURCE_DIR}/include ${EXTRA_CFLAGS} -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -Wdeclaration-after-statement -Wmissing-declarations -Wredundant-decls -Wcast-align")
 
+INCLUDE_DIRECTORIES(${CMAKE_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/include/common)
+
 ADD_DEFINITIONS("-DFEATURE_TLOG_DEBUG")
 ADD_DEFINITIONS("-DTCORE_LOG_TAG=\"TCORE\"")
 ADD_DEFINITIONS("-DTCORE_VERSION=\"${VERSION}\"")
@@ -26,30 +28,30 @@ MESSAGE(${CMAKE_C_FLAGS})
 MESSAGE(${CMAKE_EXE_LINKER_FLAGS})
 
 SET(SRCS
-		src/server.c
-		src/plugin.c
-		src/hal.c
-		src/at.c
-		src/udev.c
-		src/communicator.c
-		src/storage.c
-		src/queue.c
-		src/user_request.c
-		src/util.c
-		src/core_object.c
-		src/co_modem.c
-		src/co_network.c
-		src/co_ps.c
-		src/co_context.c
-		src/co_sim.c
-		src/co_sat.c
-		src/co_sap.c
-		src/co_call.c
-		src/co_ss.c
-		src/co_sms.c
-		src/co_phonebook.c
-		src/co_gps.c
-		src/mux.c
+
+	src/server.c
+	src/plugin.c
+	src/hal.c
+	src/at.c
+#	src/udev.c
+	src/communicator.c
+	src/storage.c
+	src/queue.c
+	src/util.c
+	src/core_object.c
+	src/co_modem.c
+	src/co_network.c
+	src/co_ps.c
+	src/co_context.c
+	src/co_sim.c
+	src/co_sat.c
+	src/co_sap.c
+	src/co_call.c
+	src/co_ss.c
+	src/co_sms.c
+	src/co_phonebook.c
+	src/co_gps.c
+	src/mux.c
 )
 
 

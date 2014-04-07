@@ -1,9 +1,8 @@
 /*
  * libtcore
  *
- * Copyright (c) 2012 Samsung Electronics Co., Ltd. All rights reserved.
- *
- * Contact: Ja-young Gu <jygu@samsung.com>
+ * Copyright (c) 2013 Samsung Electronics Co. Ltd. All rights reserved.
+ * Copyright (c) 2013 Intel Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,7 +20,9 @@
 #ifndef __TCORE_LOG_H__
 #define __TCORE_LOG_H__
 
-__BEGIN_DECLS
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #ifdef FEATURE_DLOG_DEBUG
 
@@ -67,11 +68,15 @@ enum tcore_log_priority {
  */
 void tcore_log(enum tcore_log_type type, enum tcore_log_priority priority, const char *tag, const char *fmt, ...);
 
+#ifndef __MODULE__
+#define __MODULE__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
+#endif
+
 #define info(fmt,args...)  do { tcore_log(TCORE_LOG_TYPE_RADIO, TCORE_LOG_INFO, TCORE_LOG_TAG, fmt "\n", ##args); } while(0)
 #define msg(fmt,args...)  do { tcore_log(TCORE_LOG_TYPE_RADIO, TCORE_LOG_DEBUG, TCORE_LOG_TAG, fmt "\n", ##args); } while(0)
-#define dbg(fmt,args...)  do { tcore_log(TCORE_LOG_TYPE_RADIO, TCORE_LOG_DEBUG, TCORE_LOG_TAG, "<%s:%d> " fmt "\n", __func__, __LINE__, ##args); } while(0)
-#define warn(fmt,args...)  do { tcore_log(TCORE_LOG_TYPE_RADIO, TCORE_LOG_WARN, TCORE_LOG_TAG, "<%s:%d> " fmt "\n", __func__, __LINE__, ##args); } while(0)
-#define err(fmt,args...)  do { tcore_log(TCORE_LOG_TYPE_RADIO, TCORE_LOG_FATAL, TCORE_LOG_TAG, "<%s:%d> " fmt "\n", __func__, __LINE__, ##args); } while(0)
+#define dbg(fmt,args...)  do { tcore_log(TCORE_LOG_TYPE_RADIO, TCORE_LOG_DEBUG, TCORE_LOG_TAG, "<%s: %s[%d]> " fmt "\n", __MODULE__, __func__, __LINE__, ##args); } while(0)
+#define warn(fmt,args...)  do { tcore_log(TCORE_LOG_TYPE_RADIO, TCORE_LOG_WARN, TCORE_LOG_TAG, "<%s: %s[%d]> " fmt "\n", __MODULE__, __func__, __LINE__, ##args); } while(0)
+#define err(fmt,args...)  do { tcore_log(TCORE_LOG_TYPE_RADIO, TCORE_LOG_FATAL, TCORE_LOG_TAG, "<%s: %s[%d]> " fmt "\n", __MODULE__, __func__, __LINE__, ##args); } while(0)
 
 #else
 
@@ -111,6 +116,8 @@ void tcore_log(enum tcore_log_type type, enum tcore_log_priority priority, const
 
 #endif
 
-__END_DECLS
+#ifdef __cplusplus
+}
+#endif
 
 #endif

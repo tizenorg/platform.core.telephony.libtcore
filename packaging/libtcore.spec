@@ -1,6 +1,10 @@
+%define major 3
+%define minor 0
+%define patchlevel 1
+
 Name: libtcore
 Summary: Telephony-core library
-Version: 0.1.85
+Version:    %{major}.%{minor}.%{patchlevel}
 Release:    1
 Group:      System/Libraries
 License:    Apache-2.0

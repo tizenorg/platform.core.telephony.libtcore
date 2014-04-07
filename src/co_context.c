@@ -1,9 +1,8 @@
 /*
  * libtcore
  *
- * Copyright (c) 2012 Samsung Electronics Co., Ltd. All rights reserved.
- *
- * Contact: Ja-young Gu <jygu@samsung.com>
+ * Copyright (c) 2013 Samsung Electronics Co. Ltd. All rights reserved.
+ * Copyright (c) 2013 Intel Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,585 +26,506 @@
 #include "tcore.h"
 #include "util.h"
 #include "plugin.h"
-#include "user_request.h"
 #include "co_context.h"
 
 #define DEVNAME_LEN_MAX 16
 
-struct private_object_data {
-	enum co_context_state state;
-	unsigned int id;
-	enum co_context_role role;
+typedef struct {
+	TcoreContextState state;
+	guint id;
+	TcoreContextRole role;
 
-	char *apn;
-	char *addr;
-	enum co_context_type type;
-	enum co_context_d_comp d_comp;
-	enum co_context_h_comp h_comp;
+	gchar *apn;
+	gchar *addr;
+	TcoreContextType type;
+	TcoreContextDComp d_comp;
+	TcoreContextHComp h_comp;
 
-	char *username;
-	char *password;
-	char *dns1;
-	char *dns2;
-	enum co_context_auth auth;
+	gchar *username;
+	gchar *password;
+	gchar *dns1;
+	gchar *dns2;
+	TcoreContextAuth auth;
 
-	union tcore_ip4_type ip_v4;
-	union tcore_ip4_type gateway_v4;
-	union tcore_ip4_type dns_primary_v4;
-	union tcore_ip4_type dns_secondary_v4;
+	TcoreIp4Type ip_v4;
+	TcoreIp4Type gateway_v4;
+	TcoreIp4Type dns_primary_v4;
+	TcoreIp4Type dns_secondary_v4;
 
-	/*IPv6 will be supported*/
+	/* IPv6 will be supported */
 
-	char *proxy;
-	char *mmsurl;
-	char *profile_name;
-	char devname[DEVNAME_LEN_MAX];
-};
+	gchar *proxy;
+	gchar *mmsurl;
+	gchar *profile_name;
+	gchar devname[DEVNAME_LEN_MAX];
+} PrivateObject;
 
-static void _free_hook(CoreObject *o)
+static void __context_set_ipv4_atoi(guchar *ip4, const gchar *str)
 {
-	struct private_object_data *po = NULL;
+	gchar *token = NULL;
+	gchar *temp = NULL;
+	guint index = 0;
 
-	po = tcore_object_ref_object(o);
-	if (po) {
-		g_free(po);
-		tcore_object_link_object(o, NULL);
+	temp = tcore_strdup(str);
+	token = strtok(temp, ".");
+	while (token != NULL) {
+		ip4[index++] = atoi(token);
+		msg("	[%c]", ip4[index-1]);
+		token = strtok(NULL, ".");
 	}
+	tcore_free(temp);
+}
+
+static void __po_free_hook(CoreObject *co)
+{
+	PrivateObject *po = NULL;
+
+	po = tcore_object_ref_object(co);
+	tcore_check_return(po != NULL);
+
+	tcore_free(po->apn);
+	tcore_free(po->addr);
+	tcore_free(po->username);
+	tcore_free(po->password);
+	tcore_free(po->dns1);
+	tcore_free(po->dns2);
+	tcore_free(po->proxy);
+	tcore_free(po->mmsurl);
+	tcore_free(po->profile_name);
+	tcore_free(po);
+
+	tcore_object_link_object(co, NULL);
 }
 
 CoreObject *tcore_context_new(TcorePlugin *p, TcoreHal *hal)
 {
-	CoreObject *o = NULL;
-	struct private_object_data *po = NULL;
+	CoreObject *co = NULL;
+	PrivateObject *po = NULL;
 
-	if (!p)
-		return NULL;
+	tcore_check_return_value_assert(p != NULL, NULL);
 
-	o = tcore_object_new(p, hal);
-	if (!o)
-		return NULL;
+	co = tcore_object_new(p, hal);
+	tcore_check_return_value_assert(co != NULL, NULL);
 
-	po = calloc(1, sizeof(struct private_object_data));
-	if (!po) {
-		tcore_object_free(o);
-		return NULL;
-	}
+	po = tcore_malloc0(sizeof(PrivateObject));
+	po->type = TCORE_CONTEXT_TYPE_IP;
+	po->d_comp = TCORE_CONTEXT_D_COMP_OFF;
+	po->h_comp = TCORE_CONTEXT_H_COMP_OFF;
+	po->role = TCORE_CONTEXT_ROLE_UNKNOWN;
+	po->auth = TCORE_CONTEXT_AUTH_NONE;
 
-	po->type = CONTEXT_TYPE_IP;
-	po->d_comp = CONTEXT_D_COMP_OFF;
-	po->h_comp = CONTEXT_H_COMP_OFF;
-	po->role = CONTEXT_ROLE_UNKNOWN;
-	po->auth = CONTEXT_AUTH_NONE;
+	tcore_object_set_type(co, CORE_OBJECT_TYPE_PS_CONTEXT);
+	tcore_object_link_object(co, po);
+	tcore_object_set_free_hook(co, __po_free_hook);
 
-	tcore_object_set_type(o, CORE_OBJECT_TYPE_PS_CONTEXT);
-	tcore_object_link_object(o, po);
-	tcore_object_set_free_hook(o, _free_hook);
-
-	return o;
+	return co;
 }
 
-void tcore_context_free(CoreObject *o)
+void tcore_context_free(CoreObject *co)
 {
-	struct private_object_data *po = NULL;
-
-	CORE_OBJECT_CHECK(o, CORE_OBJECT_TYPE_PS_CONTEXT);
-
-	po = tcore_object_ref_object(o);
-	if (!po)
-		return;
-
-	g_free(po);
-	tcore_object_link_object(o, NULL);
-	tcore_object_free(o);
+	CORE_OBJECT_CHECK(co, CORE_OBJECT_TYPE_PS_CONTEXT);
+	tcore_object_free(co);
 }
 
-TReturn tcore_context_set_state(CoreObject *o, enum co_context_state state)
+gboolean tcore_context_set_state(CoreObject *co, TcoreContextState state)
 {
-	struct private_object_data *po = NULL;
+	PrivateObject *po = NULL;
 
-	dbg("Set State: [%s]", ((state == CONTEXT_STATE_ACTIVATED) ? "ACTIVATED"
-					: (state == CONTEXT_STATE_ACTIVATING) ? "ACTIVATING"
-					: (state == CONTEXT_STATE_DEACTIVATED) ? "DEACTIVATED"
-					: "DEACTIVATING"));
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_PS_CONTEXT, FALSE);
 
-	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PS_CONTEXT, TCORE_RETURN_EINVAL);
+	dbg("Set State: [%s]",
+		((state == TCORE_CONTEXT_STATE_ACTIVATED) ? "ACTIVATED"
+		: (state == TCORE_CONTEXT_STATE_ACTIVATING) ? "ACTIVATING"
+		: (state == TCORE_CONTEXT_STATE_DEACTIVATED) ? "DEACTIVATED"
+		: "DEACTIVATING"));
 
-	po = tcore_object_ref_object(o);
-	if (!po)
-		return TCORE_RETURN_EINVAL;
+	po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
 
 	po->state = state;
-
-	return TCORE_RETURN_SUCCESS;
+	return TRUE;
 }
 
-enum co_context_state    tcore_context_get_state(CoreObject *o)
+gboolean tcore_context_get_state(CoreObject *co, TcoreContextState *state)
 {
-	struct private_object_data *po = NULL;
+	PrivateObject *po = NULL;
 
-	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PS_CONTEXT, 0);
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_PS_CONTEXT, FALSE);
 
-	po = tcore_object_ref_object(o);
-	if (!po)
-		return 0;
+	po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
 
-	return po->state;
+	*state = po->state;
+	return TRUE;
 }
 
-TReturn tcore_context_set_id(CoreObject *o, unsigned int id)
+gboolean tcore_context_set_id(CoreObject *co, guint id)
 {
-	struct private_object_data *po = NULL;
+	PrivateObject *po = NULL;
 
-	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PS_CONTEXT, TCORE_RETURN_EINVAL);
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_PS_CONTEXT, FALSE);
 
-	po = tcore_object_ref_object(o);
-	if (!po)
-		return TCORE_RETURN_EINVAL;
+	po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
 
 	po->id = id;
 
-	return TCORE_RETURN_SUCCESS;
+	return TRUE;
 }
 
-unsigned int tcore_context_get_id(CoreObject *o)
+gboolean tcore_context_get_id(CoreObject *co, guint *id)
 {
-	struct private_object_data *po = NULL;
+	PrivateObject *po = NULL;
 
-	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PS_CONTEXT, 0);
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_PS_CONTEXT, FALSE);
 
-	po = tcore_object_ref_object(o);
-	if (!po)
-		return 0;
+	po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
 
-	return po->id;
+	*id = po->id;
+	return TRUE;
 }
 
-TReturn tcore_context_set_apn(CoreObject *o, const char *apn)
+gboolean tcore_context_set_apn(CoreObject *co, const gchar *apn)
 {
-	struct private_object_data *po = NULL;
+	PrivateObject *po = NULL;
 
-	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PS_CONTEXT, TCORE_RETURN_EINVAL);
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_PS_CONTEXT, FALSE);
 
-	po = tcore_object_ref_object(o);
-	if (!po)
-		return FALSE;
+	po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
 
-	if (po->apn) {
-		free(po->apn);
-		po->apn = NULL;
-	}
-
-	if (apn) {
-		po->apn = g_strdup(apn);
-	}
-
-	return TCORE_RETURN_SUCCESS;
+	tcore_free(po->apn);
+	po->apn = tcore_strdup(apn);
+	return TRUE;
 }
 
-char *tcore_context_get_apn(CoreObject *o)
+gboolean tcore_context_get_apn(CoreObject *co, gchar **apn)
 {
-	struct private_object_data *po = NULL;
+	PrivateObject *po = NULL;
 
-	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PS_CONTEXT, NULL);
-
-	po = tcore_object_ref_object(o);
-	if (!po)
-		return NULL;
-
-	if (!po->apn)
-		return NULL;
-
-	return g_strdup(po->apn);
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_PS_CONTEXT, FALSE);
+	po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
+	*apn =  tcore_strdup(po->apn);
+	return TRUE;
 }
 
-TReturn tcore_context_set_role(CoreObject *o, enum co_context_role role)
+gboolean tcore_context_set_role(CoreObject *co, TcoreContextRole role)
 {
-	struct private_object_data *po = NULL;
+	PrivateObject *po = NULL;
 
-	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PS_CONTEXT, TCORE_RETURN_EINVAL);
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_PS_CONTEXT, FALSE);
 
-	po = tcore_object_ref_object(o);
-	if (!po)
-		return TCORE_RETURN_EINVAL;
+	po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
 
 	po->role = role;
-
-	return TCORE_RETURN_SUCCESS;
+	return TRUE;
 }
 
-enum co_context_role tcore_context_get_role(CoreObject *o)
+gboolean tcore_context_get_role(CoreObject *co, TcoreContextRole *role)
 {
-	struct private_object_data *po = NULL;
+	PrivateObject *po = NULL;
 
-	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PS_CONTEXT, 0);
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_PS_CONTEXT, FALSE);
 
-	po = tcore_object_ref_object(o);
-	if (!po)
-		return 0;
+	po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
 
-	return po->role;
+	*role = po->role;
+	return TRUE;
 }
 
-TReturn tcore_context_set_type(CoreObject *o, enum co_context_type type)
+gboolean tcore_context_set_type(CoreObject *co, TcoreContextType type)
 {
-	struct private_object_data *po = NULL;
+	PrivateObject *po = NULL;
 
-	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PS_CONTEXT, TCORE_RETURN_EINVAL);
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_PS_CONTEXT, FALSE);
 
-	po = tcore_object_ref_object(o);
-	if (!po)
-		return TCORE_RETURN_EINVAL;
+	po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
 
 	po->type = type;
-
-	return TCORE_RETURN_SUCCESS;
+	return TRUE;
 }
 
-enum co_context_type tcore_context_get_type(CoreObject *o)
+gboolean tcore_context_get_type(CoreObject *co, TcoreContextType *type)
 {
-	struct private_object_data *po = NULL;
+	PrivateObject *po = NULL;
 
-	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PS_CONTEXT, 0);
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_PS_CONTEXT, FALSE);
 
-	po = tcore_object_ref_object(o);
-	if (!po)
-		return 0;
+	po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
 
-	return po->type;
+	*type = po->type;
+	return TRUE;
 }
 
-TReturn tcore_context_set_data_compression(CoreObject *o, enum co_context_d_comp comp)
+gboolean tcore_context_set_data_compression(CoreObject *co, TcoreContextDComp comp)
 {
-	struct private_object_data *po = NULL;
+	PrivateObject *po = NULL;
 
-	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PS_CONTEXT, TCORE_RETURN_EINVAL);
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_PS_CONTEXT, FALSE);
 
-	po = tcore_object_ref_object(o);
-	if (!po)
-		return TCORE_RETURN_EINVAL;
+	po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
 
 	po->d_comp = comp;
-
-	return TCORE_RETURN_SUCCESS;
+	return TRUE;
 }
 
-enum co_context_d_comp tcore_context_get_data_compression(CoreObject *o)
+gboolean tcore_context_get_data_compression(CoreObject *co, TcoreContextDComp *comp)
 {
-	struct private_object_data *po = NULL;
+	PrivateObject *po = NULL;
 
-	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PS_CONTEXT, 0);
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_PS_CONTEXT, FALSE);
 
-	po = tcore_object_ref_object(o);
-	if (!po)
-		return 0;
+	po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
 
-	return po->d_comp;
+	*comp = po->d_comp;
+	return TRUE;
 }
 
-TReturn tcore_context_set_header_compression(CoreObject *o, enum co_context_h_comp comp)
+gboolean tcore_context_set_header_compression(CoreObject *co, TcoreContextHComp comp)
 {
-	struct private_object_data *po = NULL;
+	PrivateObject *po = NULL;
 
-	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PS_CONTEXT, TCORE_RETURN_EINVAL);
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_PS_CONTEXT, FALSE);
 
-	po = tcore_object_ref_object(o);
-	if (!po)
-		return TCORE_RETURN_EINVAL;
+	po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
 
 	po->h_comp = comp;
-
-	return TCORE_RETURN_SUCCESS;
+	return TRUE;
 }
 
-enum co_context_h_comp tcore_context_get_header_compression(CoreObject *o)
+gboolean tcore_context_get_header_compression(CoreObject *co, TcoreContextHComp *comp)
 {
-	struct private_object_data *po = NULL;
+	PrivateObject *po = NULL;
 
-	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PS_CONTEXT, 0);
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_PS_CONTEXT, FALSE);
 
-	po = tcore_object_ref_object(o);
-	if (!po)
-		return 0;
+	po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
 
-	return po->h_comp;
+	*comp = po->h_comp;
+	return TRUE;
 }
 
-TReturn tcore_context_set_username(CoreObject *o, const char *username)
+gboolean tcore_context_set_username(CoreObject *co, const gchar *username)
 {
-	struct private_object_data *po = NULL;
+	PrivateObject *po = NULL;
 
-	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PS_CONTEXT, TCORE_RETURN_EINVAL);
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_PS_CONTEXT, FALSE);
 
-	po = tcore_object_ref_object(o);
-	if (!po)
-		return TCORE_RETURN_EINVAL;
+	po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
 
-	if (po->username) {
-		free(po->username);
-		po->username = NULL;
-	}
-
-	if (username) {
-		po->username = g_strdup(username);
-	}
-
-	return TCORE_RETURN_SUCCESS;
+	tcore_free(po->username);
+	po->username = tcore_strdup(username);
+	return TRUE;
 }
 
-char *tcore_context_get_username(CoreObject *o)
+gboolean tcore_context_get_username(CoreObject *co, gchar **username)
 {
-	struct private_object_data *po = NULL;
+	PrivateObject *po = NULL;
 
-	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PS_CONTEXT, NULL);
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_PS_CONTEXT, FALSE);
 
-	po = tcore_object_ref_object(o);
-	if (!po)
-		return NULL;
+	po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
 
-	if (!po->username)
-		return NULL;
-
-	return g_strdup(po->username);
+	*username = tcore_strdup(po->username);
+	return TRUE;
 }
 
-TReturn tcore_context_set_password(CoreObject *o, const char *password)
+gboolean tcore_context_set_password(CoreObject *co, const gchar *password)
 {
-	struct private_object_data *po = NULL;
+	PrivateObject *po = NULL;
 
-	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PS_CONTEXT, TCORE_RETURN_EINVAL);
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_PS_CONTEXT, FALSE);
 
-	po = tcore_object_ref_object(o);
-	if (!po)
-		return TCORE_RETURN_EINVAL;
+	po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
 
-	if (po->password) {
-		free(po->password);
-		po->password = NULL;
-	}
-
-	if (password) {
-		po->password = g_strdup(password);
-	}
-
-	return TCORE_RETURN_SUCCESS;
+	tcore_free(po->password);
+	po->password = tcore_strdup(password);
+	return TRUE;
 }
 
-char *tcore_context_get_password(CoreObject *o)
+gboolean tcore_context_get_password(CoreObject *co, gchar **password)
 {
-	struct private_object_data *po = NULL;
+	PrivateObject *po = NULL;
 
-	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PS_CONTEXT, NULL);
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_PS_CONTEXT, FALSE);
 
-	po = tcore_object_ref_object(o);
-	if (!po)
-		return NULL;
+	po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
 
-	if (!po->password)
-		return NULL;
-
-	return g_strdup(po->password);
+	*password =  tcore_strdup(po->password);
+	return TRUE;
 }
 
-TReturn tcore_context_set_auth(CoreObject *o, enum co_context_auth auth)
+gboolean tcore_context_set_auth(CoreObject *co, TcoreContextAuth auth)
 {
-	struct private_object_data *po = NULL;
+	PrivateObject *po = NULL;
 
-	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PS_CONTEXT, TCORE_RETURN_EINVAL);
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_PS_CONTEXT, FALSE);
 
-	po = tcore_object_ref_object(o);
-	if (!po)
-		return TCORE_RETURN_EINVAL;
+	po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
 
 	po->auth = auth;
-
-	return TCORE_RETURN_SUCCESS;
+	return TRUE;
 }
 
-enum co_context_auth tcore_context_get_auth(CoreObject *o)
+gboolean tcore_context_get_auth(CoreObject *co, TcoreContextAuth *auth)
 {
-	struct private_object_data *po = NULL;
+	PrivateObject *po = NULL;
 
-	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PS_CONTEXT, 0);
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_PS_CONTEXT, FALSE);
 
-	po = tcore_object_ref_object(o);
-	if (!po)
-		return 0;
+	po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
 
-	return po->auth;
+	*auth = po->auth;
+	return TRUE;
 }
 
-TReturn tcore_context_set_proxy(CoreObject *o, const char *proxy)
+gboolean tcore_context_set_proxy(CoreObject *co, const gchar *proxy)
 {
-	struct private_object_data *po = NULL;
+	PrivateObject *po = NULL;
 
-	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PS_CONTEXT, TCORE_RETURN_EINVAL);
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_PS_CONTEXT, FALSE);
 
-	po = tcore_object_ref_object(o);
-	if (!po)
-		return FALSE;
+	po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
 
-	if (po->proxy) {
-		free(po->proxy);
-		po->apn = NULL;
-	}
-
-	if (proxy) {
-		po->proxy = g_strdup(proxy);
-	}
-
-	return TCORE_RETURN_SUCCESS;
+	tcore_free(po->proxy);
+	po->proxy = tcore_strdup(proxy);
+	return TRUE;
 }
 
-char *tcore_context_get_proxy(CoreObject *o)
+gboolean tcore_context_get_proxy(CoreObject *co, gchar **proxy)
 {
-	struct private_object_data *po = NULL;
+	PrivateObject *po = NULL;
 
-	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PS_CONTEXT, NULL);
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_PS_CONTEXT, FALSE);
 
-	po = tcore_object_ref_object(o);
-	if (!po)
-		return NULL;
+	po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
 
-	if (!po->proxy)
-		return NULL;
-
-	return g_strdup(po->proxy);
+	*proxy = tcore_strdup(po->proxy);
+	return TRUE;
 }
 
-TReturn tcore_context_set_mmsurl(CoreObject *o, const char *mmsurl)
+gboolean tcore_context_set_mmsurl(CoreObject *co, const gchar *mmsurl)
 {
-	struct private_object_data *po = NULL;
+	PrivateObject *po = NULL;
 
-	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PS_CONTEXT, TCORE_RETURN_EINVAL);
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_PS_CONTEXT, FALSE);
 
-	po = tcore_object_ref_object(o);
-	if (!po)
-		return FALSE;
+	po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
 
-	if (po->mmsurl) {
-		free(po->mmsurl);
-		po->mmsurl = NULL;
-	}
-
-	if (mmsurl) {
-		po->mmsurl = g_strdup(mmsurl);
-	}
-
-	return TCORE_RETURN_SUCCESS;
+	tcore_free(po->mmsurl);
+	po->mmsurl = tcore_strdup(mmsurl);
+	return TRUE;
 }
 
-char *tcore_context_get_mmsurl(CoreObject *o)
+gboolean tcore_context_get_mmsurl(CoreObject *co, gchar **mmsurl)
 {
-	struct private_object_data *po = NULL;
+	PrivateObject *po = NULL;
 
-	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PS_CONTEXT, NULL);
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_PS_CONTEXT, FALSE);
 
-	po = tcore_object_ref_object(o);
-	if (!po)
-		return NULL;
+	po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
 
-	if (!po->mmsurl)
-		return NULL;
-
-	return g_strdup(po->mmsurl);
+	*mmsurl = tcore_strdup(po->mmsurl);
+	return TRUE;
 }
 
-TReturn tcore_context_set_profile_name(CoreObject *o, const char *profile_name)
+gboolean tcore_context_set_profile_name(CoreObject *co, const gchar *profile_name)
 {
-	struct private_object_data *po = NULL;
+	PrivateObject *po = NULL;
 
-	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PS_CONTEXT, TCORE_RETURN_EINVAL);
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_PS_CONTEXT, FALSE);
 
-	po = tcore_object_ref_object(o);
-	if (!po)
-		return FALSE;
+	po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
 
-	if (po->profile_name) {
-		free(po->profile_name);
-		po->profile_name = NULL;
-	}
-
-	if (profile_name) {
-		po->profile_name = g_strdup(profile_name);
-	}
-
-	return TCORE_RETURN_SUCCESS;
+	tcore_free(po->profile_name);
+	po->profile_name = tcore_strdup(profile_name);
+	return TRUE;
 }
 
-char *tcore_context_get_profile_name(CoreObject *o)
+gboolean tcore_context_get_profile_name(CoreObject *co, gchar **profile_name)
 {
-	struct private_object_data *po = NULL;
+	PrivateObject *po = NULL;
 
-	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PS_CONTEXT, NULL);
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_PS_CONTEXT, FALSE);
 
-	po = tcore_object_ref_object(o);
-	if (!po)
-		return NULL;
+	po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
 
-	if (!po->profile_name)
-		return NULL;
-
-	return g_strdup(po->profile_name);
+	*profile_name =  tcore_strdup(po->profile_name);
+	return TRUE;
 }
 
-TReturn tcore_context_set_devinfo(CoreObject *o, struct tnoti_ps_pdp_ipconfiguration *devinfo)
+gboolean tcore_context_set_devinfo(CoreObject *co, TcorePsPdpIpConf *devinfo)
 {
-	struct private_object_data *po = NULL;
+	PrivateObject *po = NULL;
 
 	dbg("Setup device information");
 
-	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PS_CONTEXT, TCORE_RETURN_EINVAL);
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_PS_CONTEXT, FALSE);
 
-	po = tcore_object_ref_object(o);
-	if (!po) {
-		err("Failed to refer Object");
-		return FALSE;
-	}
+	po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
+	tcore_check_return_value_assert(devinfo != NULL, FALSE);
 
-	if (!devinfo) {
-		err("Device info is NULL");
-		return FALSE;
-	}
-
-	memcpy(&(po->ip_v4), devinfo->ip_address, sizeof(union tcore_ip4_type));
-	memcpy(&(po->dns_primary_v4), devinfo->primary_dns, sizeof(union tcore_ip4_type));
-	memcpy(&(po->dns_secondary_v4), devinfo->secondary_dns, sizeof(union tcore_ip4_type));
-	memcpy(&(po->gateway_v4), devinfo->gateway, sizeof(union tcore_ip4_type));
-	memcpy(po->devname, devinfo->devname, sizeof(char) * 16);
+	memcpy(&(po->ip_v4), devinfo->ip_address, sizeof(TcoreIp4Type));
+	memcpy(&(po->dns_primary_v4), devinfo->primary_dns, sizeof(TcoreIp4Type));
+	memcpy(&(po->dns_secondary_v4), devinfo->secondary_dns, sizeof(TcoreIp4Type));
+	memcpy(&(po->gateway_v4), devinfo->gateway, sizeof(TcoreIp4Type));
+	memcpy(po->devname, devinfo->devname, sizeof(gchar) * 16);
 
 	msg("	IP Address: [0x%x]", po->ip_v4);
 	msg("	DNS - Primary: [0x%x] Secondary: [0x%x]", po->dns_primary_v4, po->dns_secondary_v4);
 	msg("	Gateway: [0x%x]", po->gateway_v4);
 	msg("	Device Name: [%s]", po->devname);
 
-	return TCORE_RETURN_SUCCESS;
+	return TRUE;
 }
 
-TReturn tcore_context_reset_devinfo(CoreObject *o)
+gboolean tcore_context_reset_devinfo(CoreObject *co)
 {
-	struct private_object_data *po = NULL;
+	PrivateObject *po = NULL;
 
 	dbg("Reset device information");
 
-	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PS_CONTEXT, TCORE_RETURN_EINVAL);
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_PS_CONTEXT, FALSE);
 
-	po = tcore_object_ref_object(o);
-	if (!po)
-		return TCORE_RETURN_FAILURE;
+	po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
 
-	memset(&(po->ip_v4), 0, sizeof(union tcore_ip4_type));
-	memset(&(po->dns_primary_v4), 0, sizeof(union tcore_ip4_type));
-	memset(&(po->dns_secondary_v4), 0, sizeof(union tcore_ip4_type));
-	memset(&(po->gateway_v4), 0, sizeof(union tcore_ip4_type));
-	memset(po->devname, 0, sizeof(char) * 16);
+	memset(&(po->ip_v4), 0, sizeof(TcoreIp4Type));
+	memset(&(po->dns_primary_v4), 0, sizeof(TcoreIp4Type));
+	memset(&(po->dns_secondary_v4), 0, sizeof(TcoreIp4Type));
+	memset(&(po->gateway_v4), 0, sizeof(TcoreIp4Type));
+	memset(po->devname, 0, sizeof(gchar) * 16);
 
-	return TCORE_RETURN_SUCCESS;
+	return TRUE;
 }
 
 void tcore_context_cp_service_info(CoreObject *dest, CoreObject *src)
 {
-	struct private_object_data *d_po = NULL;
-	struct private_object_data *s_po = NULL;
+	PrivateObject *d_po = NULL;
+	PrivateObject *s_po = NULL;
 
 	CORE_OBJECT_CHECK(dest, CORE_OBJECT_TYPE_PS_CONTEXT);
 	CORE_OBJECT_CHECK(src, CORE_OBJECT_TYPE_PS_CONTEXT);
@@ -615,165 +535,146 @@ void tcore_context_cp_service_info(CoreObject *dest, CoreObject *src)
 
 	d_po->state = s_po->state;
 	d_po->id = s_po->id;
-	memcpy(&(d_po->ip_v4), &(s_po->ip_v4), sizeof(union tcore_ip4_type));
-	memcpy(&(d_po->dns_primary_v4), &(s_po->dns_primary_v4), sizeof(union tcore_ip4_type));
-	memcpy(&(d_po->dns_secondary_v4), &(s_po->dns_secondary_v4), sizeof(union tcore_ip4_type));
-	memcpy(&(d_po->gateway_v4), &(s_po->gateway_v4), sizeof(union tcore_ip4_type));
-	memcpy(d_po->devname, s_po->devname, sizeof(char) * 16);
+	memcpy(&(d_po->ip_v4), &(s_po->ip_v4), sizeof(TcoreIp4Type));
+	memcpy(&(d_po->dns_primary_v4), &(s_po->dns_primary_v4), sizeof(TcoreIp4Type));
+	memcpy(&(d_po->dns_secondary_v4), &(s_po->dns_secondary_v4), sizeof(TcoreIp4Type));
+	memcpy(&(d_po->gateway_v4), &(s_po->gateway_v4), sizeof(TcoreIp4Type));
+	memcpy(d_po->devname, s_po->devname, sizeof(gchar) * 16);
 
 	return;
 }
 
-static void tcore_context_set_ipv4_atoi(unsigned char *ip4, const char *str)
+gboolean tcore_context_set_ipv4_addr(CoreObject *co, const gchar *addr)
 {
-	char *token = NULL;
-	char *temp = NULL;
-	int index = 0;
+	PrivateObject *po = NULL;
 
-	temp = g_strdup(str);
-	token = strtok(temp, ".");
-	while (token != NULL) {
-		ip4[index++] = atoi(token);
-		msg("	[%c]", ip4[index-1]);
-		token = strtok(NULL, ".");
-	}
-	g_free(temp);
-}
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_PS_CONTEXT, FALSE);
 
-TReturn tcore_context_set_ipv4_addr(CoreObject *o, const char *addr)
-{
-	struct private_object_data *po = NULL;
-
-	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PS_CONTEXT, TCORE_RETURN_EINVAL);
-
-	po = tcore_object_ref_object(o);
-	if (!po)
-		return TCORE_RETURN_EINVAL;
+	po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
 
 	if (po->addr) {
-		free(po->addr);
+		tcore_free(po->addr);
 		po->addr = NULL;
 	}
 
 	if (addr) {
-		po->addr = g_strdup(addr);
-		tcore_context_set_ipv4_atoi(po->ip_v4.s, addr);
+		po->addr = tcore_strdup(addr);
+		__context_set_ipv4_atoi(po->ip_v4.s, addr);
 		dbg("IP Address: [%s]", addr);
 	}
 
-	return TCORE_RETURN_SUCCESS;
+	return TRUE;
 }
 
-char* tcore_context_get_ipv4_addr(CoreObject *o)
+gboolean tcore_context_get_ipv4_addr(CoreObject *co, gchar **ip)
 {
-	struct private_object_data *po = NULL;
+	PrivateObject *po = NULL;
 
-	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PS_CONTEXT, NULL);
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_PS_CONTEXT, FALSE);
 
-	po = tcore_object_ref_object(o);
-	if (!po)
-		return NULL;
+	po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
 
-	return tcore_util_get_string_by_ip4type(po->ip_v4);
+	*ip =  tcore_util_get_string_by_ip4type(po->ip_v4);
+	return TRUE;
 }
 
-TReturn tcore_context_set_ipv4_dns(CoreObject *o, const char *dns1, const char *dns2)
+gboolean tcore_context_set_ipv4_dns(CoreObject *co, const gchar *dns1, const gchar *dns2)
 {
-	struct private_object_data *po = NULL;
+	PrivateObject *po = NULL;
 
-	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PS_CONTEXT, TCORE_RETURN_EINVAL);
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_PS_CONTEXT, FALSE);
 
-	po = tcore_object_ref_object(o);
-	if (!po)
-		return TCORE_RETURN_EINVAL;
+	po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
 
-	g_free(po->dns1);
+	tcore_free(po->dns1);
 	po->dns1 = NULL;
 
-	g_free(po->dns2);
+	tcore_free(po->dns2);
 	po->dns2 = NULL;
 
 	if (dns1) {
-		po->dns1 = g_strdup(dns1);
-		tcore_context_set_ipv4_atoi(po->dns_primary_v4.s, dns1);
+		po->dns1 = tcore_strdup(dns1);
+		__context_set_ipv4_atoi(po->dns_primary_v4.s, dns1);
 	}
 
 	if (dns2) {
-		po->dns2 = g_strdup(dns2);
-		tcore_context_set_ipv4_atoi(po->dns_secondary_v4.s, dns2);
+		po->dns2 = tcore_strdup(dns2);
+		__context_set_ipv4_atoi(po->dns_secondary_v4.s, dns2);
 	}
 
-	return TCORE_RETURN_SUCCESS;
+	return TRUE;
 }
 
-char* tcore_context_get_ipv4_dns1(CoreObject *o)
+gboolean tcore_context_get_ipv4_dns1(CoreObject *co, gchar **ip)
 {
-	struct private_object_data *po = NULL;
+	PrivateObject *po = NULL;
 
-	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PS_CONTEXT, NULL);
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_PS_CONTEXT, FALSE);
 
-	po = tcore_object_ref_object(o);
-	if (!po)
-		return NULL;
+	po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
 
-	return tcore_util_get_string_by_ip4type(po->dns_primary_v4);
+	*ip = tcore_util_get_string_by_ip4type(po->dns_primary_v4);
+	return TRUE;
 }
 
-char* tcore_context_get_ipv4_dns2(CoreObject *o)
+gboolean tcore_context_get_ipv4_dns2(CoreObject *co, gchar **ip)
 {
-	struct private_object_data *po = NULL;
+	PrivateObject *po = NULL;
 
-	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PS_CONTEXT, NULL);
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_PS_CONTEXT, FALSE);
 
-	po = tcore_object_ref_object(o);
-	if (!po)
-		return NULL;
+	po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
 
-	return tcore_util_get_string_by_ip4type(po->dns_secondary_v4);
+	*ip = tcore_util_get_string_by_ip4type(po->dns_secondary_v4);
+	return TRUE;
 }
 
-char* tcore_context_get_ipv4_gw(CoreObject *o)
+gboolean tcore_context_get_ipv4_gw(CoreObject *co, gchar **ip)
 {
-	struct private_object_data *po = NULL;
+	PrivateObject *po = NULL;
 
-	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PS_CONTEXT, NULL);
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_PS_CONTEXT, FALSE);
 
-	po = tcore_object_ref_object(o);
-	if (!po)
-		return NULL;
+	po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
 
-	return tcore_util_get_string_by_ip4type(po->gateway_v4);
+	*ip =  tcore_util_get_string_by_ip4type(po->gateway_v4);
+	return TRUE;
 }
 
-TReturn tcore_context_set_ipv4_devname(CoreObject *o, const char *name)
+gboolean tcore_context_set_ipv4_devname(CoreObject *co, const gchar *name)
 {
-	struct private_object_data *po = NULL;
+	PrivateObject *po = NULL;
 
-	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PS_CONTEXT, TCORE_RETURN_EINVAL);
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_PS_CONTEXT, FALSE);
 
-	po = tcore_object_ref_object(o);
-	if (!po)
-		return TCORE_RETURN_EINVAL;
+	po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
 
 	if (name) {
 		snprintf(po->devname, DEVNAME_LEN_MAX, "%s", name);
 	}
 
-	return TCORE_RETURN_SUCCESS;
+	return TRUE;
 }
 
-char* tcore_context_get_ipv4_devname(CoreObject *o)
+gboolean tcore_context_get_ipv4_devname(CoreObject *co, gchar **dev_name)
 {
-	struct private_object_data *po = NULL;
+	PrivateObject *po = NULL;
 
-	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PS_CONTEXT, NULL);
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_PS_CONTEXT, FALSE);
 
-	po = tcore_object_ref_object(o);
-	if (!po)
-		return NULL;
+	po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
 
 	if (po->devname[0] == 0)
-		return NULL;
+		return TRUE;
 
-	return g_strdup(po->devname);
+	*dev_name = tcore_strdup(po->devname);
+	return TRUE;
 }

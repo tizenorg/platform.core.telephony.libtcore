@@ -1,9 +1,8 @@
 /*
  * libtcore
  *
- * Copyright (c) 2012 Samsung Electronics Co., Ltd. All rights reserved.
- *
- * Contact: Ja-young Gu <jygu@samsung.com>
+ * Copyright (c) 2013 Samsung Electronics Co. Ltd. All rights reserved.
+ * Copyright (c) 2013 Intel Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,12 +17,14 @@
  * limitations under the License.
  */
 
-#ifndef __TCORE_UDEV_H__
-#define __TCORE_UDEV_H__
+#ifndef __UDEV_H__
+#define __UDEV_H__
 
 #include <gudev/gudev.h>
 
-__BEGIN_DECLS
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 typedef gboolean (*TcoreUdevEnumerCallback)(TcoreUdev *udev, GList *list, void *user_data);
 typedef gboolean (*TcoreUdevCallback)(TcoreUdev *udev, GUdevDevice *device, void *user_data);
@@ -35,11 +36,13 @@ Server*          tcore_udev_ref_server(TcoreUdev *udev);
 GUdevClient*     tcore_udev_ref_client(TcoreUdev *udev);
 GUdevEnumerator* tcore_udev_ref_enumerator(TcoreUdev *udev);
 
-TReturn          tcore_udev_add_enumerator_callback(TcoreUdev *udev, TcoreUdevEnumerCallback func, void *user_data);
+TelReturn          tcore_udev_add_enumerator_callback(TcoreUdev *udev, TcoreUdevEnumerCallback func, void *user_data);
 GList*           tcore_udev_exec_enumerator(TcoreUdev *udev, gboolean event_emit_flag);
 
-TReturn          tcore_udev_add_callback(TcoreUdev *udev, const char *subsystem, const char *action, TcoreUdevCallback func, void *user_data);
+TelReturn          tcore_udev_add_callback(TcoreUdev *udev, const char *subsystem, const char *action, TcoreUdevCallback func, void *user_data);
 
-__END_DECLS
-
+#ifdef __cplusplus
+}
 #endif
+
+#endif	/* __UDEV_H__ */

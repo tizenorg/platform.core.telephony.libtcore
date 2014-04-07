@@ -1,9 +1,8 @@
 /*
  * libtcore
  *
- * Copyright (c) 2012 Samsung Electronics Co., Ltd. All rights reserved.
- *
- * Contact: Ja-young Gu <jygu@samsung.com>
+ * Copyright (c) 2013 Samsung Electronics Co. Ltd. All rights reserved.
+ * Copyright (c) 2013 Intel Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,258 +17,208 @@
  * limitations under the License.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-
 #include <glib.h>
+#include <string.h>
 
 #include "tcore.h"
 #include "plugin.h"
-#include "queue.h"
-#include "user_request.h"
-#include "core_object.h"
 #include "co_phonebook.h"
 
-struct private_object_data {
-	struct tcore_phonebook_operations *ops;
-	gboolean b_init;
-	struct tel_phonebook_support_list support_list;
-	enum tel_phonebook_type selected;
-};
+typedef struct {
+	TcorePbOps *ops;
+	gboolean init;
+	TelPbList support_list;
+	TelPbType pb_type;
+} PrivateObject;
 
-static void _clone_phonebook_operations(struct private_object_data *po, struct tcore_phonebook_operations *phonebook_ops)
+static TelReturn _dispatcher(CoreObject *co,
+	TcoreCommand command, const void *request,
+	TcoreObjectResponseCallback cb, const void *user_data)
 {
-	if(phonebook_ops->get_count) {
-		po->ops->get_count = phonebook_ops->get_count;
-	}
-	if(phonebook_ops->get_info) {
-		po->ops->get_info = phonebook_ops->get_info;
-	}
-	if(phonebook_ops->get_usim_info) {
-		po->ops->get_usim_info = phonebook_ops->get_usim_info;
-	}
-	if(phonebook_ops->read_record) {
-		po->ops->read_record = phonebook_ops->read_record;
-	}
-	if(phonebook_ops->update_record) {
-		po->ops->update_record = phonebook_ops->update_record;
-	}
-	if(phonebook_ops->delete_record) {
-		po->ops->delete_record = phonebook_ops->delete_record;
-	}
+	TcorePbOps *phonebook = NULL;
+	PrivateObject *po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, TEL_RETURN_INVALID_PARAMETER);
+	tcore_check_return_value_assert(po->ops != NULL, TEL_RETURN_INVALID_PARAMETER);
+	phonebook = po->ops;
 
-	return;
-}
-
-static TReturn _dispatcher(CoreObject *o, UserRequest *ur)
-{
-	enum tcore_request_command command;
-	struct private_object_data *po = NULL;
-
-	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PHONEBOOK, TCORE_RETURN_EINVAL);
-
-	po = tcore_object_ref_object(o);
-	if (!po || !po->ops)
-		return TCORE_RETURN_ENOSYS;
-
-	command = tcore_user_request_get_command(ur);
 	switch (command) {
-		case TREQ_PHONEBOOK_GETCOUNT:
-			if (!po->ops->get_count)
-				return TCORE_RETURN_ENOSYS;
+	case TCORE_COMMAND_PHONEBOOK_GET_INFO:
+		if (phonebook->get_info)
+			return phonebook->get_info(co,
+				*(TelPbType *)request,
+				cb, (void *)user_data);
+		break;
 
-			return po->ops->get_count(o, ur);
-			break;
+	case TCORE_COMMAND_PHONEBOOK_READ_RECORD:
+		if (phonebook->read_record)
+			return phonebook->read_record(co,
+				(TelPbRecordInfo *)request,
+				cb, (void *)user_data);
+		break;
 
-		case TREQ_PHONEBOOK_GETMETAINFO:
-			if (!po->ops->get_info)
-				return TCORE_RETURN_ENOSYS;
+	case TCORE_COMMAND_PHONEBOOK_UPDATE_RECORD:
+		if (phonebook->update_record)
+			return phonebook->update_record(co,
+				(TelPbUpdateRecord *)request,
+				cb, (void *)user_data);
+		break;
 
-			return po->ops->get_info(o, ur);
-			break;
+	case TCORE_COMMAND_PHONEBOOK_DELETE_RECORD:
+		if (phonebook->delete_record)
+			return phonebook->delete_record(co,
+				(TelPbRecordInfo *)request,
+				cb, (void *)user_data);
+		break;
 
-		case TREQ_PHONEBOOK_GETUSIMINFO:
-			if (!po->ops->get_usim_info)
-				return TCORE_RETURN_ENOSYS;
-
-			return po->ops->get_usim_info(o, ur);
-			break;
-
-		case TREQ_PHONEBOOK_READRECORD:
-			if (!po->ops->read_record)
-				return TCORE_RETURN_ENOSYS;
-
-			return po->ops->read_record(o, ur);
-			break;
-
-		case TREQ_PHONEBOOK_UPDATERECORD:
-			if (!po->ops->update_record)
-				return TCORE_RETURN_ENOSYS;
-
-			return po->ops->update_record(o, ur);
-			break;
-
-		case TREQ_PHONEBOOK_DELETERECORD:
-			if (!po->ops->delete_record)
-				return TCORE_RETURN_ENOSYS;
-
-			return po->ops->delete_record(o, ur);
-			break;
-
-		default:
-			break;
+	default:
+		err("Unsupported Command:[%d]",command);
+		return TEL_RETURN_INVALID_PARAMETER;
 	}
-
-	return TCORE_RETURN_SUCCESS;
+	err("Operation NOT supported");
+	return TEL_RETURN_OPERATION_NOT_SUPPORTED;
 }
 
-static void _clone_hook(CoreObject *src, CoreObject *dest)
+static void _po_clone_hook(CoreObject *src, CoreObject *dest)
 {
-	struct private_object_data *src_po = NULL;
-	struct private_object_data *dest_po = NULL;
+	PrivateObject *dest_po = NULL;
+	PrivateObject *src_po = tcore_object_ref_object(src);
 
-	if (!src || !dest)
-		return;
+	tcore_check_return_assert(src_po != NULL);
+	tcore_check_return_assert(src_po->ops != NULL);
+	tcore_check_return_assert(dest != NULL);
 
-	dest_po = calloc(1, sizeof(struct private_object_data));
-	if (!dest_po) {
-		tcore_object_link_object(dest, NULL);
-		return;
-	}
-
-	src_po = tcore_object_ref_object(src);
-	dest_po->ops = src_po->ops;
-
+	dest_po = tcore_malloc0(sizeof(PrivateObject));
+	dest_po->ops = tcore_memdup(src_po->ops, sizeof(TcorePbOps));
 	tcore_object_link_object(dest, dest_po);
 }
 
-static void _free_hook(CoreObject *o)
+static void _po_free_hook(CoreObject *co)
 {
-	struct private_object_data *po = NULL;
+	PrivateObject *po = tcore_object_ref_object(co);
+	tcore_check_return_assert(po != NULL);
 
-	CORE_OBJECT_CHECK(o, CORE_OBJECT_TYPE_PHONEBOOK);
-
-	po = tcore_object_ref_object(o);
-	if (po) {
-		free(po);
-		tcore_object_link_object(o, NULL);
-	}
+	tcore_free(po->ops);
+	tcore_free(po);
+	tcore_object_link_object(co, NULL);
 }
 
-gboolean tcore_phonebook_get_status(CoreObject *o)
+void tcore_phonebook_override_ops(CoreObject *co, TcorePbOps *ops)
 {
-	struct private_object_data *po = NULL;
-	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PHONEBOOK, FALSE);
-	po = tcore_object_ref_object(o);
-	return po->b_init;
+	PrivateObject *po = tcore_object_ref_object(co);
+	tcore_check_return_assert(po != NULL);
+	tcore_check_return_assert(po->ops != NULL);
+	tcore_check_return_assert(ops != NULL);
+
+	if (ops->get_info)
+		po->ops->get_info = ops->get_info;
+	if (ops->read_record)
+		po->ops->read_record = ops->read_record;
+	if (ops->update_record)
+		po->ops->update_record = ops->update_record;
+	if (ops->delete_record)
+		po->ops->delete_record = ops->delete_record;
 }
 
-gboolean tcore_phonebook_set_status(CoreObject *o, gboolean b_init)
+gboolean tcore_phonebook_get_status(CoreObject *co, gboolean *init_status)
 {
-	struct private_object_data *po = NULL;
-	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PHONEBOOK, FALSE);
-	po = tcore_object_ref_object(o);
-	po->b_init = b_init;
+	PrivateObject *po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
+	tcore_check_return_value_assert(init_status != NULL, FALSE);
+
+	 *init_status = po->init;
+	 return TRUE;
+}
+
+gboolean tcore_phonebook_set_status(CoreObject *co, gboolean init_status)
+{
+	PrivateObject *po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
+
+	po->init = init_status;
 	return TRUE;
 }
 
-struct tel_phonebook_support_list* tcore_phonebook_get_support_list(CoreObject *o)
+gboolean tcore_phonebook_get_support_list(CoreObject *co, TelPbList **pb_list)
 {
-	struct tel_phonebook_support_list *tmp;
-	struct private_object_data *po = NULL;
-	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PHONEBOOK, NULL);
-	po = tcore_object_ref_object(o);
-	tmp = calloc(1, sizeof(struct tel_phonebook_support_list));
-	memcpy(tmp, &po->support_list, sizeof(struct tel_phonebook_support_list));
-	return tmp;
-}
+	PrivateObject *po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
+	tcore_check_return_value_assert(pb_list != NULL, FALSE);
 
-gboolean tcore_phonebook_set_support_list(CoreObject *o, struct tel_phonebook_support_list *list)
-{
-	struct private_object_data *po = NULL;
-	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PHONEBOOK, FALSE);
-	po = tcore_object_ref_object(o);
-	memcpy(&po->support_list, list, sizeof(struct tel_phonebook_support_list));
+	*pb_list = tcore_memdup(&po->support_list, sizeof(TelPbList));
 	return TRUE;
 }
 
-enum tel_phonebook_type tcore_phonebook_get_selected_type(CoreObject *o)
+gboolean tcore_phonebook_set_support_list(CoreObject *co, TelPbList *pb_list)
 {
-	struct private_object_data *po = NULL;
-	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PHONEBOOK, PB_TYPE_UNKNOWNN);
-	po = tcore_object_ref_object(o);
-	return po->selected;
-}
+	PrivateObject *po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
 
-gboolean tcore_phonebook_set_selected_type(CoreObject *o, enum tel_phonebook_type t)
-{
-	struct private_object_data *po = NULL;
-	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PHONEBOOK, FALSE);
-	po = tcore_object_ref_object(o);
-	po->selected = t;
+	memcpy(&po->support_list, pb_list, sizeof(TelPbList));
 	return TRUE;
 }
 
-void tcore_phonebook_override_ops(CoreObject *o, struct tcore_phonebook_operations *phonebook_ops)
+gboolean tcore_phonebook_get_selected_type(CoreObject *co, TelPbType *pb_type)
 {
-	struct private_object_data *po = NULL;
+	PrivateObject *po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
+	tcore_check_return_value_assert(pb_type != NULL, FALSE);
 
-	CORE_OBJECT_CHECK(o, CORE_OBJECT_TYPE_PHONEBOOK);
-
-	po = (struct private_object_data *)tcore_object_ref_object(o);
-	if (!po) {
-		return;
-	}
-
-	if(phonebook_ops) {
-		_clone_phonebook_operations(po, phonebook_ops);
-	}
-
-	return;
+	*pb_type = po->pb_type;
+	return TRUE;
 }
 
-CoreObject *tcore_phonebook_new(TcorePlugin *p,
-			struct tcore_phonebook_operations *ops, TcoreHal *hal)
+gboolean tcore_phonebook_set_selected_type(CoreObject *co, TelPbType pb_type)
 {
-	CoreObject *o = NULL;
-	struct private_object_data *po = NULL;
+	PrivateObject *po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
 
-	if (!p)
-		return NULL;
-
-	o = tcore_object_new(p, hal);
-	if (!o)
-		return NULL;
-
-	po = calloc(1, sizeof(struct private_object_data));
-	if (!po) {
-		tcore_object_free(o);
-		return NULL;
-	}
-
-	po->ops = ops;
-	po->selected = PB_TYPE_UNKNOWNN;
-
-	tcore_object_set_type(o, CORE_OBJECT_TYPE_PHONEBOOK);
-	tcore_object_link_object(o, po);
-	tcore_object_set_free_hook(o, _free_hook);
-	tcore_object_set_clone_hook(o, _clone_hook);
-	tcore_object_set_dispatcher(o, _dispatcher);
-
-	return o;
+	po->pb_type = pb_type;
+	return TRUE;
 }
 
-void tcore_phonebook_free(CoreObject *o)
+gboolean tcore_phonebook_set_ops(CoreObject *co, TcorePbOps *ops)
 {
-	struct private_object_data *po = NULL;
+	PrivateObject *po;
+	tcore_check_return_value(co != NULL, FALSE);
 
-	CORE_OBJECT_CHECK(o, CORE_OBJECT_TYPE_PHONEBOOK);
+	po = tcore_object_ref_object(co);
+	tcore_check_return_value_assert(po != NULL, FALSE);
 
-	po = tcore_object_ref_object(o);
-	if (!po)
-		return;
+	if (po->ops != NULL) {
+		tcore_free(po->ops);
+		po->ops = NULL;
+	}
 
-	free(po);
-	tcore_object_free(o);
+	if (ops != NULL)
+		po->ops = tcore_memdup((gconstpointer)ops, sizeof(TcorePbOps));
+
+	return TRUE;
+}
+
+CoreObject *tcore_phonebook_new(TcorePlugin *p, TcorePbOps *ops, TcoreHal *hal)
+{
+	CoreObject *co = NULL;
+	PrivateObject *po = NULL;
+	tcore_check_return_value_assert(p != NULL, NULL);
+
+	co = tcore_object_new(p, hal);
+	tcore_check_return_value_assert(co != NULL, NULL);
+
+	po = tcore_malloc0(sizeof(PrivateObject));
+
+	if (ops != NULL)
+		po->ops = tcore_memdup(ops, sizeof(TcorePbOps));
+
+	tcore_object_set_type(co, CORE_OBJECT_TYPE_PHONEBOOK);
+	tcore_object_link_object(co, po);
+	tcore_object_set_free_hook(co, _po_free_hook);
+	tcore_object_set_clone_hook(co, _po_clone_hook);
+	tcore_object_set_dispatcher(co, _dispatcher);
+	return co;
+}
+
+void tcore_phonebook_free(CoreObject *co)
+{
+	CORE_OBJECT_CHECK(co, CORE_OBJECT_TYPE_PHONEBOOK);
+	tcore_object_free(co);
 }

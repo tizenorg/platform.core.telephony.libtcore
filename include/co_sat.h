@@ -1,9 +1,8 @@
 /*
  * libtcore
  *
- * Copyright (c) 2012 Samsung Electronics Co., Ltd. All rights reserved.
- *
- * Contact: Ja-young Gu <jygu@samsung.com>
+ * Copyright (c) 2013 Samsung Electronics Co., Ltd. All rights reserved.
+ * Copyright (c) 2013 Intel Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,78 +17,37 @@
  * limitations under the License.
  */
 
-#ifndef __TCORE_CO_SAT_H__
-#define __TCORE_CO_SAT_H__
+#ifndef __CO_SAT_H__
+#define __CO_SAT_H__
 
 #include <core_object.h>
+#include "type/sat_internal.h"
+#include <tel_return.h>
 
-enum tcore_sat_result{
-	TCORE_SAT_SUCCESS,
-	TCORE_SAT_SUCCESS_PARTIAL_COMPREHENSION,
-	TCORE_SAT_UNABLE_TO_PERFORM_CMD,
-	TCORE_SAT_REQUIRED_VALUE_MISSING,
-	TCORE_SAT_COMMAND_NOT_UNDERSTOOD,
-	TCORE_SAT_BEYOND_ME_CAPABILITY,
-	TCORE_SAT_COMMAND_TYPE_NOT_UNDERSTOOD,
-	TCORE_SAT_ERROR_FATAL
-};
-
-struct tcore_sat_proactive_command {
-	int cmd_num;
-	enum tel_sat_proactive_cmd_type cmd_type;
-	union {
-		struct tel_sat_display_text_tlv display_text;
-		struct tel_sat_get_inkey_tlv get_inkey;
-		struct tel_sat_get_input_tlv get_input;
-		struct tel_sat_more_time_tlv more_time;
-		struct tel_sat_play_tone_tlv play_tone;
-		struct tel_sat_setup_menu_tlv setup_menu;
-		struct tel_sat_select_item_tlv select_item;
-		struct tel_sat_send_sms_tlv send_sms;
-		struct tel_sat_send_ss_tlv send_ss;
-		struct tel_sat_send_ussd_tlv send_ussd;
-		struct tel_sat_setup_call_tlv setup_call;
-		struct tel_sat_refresh_tlv refresh;
-		struct tel_sat_provide_local_info_tlv provide_local_info;
-		struct tel_sat_setup_event_list_tlv setup_event_list;
-		struct tel_sat_setup_idle_mode_text_tlv setup_idle_mode_text;
-		struct tel_sat_send_dtmf_tlv send_dtmf;
-		struct tel_sat_language_notification_tlv language_notification;
-		struct tel_sat_launch_browser_tlv launch_browser;
-		struct tel_sat_open_channel_tlv open_channel;
-		struct tel_sat_close_channel_tlv close_channel;
-		struct tel_sat_receive_channel_tlv receive_data;
-		struct tel_sat_send_channel_tlv send_data;
-		struct tel_sat_get_channel_status_tlv get_channel_status;
-/*
-		TelSatRefreshIndInfo_t refresh;
-		TelSatProvideLocalInfoIndInfo_t provideLocInfo;
-		TelSatLaunchBrowserIndInfo_t launchBrowser;
-		TelSatSetupIdleModeTextIndInfo_t idleText;
-		TelSatSendDtmfIndInfo_t sendDtmf;
-		TelSatLanguageNotificationIndInfo_t languageNotification;
-		TelSatOpenChannelIndInfo_t openChannel;
-		TelSatCloseChannelIndInfo_t closeChannel;
-		TelSatReceiveDataIndInfo_t receiveData;
-		TelSatSendDataIndInfo_t sendData;
-		TelSatGetChannelStatusIndInfo_t getChannelStatus;
-*/
-	} data;
-};
-
-struct tcore_sat_operations {
-	TReturn (*envelope)(CoreObject *o, UserRequest *ur);
-	TReturn (*terminal_response)(CoreObject *o, UserRequest *ur);
-};
-
-int tcore_sat_decode_proactive_command(unsigned char* tlv_origin, unsigned int tlv_length, struct tcore_sat_proactive_command* decoded_tlv);
-int tcore_sat_encode_envelop_cmd(const struct treq_sat_envelop_cmd_data *src_envelop, char *dst_envelop);
-int tcore_sat_encode_terminal_response(const struct treq_sat_terminal_rsp_data *src_tr, char *dst_tr);
-
-CoreObject *tcore_sat_new(TcorePlugin *p,
-			struct tcore_sat_operations *ops, TcoreHal *hal);
-void tcore_sat_free(CoreObject *n);
-
-void tcore_sat_override_ops(CoreObject *o, struct tcore_sat_operations *sat_ops);
-
+#ifdef __cplusplus
+	extern "C" {
 #endif
+
+/* OEM operations */
+typedef struct {
+	TelReturn (*send_envelope)(CoreObject *co, const TelSatRequestEnvelopCmdData *envelop_data, TcoreObjectResponseCallback cb, void *cb_data);
+	TelReturn (*send_terminal_response)(CoreObject *co, const TelSatRequestTerminalResponseData *terminal_rsp_data, TcoreObjectResponseCallback cb, void *cb_data);
+	TelReturn (*send_user_confirmation)(CoreObject *co, const TelSatRequestUserConfirmationData *user_conf_data, TcoreObjectResponseCallback cb, void *cb_data);
+}TcoreSatOps;
+
+CoreObject *tcore_sat_new(TcorePlugin *p, TcoreSatOps *sat_ops, TcoreHal *hal);
+void tcore_sat_free(CoreObject *co);
+void tcore_sat_override_ops(CoreObject *co, TcoreSatOps *sat_ops);
+gboolean tcore_sat_set_ops(CoreObject *co, TcoreSatOps *ops);
+
+gboolean tcore_sat_decode_proactive_command(unsigned char* tlv_origin, unsigned int tlv_length,
+		TelSatDecodedProactiveData* decoded_tlv, int* decode_err_code);
+int tcore_sat_decode_call_control_result(unsigned char* tlv_origin, unsigned int tlv_length, TelSatNotiCallControlResultInd* call_ctrl_result_tlv);
+gboolean tcore_sat_encode_envelop_cmd(const TelSatRequestEnvelopCmdData *src_envelop, char *dst_envelop, int* envelope_length);
+gboolean tcore_sat_encode_terminal_response(const TelSatRequestTerminalResponseData *src_tr, char *dst_tr, int* tr_length);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif 	/* __CO_SAT_H__ */

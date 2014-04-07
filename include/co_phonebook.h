@@ -1,9 +1,8 @@
 /*
  * libtcore
  *
- * Copyright (c) 2012 Samsung Electronics Co., Ltd. All rights reserved.
- *
- * Contact: Ja-young Gu <jygu@samsung.com>
+ * Copyright (c) 2013 Samsung Electronics Co. Ltd. All rights reserved.
+ * Copyright (c) 2013 Intel Corporation. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,37 +17,41 @@
  * limitations under the License.
  */
 
-#ifndef __TCORE_CO_PHONEBOOK_H__
-#define __TCORE_CO_PHONEBOOK_H__
+#ifndef __CO_PHONEBOOK_H__
+#define __CO_PHONEBOOK_H__
 
-#include <core_object.h>
+#include "core_object.h"
+#include <tel_phonebook.h>
+#include <tel_return.h>
 
-__BEGIN_DECLS
-
-struct tcore_phonebook_operations {
-	TReturn (*get_count)(CoreObject *o, UserRequest *ur);
-	TReturn (*get_info)(CoreObject *o, UserRequest *ur);
-	TReturn (*get_usim_info)(CoreObject *o, UserRequest *ur);
-	TReturn (*read_record)(CoreObject *o, UserRequest *ur);
-	TReturn (*update_record)(CoreObject *o, UserRequest *ur);
-	TReturn (*delete_record)(CoreObject *o, UserRequest *ur);
-};
-
-CoreObject *tcore_phonebook_new(TcorePlugin *p,
-			struct tcore_phonebook_operations *ops, TcoreHal *hal);
-void tcore_phonebook_free(CoreObject *n);
-
-void tcore_phonebook_override_ops(CoreObject *o, struct tcore_phonebook_operations *phonebook_ops);
-
-gboolean tcore_phonebook_get_status(CoreObject *o);
-gboolean tcore_phonebook_set_status(CoreObject *o, gboolean b_init);
-
-struct tel_phonebook_support_list* tcore_phonebook_get_support_list(CoreObject *o);
-gboolean tcore_phonebook_set_support_list(CoreObject *o, struct tel_phonebook_support_list *list);
-
-enum tel_phonebook_type tcore_phonebook_get_selected_type(CoreObject *o);
-gboolean tcore_phonebook_set_selected_type(CoreObject *o, enum tel_phonebook_type t);
-
-__END_DECLS
-
+#ifdef __cplusplus
+extern "C" {
 #endif
+
+typedef struct {
+	TelReturn (*get_info)(CoreObject *co, TelPbType pb_type, TcoreObjectResponseCallback cb, void *cb_data);
+	TelReturn (*read_record)(CoreObject *co, const TelPbRecordInfo *record, TcoreObjectResponseCallback cb, void *cb_data);
+	TelReturn (*update_record)(CoreObject *co, const TelPbUpdateRecord *req_data, TcoreObjectResponseCallback cb, void *cb_data);
+	TelReturn (*delete_record)(CoreObject *co, const TelPbRecordInfo *record, TcoreObjectResponseCallback cb, void *cb_data);
+} TcorePbOps;
+
+CoreObject *tcore_phonebook_new(TcorePlugin *p, TcorePbOps *ops, TcoreHal *hal);
+void tcore_phonebook_free(CoreObject *co);
+
+gboolean tcore_phonebook_set_ops(CoreObject *co, TcorePbOps *ops);
+void tcore_phonebook_override_ops(CoreObject *co, TcorePbOps *phonebook_ops);
+
+gboolean tcore_phonebook_get_status(CoreObject *co, gboolean *init_status);
+gboolean tcore_phonebook_set_status(CoreObject *co, gboolean init_status);
+
+gboolean tcore_phonebook_get_support_list(CoreObject *co, TelPbList **pb_list);
+gboolean tcore_phonebook_set_support_list(CoreObject *co, TelPbList *pb_list);
+
+gboolean tcore_phonebook_get_selected_type(CoreObject *co, TelPbType *pb_type);
+gboolean tcore_phonebook_set_selected_type(CoreObject *co, TelPbType pb_type);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif	/*__CO_PHONEBOOK_H__*/
