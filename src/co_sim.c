@@ -547,7 +547,7 @@ gboolean tcore_sim_decode_spn(unsigned char *enc_spn, int enc_spn_len, TelSimSpn
 
 gboolean tcore_sim_decode_spdi(unsigned char *enc_spdi, int enc_spdi_len, TelSimSpPlmnList *dec_spdi)
 {
-	unsigned int i, src_plmn_start_len, total_data_len;
+	unsigned int i, src_plmn_start_len;
 
 	tcore_check_return_value_assert(enc_spdi != NULL, FALSE);
 	tcore_check_return_value_assert(enc_spdi_len != 0, FALSE);
@@ -556,13 +556,12 @@ gboolean tcore_sim_decode_spdi(unsigned char *enc_spdi, int enc_spdi_len, TelSim
 	if (enc_spdi[0] == 0xff){
 		dbg("file is exist but there is no valid records");
 		dec_spdi->count = 0;
-		memset(dec_spdi->list, 0x00, sizeof(unsigned char)*7*TEL_SIM_SPDI_PLMN_MAX);
+		dec_spdi->list = NULL;
 		return TRUE;
 	}
 
 	//Display info tag('A3')
 	if (enc_spdi[0] == 0xA3) {
-		total_data_len = enc_spdi[1];
 		 //PLMN list tag('80')
 		if (enc_spdi[2] == 0x80) {
 			dec_spdi->count = enc_spdi[3] / 3;
@@ -578,10 +577,14 @@ gboolean tcore_sim_decode_spdi(unsigned char *enc_spdi, int enc_spdi_len, TelSim
 			src_plmn_start_len = 4;
 
 			dbg( "dec_spdi->num_of_plmn_entries[%d]", dec_spdi->count);
+			/* Allocate resources */
+			dec_spdi->list = tcore_malloc0(sizeof(TelSimSpPlmn) * dec_spdi->count);
 
 			for (i = 0; i < dec_spdi->count; i++) {
 				unsigned char packet_in_digit[3 * 2 + 1];
 				tcore_util_convert_bcd_to_digit((char*) packet_in_digit, (char*) &enc_spdi[src_plmn_start_len], 3);
+				/* Allocate resources */
+				dec_spdi->list[i].plmn = tcore_malloc0(6 + 1);
 				// get MCC (mobile country code)
 				memcpy(dec_spdi->list[i].plmn, &(packet_in_digit[0]), 6);
 				dec_spdi->list[i].plmn[6] = '\0';
