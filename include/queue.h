@@ -48,6 +48,10 @@ TelReturn tcore_pending_set_auto_free_status_after_sent(TcorePending *pending,
 	gboolean flag);
 gboolean tcore_pending_get_auto_free_status_after_sent(TcorePending *pending);
 
+TelReturn tcore_pending_set_abortable(TcorePending *pending,
+	gboolean abortable);
+gboolean tcore_pending_get_abortable(TcorePending *pending);
+
 TelReturn tcore_pending_set_request_data(TcorePending *pending,
 	guint data_len, void *data);
 void *tcore_pending_ref_request_data(TcorePending *pending, guint *data_len);
@@ -90,6 +94,7 @@ TcorePending *tcore_queue_pop(TcoreQueue *queue);
 TcorePending *tcore_queue_pop_by_id(TcoreQueue *queue, guint id);
 TcorePending *tcore_queue_pop_by_pending(TcoreQueue *queue,
 	TcorePending *pending);
+TcorePending *tcore_queue_pop_abortable_pending(TcoreQueue *queue);
 TcorePending *tcore_queue_pop_timeout_pending(TcoreQueue *queue);
 
 TcorePending *tcore_queue_ref_head(TcoreQueue *queue);

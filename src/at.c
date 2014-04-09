@@ -97,7 +97,8 @@ typedef enum {
  */
 static const gchar *at_final_responses_success[] = {
 	"OK",
-	"CONNECT"
+	"CONNECT",
+	"ABORTED"
 };
 
 /**
@@ -149,7 +150,7 @@ static gchar *_find_next_EOL(gchar *cur)
 	return *cur == '\0' ? NULL : cur;
 }
 
-static TcoreAtResponse *__response_new()
+static TcoreAtResponse *__at_response_new()
 {
 	TcoreAtResponse *at_resp;
 
@@ -162,7 +163,7 @@ static TcoreAtResponse *__response_new()
 	return at_resp;
 }
 
-static void __response_free(TcoreAtResponse *at_resp)
+static void __at_response_free(TcoreAtResponse *at_resp)
 {
 	if (at_resp == NULL) {
 		err("Response is NULL");
@@ -174,8 +175,23 @@ static void __response_free(TcoreAtResponse *at_resp)
 	tcore_free(at_resp);
 }
 
+static gboolean __at_is_abort(TcoreAtResponse *at_resp)
+{
+	gboolean aborted = FALSE;
+	if (at_resp == NULL) {
+		err("at_resp is NULL");
+		return FALSE;
+	}
 
-static void __response_add(TcoreAtResponse *at_resp, const gchar *line)
+	/* Request is ABORTED */
+	if (g_strcmp0(at_resp->final_response, "ABORTED") == 0)
+		aborted = TRUE;
+	dbg("Aborted: [%s]", (aborted ? "YES" : "NO"));
+
+	return aborted;
+}
+
+static void __at_response_add(TcoreAtResponse *at_resp, const gchar *line)
 {
 	if ((at_resp == NULL) || (line == NULL)) {
 		err("at_resp: [%p] line: [%p]", at_resp, line);
@@ -187,9 +203,10 @@ static void __response_add(TcoreAtResponse *at_resp, const gchar *line)
 	at_resp->lines = g_slist_append(at_resp->lines, tcore_strdup(line));
 }
 
-static void __emit_pending_response(TcoreAT *at)
+static void __at_emit_pending_response(TcoreAT *at, gboolean abort)
 {
 	TcorePending *p;
+	TcoreQueue *at_queue;
 
 	if (at == NULL) {
 		err("at is NULL");
@@ -199,20 +216,36 @@ static void __emit_pending_response(TcoreAT *at)
 	tcore_at_request_free(at->req);
 	at->req = NULL;
 
-	p = tcore_queue_pop(tcore_hal_ref_queue(at->hal));
-	if (p == NULL) {
-		warn("NO pending request!!!");
-		return;
+	at_queue = tcore_hal_ref_queue(at->hal);
+
+	/*
+	 * If 'abort' is TRUE,
+	 * then Pop the first Abortable Request from Queue
+	 */
+	if (abort) {
+		p = tcore_queue_pop_abortable_pending(at_queue);
+		if (p == NULL) {
+			warn("No Abortable requests!!!");
+			goto out;
+		}
+	}
+	else {
+		p = tcore_queue_pop(at_queue);
+		if (p == NULL) {
+			warn("NO pending request!!!");
+			goto out;
+		}
 	}
 
 	tcore_pending_emit_response_callback(p, sizeof(TcoreAtResponse), at->resp);
 	tcore_pending_free(p);
 
-	__response_free(at->resp);
+out:
+	__at_response_free(at->resp);
 	at->resp = NULL;
 }
 
-static void __emit_unsolicited_message(TcoreAT *at, const gchar *line)
+static void __at_emit_unsolicited_message(TcoreAT *at, const gchar *line)
 {
 	struct _notification *noti = NULL;
 	struct _notification_callback *item = NULL;
@@ -634,7 +667,7 @@ void tcore_at_process_binary_data(TcoreAT *at, gchar *position, guint data_len)
 	}
 
 	if (data_len_final == actual_buffer_size) {
-		__emit_unsolicited_message(at, position);
+		__at_emit_unsolicited_message(at, position);
 		at->data_mode = MODE_HEX;
 		at->buf_read_pos = at->buf_read_pos + (actual_buffer_size + 1);
 		data_len_final = ZERO;
@@ -681,11 +714,11 @@ gboolean tcore_at_process(TcoreAT *at, guint data_len, const gchar *data)
 
 		/* Check request */
 		if (at->req == NULL) {
-			dbg(" Not AT request " );
-			__emit_unsolicited_message(at, pos);
+			dbg("Not AT request" );
+			__at_emit_unsolicited_message(at, pos);
 		}
 		else {
-			dbg(" AT request " );
+			dbg("AT request" );
 			if (g_strcmp0(pos, "> ") == 0) {
 				if (at->req->next_send_pos) {
 					dbg("send next: [%s]", at->req->next_send_pos);
@@ -700,7 +733,7 @@ gboolean tcore_at_process(TcoreAT *at, guint data_len, const gchar *data)
 			}
 
 			if (at->resp == NULL)
-				at->resp = __response_new();
+				at->resp = __at_response_new();
 
 			ret = __check_final_response(pos);
 			switch (ret) {
@@ -712,7 +745,7 @@ gboolean tcore_at_process(TcoreAT *at, guint data_len, const gchar *data)
 
 				at->resp->final_response = tcore_strdup(pos);
 
-				__emit_pending_response(at);
+				__at_emit_pending_response(at, __at_is_abort(at->resp));
 				at->buf_read_pos = next_pos + 1;
 
 				return TRUE;
@@ -721,14 +754,14 @@ gboolean tcore_at_process(TcoreAT *at, guint data_len, const gchar *data)
 			case TCORE_AT_RECV_MSG_TYPE_NOTI: {
 				switch (at->req->type) {
 				case TCORE_AT_COMMAND_TYPE_NO_RESULT:
-					__emit_unsolicited_message(at, pos);
+					__at_emit_unsolicited_message(at, pos);
 					break;
 
 				case TCORE_AT_COMMAND_TYPE_NUMERIC:
 					if (at->resp->lines == NULL && isdigit(pos[0]))
-						__response_add(at->resp, pos);
+						__at_response_add(at->resp, pos);
 					else
-						__emit_unsolicited_message(at, pos);
+						__at_emit_unsolicited_message(at, pos);
 				break;
 
 				case TCORE_AT_COMMAND_TYPE_SINGLELINE:
@@ -736,43 +769,43 @@ gboolean tcore_at_process(TcoreAT *at, guint data_len, const gchar *data)
 					if (at->resp->lines == NULL)
 						if (at->req->prefix)
 							if (g_str_has_prefix(pos, at->req->prefix))
-								__response_add(at->resp, pos);
+								__at_response_add(at->resp, pos);
 							else
-								__emit_unsolicited_message(at, pos);
+								__at_emit_unsolicited_message(at, pos);
 						else
-							__response_add(at->resp, pos);
+							__at_response_add(at->resp, pos);
 					else
-						__emit_unsolicited_message(at, pos);
+						__at_emit_unsolicited_message(at, pos);
 				break;
 
 				case TCORE_AT_COMMAND_TYPE_MULTILINE:
 					dbg("MULTILINE");
 					if (at->req->prefix)
 						if (g_str_has_prefix(pos, at->req->prefix))
-							__response_add(at->resp, pos);
+							__at_response_add(at->resp, pos);
 						else
-							__emit_unsolicited_message(at, pos);
+							__at_emit_unsolicited_message(at, pos);
 					else
-						__response_add(at->resp, pos);
+						__at_response_add(at->resp, pos);
 				break;
 
 				case TCORE_AT_COMMAND_TYPE_PDU:
 					dbg("PDU");
 					if (at->req->prefix)
 						if (g_str_has_prefix(pos, at->req->prefix))
-							__response_add(at->resp, pos);
+							__at_response_add(at->resp, pos);
 						else
 							if (at->resp->lines != NULL)
-								__response_add(at->resp, pos);
+								__at_response_add(at->resp, pos);
 							else
-								__emit_unsolicited_message(at, pos);
+								__at_emit_unsolicited_message(at, pos);
 					else
-						__response_add(at->resp, pos);
+						__at_response_add(at->resp, pos);
 				break;
 
 				default:
 					warn("UNKNOWN");
-					__emit_unsolicited_message(at, pos);
+					__at_emit_unsolicited_message(at, pos);
 				break;
 				}	/* switch (at->req->type) */
 			} break;
@@ -1037,3 +1070,64 @@ TelReturn tcore_at_prepare_and_send_request(CoreObject *co,
 
 	return ret;
 }
+
+TelReturn tcore_at_prepare_and_send_request_ex(CoreObject *co,
+	const gchar *cmd, const gchar *prefix, TcoreAtCommandType type,
+	TcorePendingPriority priority, void *request,
+	TcorePendingResponseCallback resp_cb, void *resp_cb_data,
+	TcorePendingSendCallback send_cb, void *send_cb_data,
+	guint timeout, TcorePendingTimeoutCallback timeout_cb, void *timeout_cb_data,
+	gboolean auto_free, gboolean abortable)
+{
+	TcorePending *pending;
+	TcoreAtRequest *at_req;
+	TcoreHal *hal;
+	TelReturn ret = TEL_RETURN_FAILURE;
+
+	hal = tcore_object_get_hal(co);
+	if (hal == NULL) {
+		err("HAL is NULL");
+		return ret;
+	}
+	dbg("hal: [%p]", hal);
+
+	/* Create Pending Request */
+	pending = tcore_pending_new(co, 0);
+	if (pending == NULL) {
+		err("Pending is NULL");
+		return ret;
+	}
+
+	/* Create AT-Command Request */
+	at_req = tcore_at_request_new(cmd, prefix, type);
+	if (at_req == NULL) {
+		err("Request is NULL");
+
+		tcore_pending_free(pending);
+		return ret;
+	}
+
+	tcore_pending_set_request_data(pending, 0, at_req);
+	tcore_pending_link_request(pending, request);
+
+	tcore_pending_set_priority(pending, priority);
+
+	tcore_pending_set_response_callback(pending, resp_cb, resp_cb_data);
+	tcore_pending_set_send_callback(pending, send_cb, send_cb_data);
+
+	if (timeout > 0)
+		tcore_pending_set_timeout(pending, timeout);
+	tcore_pending_set_timeout_callback(pending, timeout_cb, timeout_cb_data);
+
+	if (auto_free)
+		tcore_pending_set_auto_free_status_after_sent(pending, auto_free);
+
+	if (abortable)
+		tcore_pending_set_abortable(pending, abortable);
+
+	ret = tcore_hal_send_request(hal, pending);
+	dbg("ret: [0x%x]", ret);
+
+	return ret;
+}
+

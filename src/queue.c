@@ -54,6 +54,9 @@ struct tcore_pending_type {
 	gboolean flag_received_response;	/**< Received response: Response received from modem */
 	gboolean flag_auto_free_after_sent;	/**< Auto free: Not expecting Response */
 
+	/**< Abortable Request */
+	gboolean abortable;
+
 	/**< Essential references */
 	void *request;
 	TcorePlugin *plugin;
@@ -270,6 +273,29 @@ gboolean tcore_pending_get_auto_free_status_after_sent(TcorePending *pending)
 	}
 
 	return pending->flag_auto_free_after_sent;
+}
+
+TelReturn tcore_pending_set_abortable(TcorePending *pending,
+	gboolean abortable)
+{
+	if (pending == NULL) {
+		err("pending is NULL");
+		return TEL_RETURN_INVALID_PARAMETER;
+	}
+
+	pending->abortable = abortable;
+
+	return TEL_RETURN_SUCCESS;
+}
+
+gboolean tcore_pending_get_abortable(TcorePending *pending)
+{
+	if (pending == NULL) {
+		err("pending is NULL");
+		return FALSE;
+	}
+
+	return pending->abortable;
 }
 
 TelReturn tcore_pending_set_request_data(TcorePending *pending,
@@ -606,6 +632,39 @@ TcorePending *tcore_queue_pop_by_pending(TcoreQueue *queue,
 	return NULL;
 }
 
+TcorePending *tcore_queue_pop_abortable_pending(TcoreQueue *queue)
+{
+	TcorePending *pending = NULL;
+	gint i = 0;
+
+	if (queue == NULL) {
+		err("queue is NULL");
+		return NULL;
+	}
+
+	/*
+	 * Scan through the list of 'pending' Requests and
+	 * get the first Abortable Request
+	 */
+	do {
+		pending = g_queue_peek_nth(queue->gq, i);
+		if (pending == NULL) {
+			err("pending is NULL");
+			return NULL;
+		}
+		else if (tcore_pending_get_abortable(pending) == TRUE) {
+			dbg("Found Abrotable 'pending' request: [%p]", pending);
+
+			/* Pop the Abortable 'pending' Request */
+			g_queue_pop_nth(queue->gq, i);
+			break;
+		}
+
+		i++;
+	} while (pending != NULL);
+
+	return pending;
+}
 TcorePending *tcore_queue_pop_timeout_pending(TcoreQueue *queue)
 {
 	guint i = 0;
@@ -671,16 +730,6 @@ TcorePending *tcore_queue_pop_by_id(TcoreQueue *queue, guint id)
 	return __queue_search_full(queue, id, 0, SEARCH_FIELD_ID_ALL, TRUE);
 }
 
-TcorePending *tcore_queue_ref_pending_by_id(TcoreQueue *queue, guint id)
-{
-	if (queue == NULL) {
-		err("queue is NULL");
-		return NULL;
-	}
-
-	return __queue_search_full(queue, id, 0, SEARCH_FIELD_ID_ALL, FALSE);
-}
-
 TcorePending *tcore_queue_ref_next_pending(TcoreQueue *queue)
 {
 	TcorePending *pending = NULL;
@@ -716,6 +765,16 @@ TcorePending *tcore_queue_ref_next_pending(TcoreQueue *queue)
 	}
 
 	return pending;
+}
+
+TcorePending *tcore_queue_ref_pending_by_id(TcoreQueue *queue, guint id)
+{
+	if (queue == NULL) {
+		err("queue is NULL");
+		return NULL;
+	}
+
+	return __queue_search_full(queue, id, 0, SEARCH_FIELD_ID_ALL, FALSE);
 }
 
 guint tcore_queue_get_length(TcoreQueue *queue)
