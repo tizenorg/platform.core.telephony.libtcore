@@ -267,16 +267,17 @@ gboolean tcore_sim_decode_lp(unsigned char *enc_lang, int enc_lang_len, TelSimLa
 /**
  * This function is used to encode EFLP (2G)
  */
-gboolean tcore_sim_encode_lp(TelSimLanguagePreferenceCode dec_lang, char **enc_lang, int *enc_lang_len)
+gboolean tcore_sim_encode_lp(TelSimLanguagePreferenceCode dec_lang,
+	char **enc_lang, int *enc_lang_len)
 {
-	char *language_code[] = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11",
-		"12", "13", "14", "15", "16", "17", "18" };
+	char *language_code[] = {"00", "01", "02", "03", "04", "05", "06", "07",
+		"08", "09", "10", "11","12", "13", "14", "15", "16", "17", "18"};
 
 	tcore_check_return_value_assert(enc_lang != NULL, FALSE);
 	tcore_check_return_value_assert(enc_lang_len != NULL, FALSE);
 
-	*enc_lang = g_strdup_printf("%d", atoi(language_code[dec_lang]));
-	*enc_lang_len = strlen(*enc_lang);
+	*enc_lang = g_strdup_printf("%s", language_code[dec_lang]);
+	*enc_lang_len = 1;
 	dbg("Encoded Language: [%s] Length: [%d]", *enc_lang, *enc_lang_len);
 
 	return TRUE;
@@ -396,10 +397,11 @@ gboolean tcore_sim_decode_li(unsigned char *enc_lang, int enc_lang_len, int file
 /**
  * This function is used to encode EFLI (3G)
  */
-gboolean tcore_sim_encode_li(TelSimLanguagePreferenceCode dec_lang, char **en_lang, int *en_lang_len)
+gboolean tcore_sim_encode_li(TelSimLanguagePreferenceCode dec_lang,
+	char **en_lang, int *en_lang_len)
 {
-	char *language_code[] = { "de", "en", "it", "fr", "es", "nl", "sv", "da", "pt", "fi", "no", "el",
-		"tr", "hu", "pl", "ko", "zh", "ru", "ja" };
+	char *language_code[] = {"de", "en", "it", "fr", "es", "nl", "sv", "da",
+		"pt", "fi", "no", "el", "tr", "hu", "pl", "ko", "zh", "ru", "ja" };
 
 	tcore_check_return_value_assert(en_lang != NULL, FALSE);
 	tcore_check_return_value_assert(en_lang_len != NULL, FALSE);
@@ -408,8 +410,8 @@ gboolean tcore_sim_encode_li(TelSimLanguagePreferenceCode dec_lang, char **en_la
 
 	if (dec_lang < TEL_SIM_LP_LANG_UNSPECIFIED) {
 		*en_lang = (char *) tcore_strdup((gchar *)language_code[dec_lang]);
-		dbg( "sim_encode_li:tmp_out[%s]", *en_lang);
 		*en_lang_len = strlen(*en_lang);
+		dbg("Encoded Language: [%s] Length: [%d]", *en_lang, *en_lang_len);
 	}
 
 	return TRUE;
