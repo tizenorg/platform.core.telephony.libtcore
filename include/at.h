@@ -87,11 +87,10 @@ gchar *tcore_at_tok_extract(const gchar *src);
 gchar *tcore_at_tok_nth(GSList *tokens, guint index);
 
 TelReturn tcore_at_prepare_and_send_request(CoreObject *co,
-	const gchar *cmd, const gchar *prefix, TcoreAtCommandType type,
-	TcorePendingPriority priority, void *request,
+	const gchar *cmd, const gchar *prefix,
+	TcoreAtCommandType type, void *request,
 	TcorePendingResponseCallback resp_cb, void *resp_cb_data,
-	TcorePendingSendCallback send_cb, void *send_cb_data,
-	guint timeout, TcorePendingTimeoutCallback timeout_cb, void *timeout_cb_data);
+	TcorePendingSendCallback send_cb, void *send_cb_data);
 TelReturn tcore_at_prepare_and_send_request_ex(CoreObject *co,
 	const gchar *cmd, const gchar *prefix, TcoreAtCommandType type,
 	TcorePendingPriority priority, void *request,

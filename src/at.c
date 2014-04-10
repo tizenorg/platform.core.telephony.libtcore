@@ -1019,11 +1019,10 @@ gboolean tcore_at_add_hook(TcoreHal *hal, void *hook_func)
 }
 
 TelReturn tcore_at_prepare_and_send_request(CoreObject *co,
-	const gchar *cmd, const gchar *prefix, TcoreAtCommandType type,
-	TcorePendingPriority priority, void *request,
+	const gchar *cmd, const gchar *prefix,
+	TcoreAtCommandType type, void *request,
 	TcorePendingResponseCallback resp_cb, void *resp_cb_data,
-	TcorePendingSendCallback send_cb, void *send_cb_data,
-	guint timeout, TcorePendingTimeoutCallback timeout_cb, void *timeout_cb_data)
+	TcorePendingSendCallback send_cb, void *send_cb_data)
 {
 	TcorePending *pending;
 	TcoreAtRequest *at_req;
@@ -1056,14 +1055,10 @@ TelReturn tcore_at_prepare_and_send_request(CoreObject *co,
 	tcore_pending_set_request_data(pending, 0, at_req);
 	tcore_pending_link_request(pending, request);
 
-	tcore_pending_set_priority(pending, priority);
+	tcore_pending_set_priority(pending, TCORE_PENDING_PRIORITY_DEFAULT);
 
 	tcore_pending_set_response_callback(pending, resp_cb, resp_cb_data);
 	tcore_pending_set_send_callback(pending, send_cb, send_cb_data);
-
-	if (timeout > 0)
-		tcore_pending_set_timeout(pending, timeout);
-	tcore_pending_set_timeout_callback(pending, timeout_cb, timeout_cb_data);
 
 	ret = tcore_hal_send_request(hal, pending);
 	dbg("ret: [0x%x]", ret);
@@ -1071,6 +1066,10 @@ TelReturn tcore_at_prepare_and_send_request(CoreObject *co,
 	return ret;
 }
 
+/*
+ * Extended API
+ *	Provides more control on the AT-Command request being sent
+ */
 TelReturn tcore_at_prepare_and_send_request_ex(CoreObject *co,
 	const gchar *cmd, const gchar *prefix, TcoreAtCommandType type,
 	TcorePendingPriority priority, void *request,
