@@ -436,7 +436,6 @@ TelReturn tcore_at_remove_notification_full(TcoreAT *at, const gchar *prefix,
 	return TEL_RETURN_SUCCESS;
 }
 
-
 TelReturn tcore_at_remove_notification(TcoreAT *at,
 	const gchar *prefix, TcoreAtNotificationCallback callback)
 {
@@ -479,7 +478,23 @@ TelReturn tcore_at_add_notification(TcoreAT *at, const gchar *prefix,
 	return TEL_RETURN_SUCCESS;
 }
 
-TelReturn tcore_at_set_request(TcoreAT *at, TcoreAtRequest *req, gboolean send)
+TelReturn tcore_at_set_request(TcoreAT *at, TcoreAtRequest *req)
+{
+	if (at == NULL) {
+		err("AT-Command is NULL");
+		return TEL_RETURN_INVALID_PARAMETER;
+	}
+
+	at->req = req;
+
+	if (req) {
+		dbg("AT Request - Command: [%s] Pre-fix: [%s] Type: [%d])",
+			at->req->cmd, at->req->prefix, at->req->type);
+	}
+	return TEL_RETURN_SUCCESS;
+}
+
+TelReturn tcore_at_send_data(TcoreAT *at, TcoreAtRequest *req, gboolean send)
 {
 	TelReturn ret;
 	gchar *end;
@@ -489,11 +504,10 @@ TelReturn tcore_at_set_request(TcoreAT *at, TcoreAtRequest *req, gboolean send)
 		err("AT-Command is NULL");
 		return TEL_RETURN_INVALID_PARAMETER;
 	}
-	at->req = req;
 
-	if (req) {
-		dbg("AT Request - Command: [%s] Pre-fix: [%s] Type: [%d])",
-			at->req->cmd, at->req->prefix, at->req->type);
+	if ((ret = tcore_at_set_request(at, req)) != TEL_RETURN_SUCCESS) {
+		err("Failed to set AT request");
+		return ret;
 	}
 
 	if (send == FALSE)

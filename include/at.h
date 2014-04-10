@@ -62,7 +62,9 @@ void tcore_at_free(TcoreAT *at);
 
 TelReturn tcore_at_buf_write(TcoreAT *at, guint data_len, const gchar *data);
 
-TelReturn tcore_at_set_request(TcoreAT *at, TcoreAtRequest *req, gboolean send);
+TelReturn tcore_at_set_request(TcoreAT *at, TcoreAtRequest *req);
+TelReturn tcore_at_send_data(TcoreAT *at, TcoreAtRequest *req, gboolean send);
+
 TcoreAtRequest *tcore_at_get_request(TcoreAT *at);
 TcoreAtResponse *tcore_at_get_response(TcoreAT *at);
 

@@ -96,7 +96,7 @@ static gboolean __hal_idle_send(void *user_data)
 		(guint)pending, tcore_pending_get_id(pending), data_len);
 
 	if (hal->mode == TCORE_HAL_MODE_AT)
-		ret = tcore_at_set_request(hal->at, data, TRUE);
+		ret = tcore_at_send_data(hal->at, data, TRUE);
 	else
 		ret = tcore_hal_send_data(hal, data_len, data);
 
