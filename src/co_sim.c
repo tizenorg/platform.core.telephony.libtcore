@@ -230,35 +230,13 @@ gboolean tcore_sim_decode_iccid(unsigned char *enc_iccid, int enc_iccid_len, cha
  */
 gboolean tcore_sim_decode_lp(unsigned char *enc_lang, int enc_lang_len, TelSimLanguagePreferenceCode *dec_lang)
 {
-	int i = 0;
-
 	tcore_check_return_value_assert(enc_lang != NULL, FALSE);
 	tcore_check_return_value_assert(enc_lang_len != 0, FALSE);
 
 	*dec_lang = TEL_SIM_LP_LANG_UNSPECIFIED;
-
-	/*
-	 * Description of problem: language decoding was not correctly done if we used 7layers's test SIM
-	 * Patch Description : The tested SIM  at 7layers has 3 language codes like [ff][ff][01].
-	 In this case we could not decode 3rd language code.
-	 So, the below 2 lines checking the UNSPECIFIED language are commented.
-	 */
-	if (enc_lang_len > TEL_SIM_LANG_CNT_MAX)
-		enc_lang_len = TEL_SIM_LANG_CNT_MAX;
-
-	for (i = 0; i < enc_lang_len; i++) {
-
-		/*
-		 * Description of problem: Language decoding was not correctly done if we used some test SIM
-		 * Patch Description : Test SIM at some place has 3 language codes like  [ff][ff][01].
-		 * In this case we could not decode 3rd language code.
-		 * So, the below 2 lines checking the UNSPECIFIED language are commented.
-		 */
-		if (enc_lang[i] == 0xFF)
-			continue;
-
-		*dec_lang = (TelSimLanguagePreferenceCode)enc_lang[i];
-	}
+	/*Consider only highest priority language */
+	if (enc_lang[0] != 0xFF)
+		*dec_lang = (TelSimLanguagePreferenceCode)enc_lang[0];
 
 	dbg("enc_lang_len [%d] language[0x%x]", enc_lang_len, *dec_lang);
 	return TRUE;
@@ -286,111 +264,94 @@ gboolean tcore_sim_encode_lp(TelSimLanguagePreferenceCode dec_lang,
 /**
  * This function is used to decode LI (3G)
  */
- /* TelSimFileID is replaced with int */
-gboolean tcore_sim_decode_li(unsigned char *enc_lang, int enc_lang_len, int file_id, TelSimLanguagePreferenceCode *dec_lang)
+gboolean tcore_sim_decode_li(unsigned char *enc_lang, int enc_lang_len,
+	TelSimFileId file_id, TelSimLanguagePreferenceCode *dec_lang)
 {
-	int i;
-	unsigned short default_li;
-	unsigned char temp_li[3] = { 0, 0, 0 };
-
-	memset((void*) dec_lang, 0xFF, sizeof(TelSimLanguagePreferenceCode));
+	gint default_li;
 
 	tcore_check_return_value_assert(enc_lang != NULL, FALSE);
 	tcore_check_return_value_assert(enc_lang_len != 0, FALSE);
+	tcore_check_return_value_assert(dec_lang != NULL, FALSE);
+
+	*dec_lang = TEL_SIM_LP_LANG_UNSPECIFIED;
 
 	/*
-	 * Description of problem: language decoding was not correctly done if we used 7layers's test SIM
-	 * Patch Description : TS31.102 If the EFLI has the value 'FFFF' in its highest priority position,
-	 then the preferred language selection shall be the language preference in the EFPL
+	 * Description of problem: language decoding was not correctly done
+	 * if we used 7layers's test SIM Patch Description : TS31.102
+	 * If the EFLI has the value 'FFFF' in its highest priority position,
+	 * then the preferred language selection shall be the language
+	 * preference in the EFPL
 	 */
-	if (/*TODO g_sim.CardType == SIM_TYPE_USIM && */(file_id == TEL_SIM_EF_USIM_LI || file_id == TEL_SIM_EF_LP)) {
+	if ((file_id == TEL_SIM_EF_USIM_LI)
+			|| (file_id == TEL_SIM_EF_LP)) {
 		default_li = enc_lang[0];
 		default_li = ((default_li << 8) & 0xFF00) + enc_lang[1];
 
+		/* Validate the 'default' language */
 		if (default_li == 0xFFFF) {
-			// 1st language is default.
-			dbg("1st language is default");
+			dbg("'default' Laguage is UNDEFINED: [0x%x]",
+				default_li);
 			return FALSE;
 		}
 	}
 
-	if (enc_lang_len > TEL_SIM_LANG_CNT_MAX)
-		enc_lang_len = TEL_SIM_LANG_CNT_MAX;
-
-	for (i = 0; i < enc_lang_len; i++) {
-		temp_li[0] = enc_lang[i++];
-		temp_li[1] = enc_lang[i];
-/*
-		 Description of problem: language decoding was not correctly done if we used 7layers's test SIM
-		 Patch Description : The tested SIM at specific test lab has 3 language codes like [ff][ff][ff][ff][64][65].
-		 In this case we could not decode 3rd language code.
-		 So, the below 2 lines checking the UNSPECIFIED language are commented.
-*/
-		if (temp_li[0] == 0xFF || temp_li[1] == 0xFF)  //this is always 2 bytes
-			continue;
-
-		*dec_lang = TEL_SIM_LP_LANG_UNSPECIFIED;
-
-		if (temp_li[0] == 'e') {
-			switch (temp_li[1]) {
-			case 'n':
-				*dec_lang = TEL_SIM_LP_ENGLISH;
-			break;
-			case 's':
-				*dec_lang = TEL_SIM_LP_SPANISH;
-			break;
-			case 'l':
-				*dec_lang = TEL_SIM_LP_GREEK;
-			break;
-			}
-		} else if (temp_li[0] == 'd') {
-			switch (temp_li[1]) {
-			case 'e':
-				*dec_lang = TEL_SIM_LP_GERMAN;
-			break;
-
-			case 'a':
-				*dec_lang = TEL_SIM_LP_DANISH;
-			break;
-			}
-		} else if (temp_li[0] == 'i' && temp_li[1] == 't') {
-			*dec_lang = TEL_SIM_LP_ITALIAN;
-		} else if (temp_li[0] == 'f' && temp_li[1] == 'r') {
-			*dec_lang = TEL_SIM_LP_FRENCH;
-		} else if (temp_li[0] == 'n' && temp_li[1] == 'l') {
-			*dec_lang = TEL_SIM_LP_DUTCH;
-		} else if (temp_li[0] == 's' && temp_li[1] == 'v') {
-			*dec_lang = TEL_SIM_LP_SWEDISH;
-		} else if (temp_li[0] == 'f' && temp_li[1] == 'i') {
-			*dec_lang = TEL_SIM_LP_FINNISH;
-		} else if (temp_li[0] == 'n' && temp_li[1] == 'o') {
-			*dec_lang = TEL_SIM_LP_NORWEGIAN;
-		} else if (temp_li[0] == 't' && temp_li[1] == 'r') {
-			*dec_lang = TEL_SIM_LP_TURKISH;
-		} else if (temp_li[0] == 'h' && temp_li[1] == 'u') {
-			*dec_lang = TEL_SIM_LP_HUNGARIAN;
-		} else if (temp_li[0] == 'p') {
-			switch (temp_li[1]) {
-			case 'l':
-				*dec_lang = TEL_SIM_LP_POLISH;
-			break;
-			case 't':
-				*dec_lang = TEL_SIM_LP_PORTUGUESE;
-			break;
-			}
-		} else if (temp_li[0] == 'k' && temp_li[1] == 'o') {
-			*dec_lang = TEL_SIM_LP_KOREAN;
-		} else if (temp_li[0] == 'z' && temp_li[1] == 'h') {
-			*dec_lang = TEL_SIM_LP_CHINESE;
-		} else if (temp_li[0] == 'r' && temp_li[1] == 'u') {
-			*dec_lang = TEL_SIM_LP_RUSSIAN;
-		} else if (temp_li[0] == 'j' && temp_li[1] == 'a') {
-			*dec_lang = TEL_SIM_LP_JAPANESE;
+	if (enc_lang[0] == 'e') {
+		switch (enc_lang[1]) {
+		case 'n':
+			*dec_lang = TEL_SIM_LP_ENGLISH;
+		break;
+		case 's':
+			*dec_lang = TEL_SIM_LP_SPANISH;
+		break;
+		case 'l':
+			*dec_lang = TEL_SIM_LP_GREEK;
+		break;
 		}
-
-		dbg( "Language %d ", *dec_lang);
+	} else if (enc_lang[0] == 'd') {
+		switch (enc_lang[1]) {
+		case 'e':
+			*dec_lang = TEL_SIM_LP_GERMAN;
+		break;
+		case 'a':
+			*dec_lang = TEL_SIM_LP_DANISH;
+		break;
+		}
+	} else if (enc_lang[0] == 'p') {
+		switch (enc_lang[1]) {
+		case 'l':
+			*dec_lang = TEL_SIM_LP_POLISH;
+		break;
+		case 't':
+			*dec_lang = TEL_SIM_LP_PORTUGUESE;
+		break;
+		}
+	} else if (enc_lang[0] == 'i' && enc_lang[1] == 't') {
+		*dec_lang = TEL_SIM_LP_ITALIAN;
+	} else if (enc_lang[0] == 'f' && enc_lang[1] == 'r') {
+		*dec_lang = TEL_SIM_LP_FRENCH;
+	} else if (enc_lang[0] == 'n' && enc_lang[1] == 'l') {
+		*dec_lang = TEL_SIM_LP_DUTCH;
+	} else if (enc_lang[0] == 's' && enc_lang[1] == 'v') {
+		*dec_lang = TEL_SIM_LP_SWEDISH;
+	} else if (enc_lang[0] == 'f' && enc_lang[1] == 'i') {
+		*dec_lang = TEL_SIM_LP_FINNISH;
+	} else if (enc_lang[0] == 'n' && enc_lang[1] == 'o') {
+		*dec_lang = TEL_SIM_LP_NORWEGIAN;
+	} else if (enc_lang[0] == 't' && enc_lang[1] == 'r') {
+		*dec_lang = TEL_SIM_LP_TURKISH;
+	} else if (enc_lang[0] == 'h' && enc_lang[1] == 'u') {
+		*dec_lang = TEL_SIM_LP_HUNGARIAN;
+	} else if (enc_lang[0] == 'k' && enc_lang[1] == 'o') {
+		*dec_lang = TEL_SIM_LP_KOREAN;
+	} else if (enc_lang[0] == 'z' && enc_lang[1] == 'h') {
+		*dec_lang = TEL_SIM_LP_CHINESE;
+	} else if (enc_lang[0] == 'r' && enc_lang[1] == 'u') {
+		*dec_lang = TEL_SIM_LP_RUSSIAN;
+	} else if (enc_lang[0] == 'j' && enc_lang[1] == 'a') {
+		*dec_lang = TEL_SIM_LP_JAPANESE;
 	}
 
+	dbg( "Language %d ", *dec_lang);
 	return TRUE;
 }
 
@@ -998,7 +959,7 @@ gboolean tcore_sim_decode_cff(unsigned char *enc_cff, int enc_cff_len, TelSimMwi
 
 gboolean tcore_sim_decode_mwis(unsigned char *enc_mwis, int enc_mwis_len, TelSimMwis *dec_mwis)
 {
-	guint i;
+	gint i;
 	guchar indicator_status = 0;
 	guchar mask_bit = 0x01;
 

@@ -321,7 +321,7 @@ void *tcore_sim_ref_userdata(CoreObject *co);
 gboolean tcore_sim_decode_iccid(unsigned char *enc_iccid, int enc_iccid_len, char *dec_iccid);
 gboolean tcore_sim_decode_lp(unsigned char *enc_lang, int enc_lang_len, TelSimLanguagePreferenceCode *dec_lang);
 gboolean tcore_sim_encode_lp(TelSimLanguagePreferenceCode dec_lang, char **enc_lang, int *enc_lang_len);
-gboolean tcore_sim_decode_li(unsigned char *enc_lang, int enc_lang_len, int file_id, TelSimLanguagePreferenceCode *dec_lang);
+gboolean tcore_sim_decode_li(unsigned char *enc_lang, int enc_lang_len, TelSimFileId file_id, TelSimLanguagePreferenceCode *dec_lang);
 gboolean tcore_sim_encode_li(TelSimLanguagePreferenceCode dec_lang, char **en_lang, int *en_lang_len);
 gboolean tcore_sim_decode_imsi(unsigned char *en_imsi, int en_imsi_len, TelSimImsiInfo *dec_imsi);
 gboolean tcore_sim_decode_sst(unsigned char *enc_sst, int enc_sst_len, char *dec_sst);
