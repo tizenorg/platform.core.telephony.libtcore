@@ -618,9 +618,10 @@ gboolean tcore_sim_decode_msisdn(unsigned char *enc_msisdn,
 	return TRUE;
 }
 
-gboolean tcore_sim_decode_xdn(unsigned char *enc_xdn, int enc_xdn_len, char *alpha_id, char *num)
+gboolean tcore_sim_decode_xdn(unsigned char *enc_xdn, int enc_xdn_len,
+	char *alpha_id, unsigned int *alpha_id_len, char *num)
 {
-	int X;	// alpha id max length
+	int X = 0;	// alpha id max length
 	int bcd_byte;	// dialing number max length
 
 	memset((void*) alpha_id, 0, TEL_SIM_XDN_ALPHA_ID_LEN_MAX);
@@ -635,9 +636,11 @@ gboolean tcore_sim_decode_xdn(unsigned char *enc_xdn, int enc_xdn_len, char *alp
 	}
 
 	X = enc_xdn_len - 14;	// get alpha id max length
+	*alpha_id_len = 0;
 
 	if (X != 0) {
-		tcore_util_get_string((unsigned char *)alpha_id, enc_xdn, X);
+		*alpha_id_len = tcore_util_get_string((unsigned char *)alpha_id, enc_xdn, X);
+		dbg("alpha_id_len:[%d]", *alpha_id_len);
 	}
 
 	// get dialing number length

@@ -328,7 +328,8 @@ gboolean tcore_sim_decode_sst(unsigned char *enc_sst, int enc_sst_len, char *dec
 gboolean tcore_sim_decode_spn(unsigned char *enc_spn, int enc_spn_len, TelSimSpn *dec_spn);
 gboolean tcore_sim_decode_spdi(unsigned char *enc_spdi, int enc_spdi_len, TelSimSpPlmnList *dec_spdi);
 gboolean tcore_sim_decode_msisdn(unsigned char *enc_msisdn, int enc_msisdn_len, TelSimSubscriberInfo *dec_msisdn);
-gboolean tcore_sim_decode_xdn(unsigned char *enc_xdn, int enc_xdn_len, char *alpha_id, char *num);
+gboolean tcore_sim_decode_xdn(unsigned char *enc_xdn, int enc_xdn_len,
+	char *alpha_id, unsigned int *alpha_id_len, char *num);
 gboolean tcore_sim_encode_xdn(char *alpha_id, char *num, char *enc_xdn, int enc_xdn_len);
 gboolean tcore_sim_decode_ecc(unsigned char *enc_ecc, int enc_ecc_len, TelSimEccList *dec_ecc);
 gboolean tcore_sim_decode_ust(unsigned char *enc_ust, int enc_ust_len, char *dec_ust);
