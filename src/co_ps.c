@@ -38,7 +38,6 @@ typedef struct {
 	gboolean online;
 
 	TcorePsContextInfo context_id[TCORE_PS_MAX_CID + 1];
-	GSList *context_list;
 } PrivateObject;
 
 static TelReturn __ps_define_context(CoreObject *o, CoreObject *ps_context,
@@ -91,7 +90,6 @@ static void __po_free_hook(CoreObject *co)
 	po = tcore_object_ref_object(co);
 	tcore_check_return(po != NULL);
 
-	g_slist_free_full(po->context_list, g_free);
 	tcore_free(po->ops);
 	tcore_free(po);
 
@@ -266,37 +264,6 @@ void tcore_ps_free(CoreObject *co)
 	tcore_object_free(co);
 }
 
-gboolean tcore_ps_add_context(CoreObject *o, CoreObject *ctx_o)
-{
-	PrivateObject *po = NULL;
-
-	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PS, FALSE);
-	CORE_OBJECT_CHECK_RETURN(ctx_o, CORE_OBJECT_TYPE_PS_CONTEXT, FALSE);
-
-	po = tcore_object_ref_object(o);
-	tcore_check_return_value_assert (po != NULL, FALSE);
-
-	po->context_list = g_slist_insert(po->context_list, ctx_o, 0);
-
-	return TRUE;
-}
-
-gboolean tcore_ps_remove_context(CoreObject *o, CoreObject *ctx_o)
-{
-	PrivateObject *po = NULL;
-
-	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PS, FALSE);
-	CORE_OBJECT_CHECK_RETURN(ctx_o, CORE_OBJECT_TYPE_PS_CONTEXT, FALSE);
-
-	po = tcore_object_ref_object(o);
-	tcore_check_return_value_assert (po != NULL, FALSE);
-
-	(void)tcore_ps_clear_context_id(o, ctx_o);
-	po->context_list = g_slist_remove(po->context_list, ctx_o);
-
-	return TRUE;
-}
-
 gboolean tcore_ps_set_online(CoreObject *o, gboolean state)
 {
 	PrivateObject *po = NULL;
@@ -392,25 +359,37 @@ gboolean tcore_ps_clear_context_id(CoreObject *o, CoreObject *context)
 CoreObject *tcore_ps_ref_context_by_role(CoreObject *o, TcoreContextRole role)
 {
 	PrivateObject *po = NULL;
-	GSList *list;
-	CoreObject *pdp_o;
 	TcoreContextRole context_role;
-
+	guint idx_cid;
 	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PS, NULL);
 
 	po = tcore_object_ref_object(o);
 	tcore_check_return_value_assert (po != NULL, NULL);
 
-	if (po->context_list) {
-		for (list = po->context_list; list; list = list->next) {
-			pdp_o = list->data;
-			if (pdp_o && (tcore_object_get_type(pdp_o) == CORE_OBJECT_TYPE_PS_CONTEXT))
-				if (tcore_context_get_role(pdp_o, &context_role))
-					if (context_role == role)
-						return pdp_o;
+	for (idx_cid = 1; idx_cid <= TCORE_PS_MAX_CID; idx_cid++) {
+		CoreObject *s_context;
+		GSList *contexts;
+
+		if (po->context_id[idx_cid].cid == 0)
+			continue;
+
+		contexts = po->context_id[idx_cid].contexts;
+		for (; contexts; contexts = contexts->next) {
+			s_context = contexts->data;
+
+			if (s_context == NULL)
+				continue;
+
+			if (FALSE == tcore_context_get_role(s_context, &context_role)) {
+				continue;
+			}
+
+			if (context_role == role) {
+				dbg("Target and Source have same Same role");
+				return s_context;
+			}
 		}
 	}
-
 	return NULL;
 }
 
