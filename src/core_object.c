@@ -188,7 +188,7 @@ static void __free_request_hook(gpointer data)
 }
 
 static void __free_response_hook(CoreObject *co,
-		TcoreCommand command, void *request)
+	TcoreCommand command, void *request)
 {
 	CoreObjectRequestHook *req_hook;
 
@@ -222,8 +222,8 @@ static CoreObject *_object_new(TcorePlugin *plugin, guint type)
 	co->type = type;
 
 	/* Request Hook Hash table */
-	co->request_hooks = g_hash_table_new_full(g_direct_hash, g_direct_equal,
-					NULL, __free_request_hook);
+	co->request_hooks = g_hash_table_new_full(g_direct_hash,
+		g_direct_equal, NULL, __free_request_hook);
 
 	return co;
 }
@@ -247,7 +247,7 @@ static void _remove_at_callback(TcoreAT *at, struct callback_type *cb)
 }
 
 static TcoreObjectMappingTable *_object_search_mapping_tbl_entry(GSList *mapping_tbl_list,
-														TcoreHal *hal)
+	TcoreHal *hal)
 {
 	GSList *list = mapping_tbl_list;
 	TcoreObjectMappingTable *tbl_entry = NULL;
@@ -261,11 +261,11 @@ static TcoreObjectMappingTable *_object_search_mapping_tbl_entry(GSList *mapping
 		}
 	}
 
-	return tbl_entry;
+	return NULL;
 }
 
 static TcoreObjectMappingTable *_object_search_mapping_tbl_entry_by_type(
-								GSList *mapping_tbl_list, guint type)
+	GSList *mapping_tbl_list, guint type)
 {
 	GSList *list = mapping_tbl_list;
 	TcoreObjectMappingTable *tbl_entry = NULL;
@@ -284,7 +284,7 @@ static TcoreObjectMappingTable *_object_search_mapping_tbl_entry_by_type(
 		}
 	}
 
-	return tbl_entry;
+	return NULL;
 }
 
 static CoreObject *_create_core_object_by_type(guint type,
@@ -492,12 +492,10 @@ static void _deinit_core_object_by_type(guint type,
 	} break;
 
 	case CORE_OBJECT_TYPE_SAT: {
-#if 0
 		if (deinitializer_list->sat_deinit) {
 			/* Invoke deinitializer */
 			deinitializer_list->sat_deinit(plugin, co);
 		}
-#endif
 	} break;
 
 	case CORE_OBJECT_TYPE_SAP: {
@@ -602,9 +600,10 @@ static TcoreHookReturn __object_exec_response_hooks(CoreObject *co,
 						resp_hook_node = resp_list->data;
 						if (resp_hook_node != NULL && resp_hook_node->func) {
 							/* Invoke Response hook */
-							if (resp_hook_node->func(co, result, command,
-										response, resp_hook_node->user_data)
-										== TCORE_HOOK_RETURN_STOP_PROPAGATION) {
+							if (resp_hook_node->func(co,
+									result, command,
+									response, resp_hook_node->user_data)
+									== TCORE_HOOK_RETURN_STOP_PROPAGATION) {
 								dbg("Response hook requests Stop propogation");
 								return TCORE_HOOK_RETURN_STOP_PROPAGATION;
 							}
@@ -823,7 +822,7 @@ TelReturn tcore_object_set_hal(CoreObject *co, TcoreHal *hal)
 				cb = list->data;
 				if (cb != NULL) {
 					tcore_at_remove_notification_full(at,
-							cb->event, _on_at_event, cb);
+						cb->event, _on_at_event, cb);
 				}
 			}
 		}
@@ -843,10 +842,10 @@ TelReturn tcore_object_set_hal(CoreObject *co, TcoreHal *hal)
 			if (cb != NULL) {
 				if (cb->event[0] == 27)
 					tcore_at_add_notification(at,
-							cb->event + 1, TRUE, _on_at_event, cb);
+						cb->event + 1, TRUE, _on_at_event, cb);
 				else
 					tcore_at_add_notification(at,
-							cb->event, FALSE, _on_at_event, cb);
+						cb->event, FALSE, _on_at_event, cb);
 			}
 		}
 	}
@@ -899,13 +898,14 @@ static void tcore_object_response_callback(CoreObject *co,
 	}
 
 	/* Invoke Response hooks */
-	if (__object_exec_response_hooks(co, resp_cb_data->command,
-				resp_cb_data->request, result, response)
-				!= TCORE_HOOK_RETURN_STOP_PROPAGATION) {
+	if (__object_exec_response_hooks(co,
+			resp_cb_data->command,
+			resp_cb_data->request, result, response)
+			!= TCORE_HOOK_RETURN_STOP_PROPAGATION) {
 		/* Invoke response callback */
 		if (resp_cb_data->resp_cb)
 			resp_cb_data->resp_cb(tcore_object_ref_plugin(co),
-					result, response, resp_cb_data->resp_cbdata);
+				result, response, resp_cb_data->resp_cbdata);
 	}
 
 	/* Remove Request and Response Hooks */
@@ -1030,7 +1030,7 @@ TelReturn tcore_object_override_callback(CoreObject *co,
 }
 
 TelReturn tcore_object_add_callback(CoreObject *co,
-		const gchar *event, TcoreObjectCallback callback, void *user_data)
+	const gchar *event, TcoreObjectCallback callback, void *user_data)
 {
 	struct callback_type *cb = NULL;
 	TcoreAT *at = NULL;
@@ -1069,7 +1069,7 @@ TelReturn tcore_object_add_callback(CoreObject *co,
 }
 
 TelReturn tcore_object_del_callback(CoreObject *co,
-		const gchar *event, TcoreObjectCallback callback)
+	const gchar *event, TcoreObjectCallback callback)
 {
 	struct callback_type *cb;
 	GSList *list;
@@ -1111,7 +1111,7 @@ TelReturn tcore_object_del_callback(CoreObject *co,
 }
 
 TelReturn tcore_object_emit_callback(CoreObject *co,
-		const gchar *event, const void *event_info)
+	const gchar *event, const void *event_info)
 {
 	struct callback_type *cb;
 	GSList *list;
@@ -1206,7 +1206,8 @@ void tcore_object_remove_request_hook(CoreObject *co,
 				GSList *tmp_list = req_hook_list->next;
 
 				/* Remove node */
-				req_hook->request_hooks_list = g_slist_remove(req_hook->request_hooks_list, req_hook_node);
+				req_hook->request_hooks_list =
+					g_slist_remove(req_hook->request_hooks_list, req_hook_node);
 				dbg("Request hook removed for Command: [0x%x]", command);
 
 				/* Free resource */
@@ -1224,7 +1225,8 @@ void tcore_object_remove_request_hook(CoreObject *co,
 }
 
 TelReturn tcore_object_add_response_hook(CoreObject *co,
-	TcoreCommand command, const void *request, TcoreResponseHook func, void *user_data)
+	TcoreCommand command, const void *request,
+	TcoreResponseHook func, void *user_data)
 {
 	CoreObjectRequestHook *req_hook;
 
@@ -1256,7 +1258,7 @@ TelReturn tcore_object_add_response_hook(CoreObject *co,
 
 					/* Append Response hook node to Response hook list */
 					req_list_node->response_hook_list =
-							g_slist_append(req_list_node->response_hook_list, resp_hook_node);
+						g_slist_append(req_list_node->response_hook_list, resp_hook_node);
 					dbg("Response hook added for Command: [0x%x]", command);
 
 					return TEL_RETURN_SUCCESS;
@@ -1409,7 +1411,7 @@ TelReturn tcore_object_send_notification(CoreObject *co,
 }
 
 void *tcore_object_add_mapping_tbl_entry(void *mapping_tbl,
-						guint object_type, TcoreHal *hal)
+	guint object_type, TcoreHal *hal)
 {
 	GSList *mapping_tbl_list = mapping_tbl;
 	TcoreObjectMappingTable *tbl_entry;
@@ -1498,7 +1500,7 @@ void *tcore_object_remove_mapping_tbl_entry(void *mapping_tbl, TcoreHal *hal)
 }
 
 void tcore_object_remove_mapping_tbl_entry_by_type(void *mapping_tbl,
-							guint co_type)
+	guint co_type)
 {
 	GSList *mapping_tbl_list;
 	TcoreObjectMappingTable *tbl_entry;
