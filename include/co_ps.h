@@ -46,9 +46,6 @@ void tcore_ps_free(CoreObject *o);
 gboolean tcore_ps_set_ops(CoreObject *o, TcorePsOps *ps_ops);
 void tcore_ps_override_ops(CoreObject *o, TcorePsOps *ps_ops);
 
-gboolean tcore_ps_add_context(CoreObject *o, CoreObject *ctx_o);
-gboolean tcore_ps_remove_context(CoreObject *o, CoreObject *ctx_o);
-
 gboolean tcore_ps_set_online(CoreObject *o, gboolean state);
 
 gboolean tcore_ps_assign_context_id(CoreObject *o, CoreObject *context, guint cid);
