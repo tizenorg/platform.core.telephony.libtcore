@@ -51,6 +51,7 @@
 
 #define SMS_SMSP_PARAMS_MAX_LEN	28
 #define SMS_SMSP_ALPHA_ID_LEN_MAX	128	/* EF-SMSP alpha id length */
+#define SMS_SMSP_DEST_ADDRESS_LEN	12	/* EF-SMSP Destination Address length */
 #define SMS_SMSP_ADDRESS_LEN	20	/* EF-SMSP digit length */
 
 #define SMS_DEFAULT_SMSP_WITHOUT_ALPHAID	28
@@ -58,7 +59,7 @@
 #define SMS_SMSP_SCA_ADDRESS	0x02
 #define SMS_SMSP_VP 0x10
 
-#define SMS_SCA_ADDR_OFFSET 13
+#define SMS_SCA_ADDR_OFFSET 12
 #define SMS_VP_OFFSET 27
 
 #define MAX_GSM_SMS_PARAM_RECORD_SIZE	 156
@@ -1156,13 +1157,20 @@ gboolean tcore_util_encode_sms_parameters(TelSmsParamsInfo *set_params,
 
 	return TRUE;
 }
-gboolean tcore_util_decode_sms_parameters(unsigned char *incoming, unsigned int length, TelSmsParamsInfo *get_params)
+
+gboolean tcore_util_decode_sms_parameters(unsigned char *incoming,
+	unsigned int length, TelSmsParamsInfo *get_params)
 {
-	gint i = 0, alpha_id_len = 0, sca_length, param_offset = 0;
+	gint i = 0, alpha_id_len = 0, sca_length = 0;
 	unsigned char param_indicator;
+	guint sca_offset = 0;
 
+	/*
+	 * Record length: 28+Y bytes
+	 *	1 to Y - Alpha-Identifier
+	 */
 	alpha_id_len = length - SMS_SMSP_PARAMS_MAX_LEN;
-
+	dbg("Alpha ID length: [%d]", alpha_id_len);
 	if (alpha_id_len > 0) {
 		if (alpha_id_len > SMS_SMSP_ALPHA_ID_LEN_MAX)
 			alpha_id_len = SMS_SMSP_ALPHA_ID_LEN_MAX;
@@ -1170,52 +1178,62 @@ gboolean tcore_util_decode_sms_parameters(unsigned char *incoming, unsigned int 
 		/* Iterate the loop to get alpha ID */
 		for (i = 0; i < alpha_id_len; i++) {
 			if (0xff == incoming[i]) {
-				dbg(" alpha iD found");
+				dbg("Alpha ID present");
 				break;
 			}
 		}
-	} else {
+	}
+	else {
 		alpha_id_len = 0;
 	}
 
-	/*param indicator*/
+	/* Param Indicators */
 	param_indicator = incoming[alpha_id_len];
+	dbg("Parameter Indicators: [%02x]", param_indicator);
 
-	/* Service Centre Address*/
+	/*
+	 * Service Centre Address
+	 *
+	 *	1 to Y Alpha-Identifier - alpha_id_len
+	 *	Y+1 Parameter Indicators - 1 byte
+	 *	Y+2 to Y+13 TP-Destination Address - SMS_SMSP_DEST_ADDRESS_LEN
+	 *	Y+14 to Y+25 TS-Service Centre Address <-- SCA
+	 */
+	sca_offset = alpha_id_len + 1 + SMS_SCA_ADDR_OFFSET;
 	if ((0 == (param_indicator & SMS_SMSP_SCA_ADDRESS))
-		||(0x00 < (int)incoming[alpha_id_len +SMS_SCA_ADDR_OFFSET] && (int)incoming[alpha_id_len +SMS_SCA_ADDR_OFFSET] <= 12 )
-		||(0xff != (int)incoming[alpha_id_len +SMS_SCA_ADDR_OFFSET])) {
+			&& (0xFF != (int)incoming[sca_offset])) {
+		dbg("SCA Address Present");
 
-		dbg(" SCA Address Present");
-		param_offset = SMS_SCA_ADDR_OFFSET;
+		if ((incoming[sca_offset] > 0) && (incoming[sca_offset] <= 12)) {
+			gchar *decoded_sca;
 
-		if (0x00 == (int) incoming[alpha_id_len + param_offset] || 0xff == (int) incoming[alpha_id_len + param_offset]) {
-			sca_length = 0;
+			sca_length = (int)(incoming[sca_offset] - 1);
+			decoded_sca = tcore_util_convert_bcd_to_ascii(&incoming[sca_offset+2],
+				sca_length, sca_length*2);
+			dbg("Decoded SCA: [%s]", decoded_sca);
+			g_strlcpy(get_params->sca.number,
+				decoded_sca, strlen(decoded_sca)+1);
+			tcore_free(decoded_sca);
 
-			dbg(" SCAddr Length is 0");
+			get_params->sca.ton = incoming[++sca_offset] & 0x0f;
+			get_params->sca.npi = (incoming[sca_offset] & 0x70) >> 4;
 		} else {
-			if (0 < (int) incoming[alpha_id_len + param_offset]) {
-				sca_length = (int) (incoming[alpha_id_len + param_offset] - 1);
-
-				if (sca_length > SMS_SMSP_ADDRESS_LEN)
-					sca_length = SMS_SMSP_ADDRESS_LEN;
-
-				/*Filling the get SMS params info*/
-				get_params->sca.ton = incoming[alpha_id_len + (++param_offset)] & 0x0f;
-				get_params->sca.npi = (incoming[alpha_id_len + param_offset] & 0x70) >> 4;
-
-				 /* Copying SCA*/
-				memcpy(&(get_params->sca.number[0]), &incoming[alpha_id_len + (++param_offset)], sca_length);
-			} else {
-				get_params->sca.number[0] = 0;
-			}
+			sca_length = 0;
+			dbg("SCA Length is 0");
 		}
-	}	else {
+	}else {
 		dbg(" SCA Address NOT Present");
+		sca_length = 0;
+		get_params->sca.number[sca_length] = '\0';
 	}
-	if( ((param_indicator & SMS_SMSP_VP) == 0 )&& (alpha_id_len + SMS_VP_OFFSET) < MAX_GSM_SMS_PARAM_RECORD_SIZE) {
-		/*Filling the Validity Period*/
+	dbg("SCA - TON: [%d] NPI: [%d] Number: [%s]",
+		get_params->sca.ton, get_params->sca.npi, get_params->sca.number);
+
+	/* Validity Period */
+	if(((param_indicator & SMS_SMSP_VP) == 0)
+			&& (alpha_id_len + SMS_VP_OFFSET) < MAX_GSM_SMS_PARAM_RECORD_SIZE) {
 		get_params->vp = incoming[alpha_id_len + SMS_VP_OFFSET];
+		dbg("Validity period: [%d]", get_params->vp);
 	}
 
 	return TRUE;
