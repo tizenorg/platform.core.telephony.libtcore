@@ -1100,44 +1100,39 @@ guchar *tcore_util_unpack_gsm7bit(const guchar *src, guint src_len)
  * Utility APIs
  */
 gboolean tcore_util_encode_sms_parameters(TelSmsParamsInfo *set_params,
-		gchar *set_params_data, guint smsp_record_length)
+	gchar *set_params_data, guint smsp_record_length)
 {
 	gint sca_length, param_offset = 0;
-	guchar param_indicator;
+	gchar *param_indicator_index = NULL;
 	guint pid_index = 0;
-
-	/* SMSP Record Length = 28 + Y bytes
-	  * 	(Y = alphaid size)
-	  * Order of EF-SMSP file
-	  * 	Alpha-Identifier
-	  *	Parameter Indicators
-	  * 	TP-Destination Address
-	  * 	TS-Service Centre Address
-	  * 	TP-Protocol Identifier
-	  * 	TP-Data Coding Scheme
-	  * 	TP-Validity Period
-	  */
 
 	memset(set_params_data, 0xFF, smsp_record_length);
 
 	if (smsp_record_length >= SMS_DEFAULT_SMSP_WITHOUT_ALPHAID)
-		pid_index = smsp_record_length;
+		pid_index = smsp_record_length - SMS_DEFAULT_SMSP_WITHOUT_ALPHAID;
 
-	param_indicator = set_params_data[pid_index];
+	dbg("Alpha ID length: [%d]", pid_index);
+	param_indicator_index = &set_params_data[pid_index];
 
-	/* SCA*/
+	/* SCA */
 	sca_length = (unsigned)strlen(set_params->sca.number);
 	if (sca_length) {
 		if (sca_length <= SMS_SMSP_ADDRESS_LEN) {
 			dbg("Valid SCA Present");
-			param_offset = SMS_SCA_ADDR_OFFSET;
 
-			/* SCA Length */
-			set_params_data[pid_index + (param_offset)] =(sca_length + 1);
-			/* SCA Type */
-			set_params_data[pid_index + (++param_offset)] = ((set_params->sca.ton << 4) |set_params->sca.npi) | 0x80;
-			/* Copy SCA */
-			memcpy(&(set_params_data[pid_index + (++param_offset)]), &(set_params->sca.number), sca_length + 1);
+			/*
+			 * Service Centre Address
+			 *
+			 *	1 to Y Alpha-Identifier - alpha_id_len
+			 *	Y+1 Parameter Indicators - 1 byte
+			 *	Y+2 to Y+13 TP-Destination Address - SMS_SMSP_DEST_ADDRESS_LEN
+			 *	Y+14 to Y+25 TS-Service Centre Address <-- SCA
+			 */
+			param_offset = pid_index + 1 + SMS_SCA_ADDR_OFFSET;
+
+			tcore_util_encode_sca(&set_params->sca,
+				&set_params_data[param_offset]);
+			*param_indicator_index &= ~SMS_SMSP_SCA_ADDRESS;
 		} else {
 			err("Invalid SCA Length.");
 			return FALSE;
@@ -1145,15 +1140,13 @@ gboolean tcore_util_encode_sms_parameters(TelSmsParamsInfo *set_params,
 	} else {
 		dbg("SCA is NULL");
 	}
-	/*
-	  * Validity Period
-	  * 	Always send ValidityPeriod to CP
-	  * 	becase period could be 0 day.
-	  * 	Section: 3GPP TS 23.040 v6.5.0, Section 9.2.3.12.1
-	  */
-	param_offset = SMS_VP_OFFSET;
 
-	set_params_data[pid_index + (param_offset)] = set_params->vp;
+	/* Validity Period */
+	param_offset = pid_index + SMS_VP_OFFSET;
+	set_params_data[param_offset] = set_params->vp;
+	*param_indicator_index &= ~SMS_SMSP_VP;
+
+	dbg("Parameter Indicators: [%02x]", *param_indicator_index);
 
 	return TRUE;
 }
@@ -1215,8 +1208,8 @@ gboolean tcore_util_decode_sms_parameters(unsigned char *incoming,
 				decoded_sca, strlen(decoded_sca)+1);
 			tcore_free(decoded_sca);
 
-			get_params->sca.ton = incoming[++sca_offset] & 0x0f;
-			get_params->sca.npi = (incoming[sca_offset] & 0x70) >> 4;
+			get_params->sca.npi = incoming[++sca_offset] & 0x0F;
+			get_params->sca.ton = (incoming[sca_offset] & 0x70) >> 4;
 		} else {
 			sca_length = 0;
 			dbg("SCA Length is 0");
