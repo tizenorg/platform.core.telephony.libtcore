@@ -267,10 +267,12 @@ gboolean tcore_storage_set_key_callback(TcoreStorage *strg,
 				tcore_free(strg_cb_data);
 				return FALSE;
 			}
-		} while ((cb_list = g_slist_next(cb_list)));
+			cb_list = g_slist_next(cb_list);
+		} while (cb_list);
 
 		/* Append additional callback to same 'key' in Hash table */
 		hash_node = g_slist_append((GSList *)hash_node, strg_cb_data);
+		dbg("Hash node", hash_node);
 	}
 	else {
 		/*
@@ -326,7 +328,8 @@ gboolean tcore_storage_remove_key_callback(TcoreStorage *strg,
 			tcore_free(cb_node);
 			break;
 		}
-	} while ((cb_list = g_slist_next(cb_list)));
+		cb_list = g_slist_next(cb_list);
+	} while (cb_list);
 
 	cb_cnt = g_slist_length((GSList *) hash_node);
 	dbg("Callback list count: [%d]", cb_cnt);

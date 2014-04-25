@@ -369,7 +369,7 @@ gboolean tcore_sim_encode_li(TelSimLanguagePreferenceCode dec_lang,
 
 	*en_lang_len = 0;
 
-	if (dec_lang < TEL_SIM_LP_LANG_UNSPECIFIED) {
+	if (dec_lang <= TEL_SIM_LP_JAPANESE) {
 		*en_lang = (char *) tcore_strdup((gchar *)language_code[dec_lang]);
 		*en_lang_len = strlen(*en_lang);
 		dbg("Encoded Language: [%s] Length: [%d]", *en_lang, *en_lang_len);
@@ -829,7 +829,7 @@ gboolean tcore_sim_decode_uecc(unsigned char* enc_uecc, int enc_uecc_len, TelSim
 	//get the alpha identifier of ECC (
 	tcore_util_get_string((unsigned char*) dec_ecc->name, (unsigned char*) &enc_uecc[3], enc_uecc_len - 3);
 
-	ecc_service_category = enc_uecc[enc_uecc_len - 1] & 0x1F;	 // Check for the first 5 bits
+	ecc_service_category = enc_uecc[enc_uecc_len - 1] & 0xFF;
 
 	/*
 	 Assign the service category

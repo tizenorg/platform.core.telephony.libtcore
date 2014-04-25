@@ -65,14 +65,17 @@ static TelReturn __dispatcher(CoreObject *co,
 	case TCORE_COMMAND_PS_DEFINE_CONTEXT:
 		if (ps->define_context)
 			return __ps_define_context(co, *co_context, cb, (void *)user_data);
+		break;
 
 	case TCORE_COMMAND_PS_ACTIVATE_CONTEXT:
 		if (ps->activate_context)
 			return __ps_activate_context (co, *co_context, cb, (void *)user_data);
+		break;
 
 	case TCORE_COMMAND_PS_DEACTIVATE_CONTEXT:
 		if (ps->deactivate_context)
 			return __ps_deactivate_context (co, *co_context, cb, (void *)user_data);
+		break;
 
 	default:
 		err("Unsupported Command: [0x%x]", command);

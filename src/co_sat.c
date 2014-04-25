@@ -134,14 +134,17 @@ static TelReturn _dispatcher(CoreObject *co,
 	case TCORE_COMMAND_SAT_REQ_ENVELOPE:
 		if (po->ops->send_envelope)
 			return po->ops->send_envelope(co, request, cb, (void *)user_data);
+		break;
 
 	case TCORE_COMMAND_SAT_REQ_TERMINAL_RESPONSE:
 		if (po->ops->send_terminal_response)
 			return po->ops->send_terminal_response(co, request, cb, (void *)user_data);
+		break;
 
 	case TCORE_COMMAND_SAT_REQ_USER_CONFIRMATION:
 		if (po->ops->send_user_confirmation)
 			return po->ops->send_user_confirmation(co, request, cb, (void *)user_data);
+		break;
 
 	default:
 		err("unsupported operation");
@@ -314,9 +317,6 @@ static void _sat_decode_dcs(unsigned char dcs, TelSatDataCodingSchemeInfo* dsc_o
 		break;
 		case 0x03:
 			dsc_obj->m_class = TEL_SAT_MSG_CLASS_3;
-		break;
-		default:
-			dsc_obj->m_class = TEL_SAT_MSG_CLASS_RESERVED;
 		}
 	}
 

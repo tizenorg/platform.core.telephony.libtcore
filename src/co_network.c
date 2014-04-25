@@ -443,6 +443,7 @@ gboolean tcore_network_get_operator_name(CoreObject *co,
 	char *network_name;
 	tcore_check_return_value_assert(plmn != NULL, FALSE);
 	tcore_check_return_value_assert(name != NULL, FALSE);
+	tcore_check_return_value_assert(po != NULL, FALSE);
 
 	network_name = (char *)g_hash_table_lookup(po->operator_name_hash, plmn);
 	*name = tcore_strdup(network_name);
@@ -456,6 +457,7 @@ gboolean tcore_network_set_operator_name(CoreObject *co,
 	PrivateObject *po = tcore_object_ref_object(co);
 	tcore_check_return_value_assert(plmn != NULL, FALSE);
 	tcore_check_return_value_assert(name != NULL, FALSE);
+	tcore_check_return_value_assert(po != NULL, FALSE);
 
 	dbg("Set Operator Name, PLMN: [%s], Name: [%s]", plmn, name);
 

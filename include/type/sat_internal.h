@@ -41,7 +41,7 @@ extern "C" {
 #define TEL_SAT_AID_LEN_MAX	128 /**< max length for AID */
 #define TEL_SAT_PROVISIONING_REF_MAX_COUNT	10 /**< max count of sat provisioning reference */
 #define TEL_SAT_BEARER_PARAMS_LEN_MAX 		10 /**< max length of bearer parameters */
-#define TEL_SAT_BEARER_LIST_MAX_COUNT	50 /**< max count of bearer list */
+#define TEL_SAT_BEARER_LIST_MAX_COUNT	6 /**< max count of bearer list */
 
 /**
  * @enum TelSatDisplayTextPriority
