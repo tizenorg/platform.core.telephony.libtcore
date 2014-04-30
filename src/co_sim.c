@@ -692,58 +692,89 @@ gboolean tcore_sim_decode_xdn(unsigned char *enc_xdn, int enc_xdn_len,
 	return TRUE;
 }
 
-gboolean tcore_sim_encode_xdn(char *alpha_id, char *num, char *enc_xdn, int enc_xdn_len)
+gboolean tcore_sim_encode_xdn(gchar *alpha_id, gchar *number, guint enc_xdn_len,
+	gchar **enc_data)
 {
-	int alpha_id_space =0, digit_len =0, str_len = 0;
-	char bcd_code[TEL_SIM_XDN_NUMBER_LEN_MAX / 2];
-	enc_xdn = tcore_malloc0(enc_xdn_len);
-	memset((void*) enc_xdn, 0xFF, enc_xdn_len);
+#define TEL_SIM_CCI_OFFSET	12
+#define TEL_SIM_ERI_OFFSET	13
 
-	tcore_check_return_value_assert(alpha_id != NULL, FALSE);
-	tcore_check_return_value_assert(num != NULL, FALSE);
+	gint alpha_id_length = 0;
+	gchar *enc_xdn;
 
-	// get alpha id max length
-	alpha_id_space = enc_xdn_len - 14;
+	enc_xdn = tcore_malloc0(enc_xdn_len + 1);
+	memset((void*)enc_xdn, 0xFF, enc_xdn_len);
 
-	// alpha id is too big
-	str_len = strlen(alpha_id);
-	if (alpha_id_space < str_len) {
-		dbg("SIM space for alpha_id is [%d] but input alpha_id length is [%d]. so we will use [%d] byte",
-				alpha_id_space, str_len, alpha_id_space);
-		str_len = alpha_id_space;
+	/* Alpha ID length */
+	alpha_id_length = enc_xdn_len - 14;
+	if (alpha_id_length < 0)
+		alpha_id_length = 0;
+
+	/* Alpha ID */
+	if (alpha_id) {
+		guint str_len = strlen(alpha_id);
+
+		if (str_len) {
+			/* Validate Alpha ID length */
+			if (alpha_id_length < str_len) {
+				/* alpha id is too big */
+				dbg("SIM space for alpha_id is [%d] but input alpha_id " \
+					"length is [%d]. so we will use [%d] byte",
+					alpha_id_length, str_len, alpha_id_length);
+				str_len = alpha_id_length;
+			}
+
+			/* Set Alpha ID */
+			tcore_util_set_string((unsigned char *)enc_xdn,
+				(unsigned char *)alpha_id, str_len);
+		}
 	}
 
-	digit_len = strlen(num);
-	// this is digit length
-	if ( digit_len > TEL_SIM_XDN_NUMBER_LEN_MAX) {
-		dbg("SIM space for number is [%d] but input number length is [%d]. so we will use [%d] byte",
-				TEL_SIM_XDN_NUMBER_LEN_MAX, digit_len, TEL_SIM_XDN_NUMBER_LEN_MAX);
-		digit_len = TEL_SIM_XDN_NUMBER_LEN_MAX;
+	/* Dialing number/SSC string */
+	if (number) {
+		guchar number_index = 0;
+		guint number_length = 0;
+
+		if (number[0] == '+')
+			number_index = 1;
+
+		number_length = strlen(&number[number_index]);
+		if (number_length) {
+			gchar bcd_number[TEL_SIM_XDN_NUMBER_LEN_MAX / 2];
+			memset((void*)bcd_number, 0xFF, TEL_SIM_XDN_NUMBER_LEN_MAX / 2);
+
+			/* Validate Dialing number/SSC string length */
+			if (number_length > TEL_SIM_XDN_NUMBER_LEN_MAX) {
+				dbg("SIM space for number is [%d] but input number length " \
+					"is [%d]. so we will use [%d] byte",
+					TEL_SIM_XDN_NUMBER_LEN_MAX,
+					number_length, TEL_SIM_XDN_NUMBER_LEN_MAX);
+				number_length = TEL_SIM_XDN_NUMBER_LEN_MAX;
+			}
+
+			tcore_util_convert_digit_to_bcd((char*)bcd_number,
+				(char *)&number[number_index], number_length);
+
+			/* Set length of BCD number/SSC contents */
+			enc_xdn[alpha_id_length] = ( (number_length + 1) / 2 ) + 1;
+
+			/* Set TON and NPI */
+			enc_xdn[alpha_id_length + 1] = 0x80;
+			enc_xdn[alpha_id_length + 1] |= (number_index & 0x07) << 4;
+			enc_xdn[alpha_id_length + 1] |= (number_index & 0x0F);
+
+			memcpy((void*)&enc_xdn[alpha_id_length + 2],
+				bcd_number, TEL_SIM_XDN_NUMBER_LEN_MAX / 2);
+		}
 	}
 
-	tcore_util_set_string((unsigned char *)enc_xdn, (unsigned char *)alpha_id, str_len);
+	/* Set Capability/Configuration Identifier */
+	enc_xdn[alpha_id_length + TEL_SIM_CCI_OFFSET] = 0xFF;
 
-	// set length of BCD number/SSC contents
-	// p_xdn->diallingnumLen is maximum digit length. = 20 bytes.
-	// convert to BCD length and add 1 byte.
-	enc_xdn[alpha_id_space] = ( (digit_len + 1) / 2 ) + 1;
+	/* Set Extension1 Record Identifier */
+	enc_xdn[alpha_id_length + TEL_SIM_ERI_OFFSET] = 0xFF;
 
-	/* set TON and NPI
-	xdn[alpha_id_space + 1] = 0x80;
-	xdn[alpha_id_space + 1] |= (p_xdn->ton & 0x07) << 4;
-	xdn[alpha_id_space + 1] |= p_xdn->npi & 0x0F;
-	*/
-	// set dialing number/SSC string
-	memset((void*) bcd_code, 0xFF, TEL_SIM_XDN_NUMBER_LEN_MAX / 2);
-
-	tcore_util_convert_digit_to_bcd((char*) bcd_code, (char*)num, digit_len);
-
-	memcpy((void*) &enc_xdn[alpha_id_space + 2], bcd_code, TEL_SIM_XDN_NUMBER_LEN_MAX / 2);
-
-	// set Capability/Configuration Identifier
-	//out[alpha_id_space + 12] = (unsigned char) p_xdn->cc_id;
-	// set extension1 record Identifier
-	//out[alpha_id_space + 13] = (unsigned char) p_xdn->ext1_id;
+	*enc_data = enc_xdn;
+	enc_xdn[enc_xdn_len] = '\0';
 
 	return TRUE;
 }
