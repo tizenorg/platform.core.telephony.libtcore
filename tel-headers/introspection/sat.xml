@@ -29,7 +29,7 @@
 			<arg direction="in" type="i" name="command_id"/>
 			<arg direction="in" type="i" name="command_type"/>
 			<arg direction="in" type="i" name="user_confirm_type"/>
-			<arg direction="in" type="s" name="additional_data"/>
+			<arg direction="in" type="v" name="additional_data"/>
 			<arg direction="out" type="i" name="result"/>
 		</method>
 
