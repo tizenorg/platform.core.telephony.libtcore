@@ -491,6 +491,11 @@ TelReturn tcore_at_set_request(TcoreAT *at, TcoreAtRequest *req)
 		dbg("AT Request - Command: [%s] Pre-fix: [%s] Type: [%d])",
 			at->req->cmd, at->req->prefix, at->req->type);
 	}
+	else {
+		err("AT request is NULL");
+		return TEL_RETURN_INVALID_PARAMETER;
+	}
+
 	return TEL_RETURN_SUCCESS;
 }
 
@@ -502,6 +507,11 @@ TelReturn tcore_at_send_data(TcoreAT *at, TcoreAtRequest *req, gboolean send)
 
 	if (at == NULL) {
 		err("AT-Command is NULL");
+		return TEL_RETURN_INVALID_PARAMETER;
+	}
+
+	if (req == NULL) {
+		err("AT request is NULL");
 		return TEL_RETURN_INVALID_PARAMETER;
 	}
 
