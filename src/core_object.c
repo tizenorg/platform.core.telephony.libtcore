@@ -1,8 +1,9 @@
 /*
  * libtcore
  *
- * Copyright (c) 2013 Samsung Electronics Co. Ltd. All rights reserved.
- * Copyright (c) 2013 Intel Corporation. All rights reserved.
+ * Copyright (c) 2012 Samsung Electronics Co., Ltd. All rights reserved.
+ *
+ * Contact: Ja-young Gu <jygu@samsung.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -44,64 +45,29 @@
 
 struct callback_type {
 	CoreObject *co;
-	gchar *event;
-	TcoreObjectCallback callback;
+	char *event;
+	CoreObjectCallback callback;
 	void *user_data;
 };
 
-/* Hooks related structures */
-typedef struct {
-	GSList *request_hooks_list;	/* List of (CoreObjectRequestCallbacks*) nodes */
-	GSList *request_list;			/* List of (CoreObjectRequestList*) nodes */
-} CoreObjectRequestHook;
-
-typedef struct {
-	TcoreRequestHook func;		/* Request hook callback */
-	void *user_data;				/* Request hook callback user_data */
-} CoreObjectRequestCallbacks;
-
-typedef struct {
-	void *request;				/* Executing 'request' */
-	GSList *response_hook_list;	/* List of (CoreObjectResponseHook*) nodes */
-} CoreObjectRequestList;
-
-typedef struct {
-	TcoreResponseHook func;		/* Response hook callback */
-	void *user_data;				/* Response hook callback user_data */
-} CoreObjectResponseHook;
-
-typedef struct {
-	TcoreNotification command;
-	TcoreNotificationHook func;
-	void *user_data;
-} CoreObjectNotificationHook;
-
 struct tcore_object_type {
-	guint type;
+	unsigned int type;
+	char *name;
 
 	TcorePlugin *parent_plugin;
 
 	void *object;
 	void *user_data;
 
-	TcoreObjectFreeHook free_hook;
-	TcoreObjectCloneHook clone_hook;
-	TcoreObjectDispatcher dispatcher;
+	CoreObjectFreeHook free_hook;
+	CoreObjectCloneHook clone_hook;
+	CoreObjectDispatcher dispatcher;
 	GSList *callbacks;
-
-	/*
-	 * Request Hooks Hash table
-	 *
-	 * key - TcoreCommand
-	 * value - CoreObjectRequestHook*
-	 */
-	GHashTable *request_hooks;
-
-	/* Notification Hooks */
-	GSList *notification_hooks;
+	GHashTable *property;
 
 	TcoreHal *hal;
 };
+
 
 /* Mapping Table */
 struct tcore_object_mapping_tbl {
@@ -109,15 +75,7 @@ struct tcore_object_mapping_tbl {
 	GSList *object_type;
 };
 
-typedef struct {
-	TcorePluginResponseCallback resp_cb;
-	void *resp_cbdata;
-
-	TcoreCommand command;
-	void *request;
-} TcoreObjectRespData;
-
-static void _util_print_mapping_tbl_entry(TcoreObjectMappingTable *tbl_entry)
+static void _util_print_mapping_tbl_entry(object_mapping_table_t *tbl_entry)
 {
 	GSList *co_list;
 
@@ -131,20 +89,19 @@ static void _util_print_mapping_tbl_entry(TcoreObjectMappingTable *tbl_entry)
 
 	/* Search all the Table entries with matching 'type' */
 	for ( ; co_list ; co_list = co_list->next) {
-		if (co_list->data != NULL) {
-			msg("		Core Object type: [0x%x]", co_list->data);
-		}
+		if (co_list->data == NULL)
+			continue;
+
+		msg("		Core Object type: [0x%x]", co_list->data);
 	}
 }
 
 static void _free_tbl_entry(gpointer data)
 {
-	TcoreObjectMappingTable *tbl_entry;
+	object_mapping_table_t *tbl_entry;
 
-	if (data == NULL) {
-		err("data is NULL");
+	if (data == NULL)
 		return;
-	}
 
 	tbl_entry = data;
 
@@ -155,87 +112,33 @@ static void _free_tbl_entry(gpointer data)
 	g_slist_free(tbl_entry->object_type);
 
 	/* Free Table entry */
-	tcore_free(tbl_entry);
+	g_free(tbl_entry);
 }
-
-static void __free_callback_data(gpointer data)
-{
-	struct callback_type *cb = data;
-
-	if (cb) {
-		tcore_free(cb->event);
-		tcore_free(cb);
-	}
-}
-
-static void __free_responses(gpointer data)
-{
-	CoreObjectRequestList *request_node = data;
-
-	/* Free resources */
-	g_slist_free_full(request_node->response_hook_list, g_free);
-}
-
-static void __free_request_hook(gpointer data)
-{
-	CoreObjectRequestHook *req_hook = data;
-
-	/* Free Request hook callback nodes */
-	g_slist_free_full(req_hook->request_hooks_list, g_free);
-
-	/* Free 'request' and correcponding Response hook nodes */
-	g_slist_free_full(req_hook->request_list, __free_responses);
-}
-
-static void __free_response_hook(CoreObject *co,
-	TcoreCommand command, void *request)
-{
-	CoreObjectRequestHook *req_hook;
-
-	req_hook = g_hash_table_lookup(co->request_hooks, (gconstpointer)command);
-	if (req_hook != NULL) {
-		GSList *req_list = req_hook->request_list;
-		CoreObjectRequestList *request_node;
-
-		for ( ; req_list ; req_list = req_list->next) {
-			request_node = req_list->data;
-			if (request_node != NULL)
-				if (request_node->request == request)
-					g_slist_free_full(request_node->response_hook_list, g_free);
-		}
-	}
-
-}
-
-static CoreObject *_object_new(TcorePlugin *plugin, guint type)
+static CoreObject *_object_new(TcorePlugin *plugin, unsigned int type)
 {
 	CoreObject *co;
 
-	co = tcore_malloc0(sizeof(CoreObject));
-	if (co == NULL) {
-		err("Failed allocate memory");
+	co = calloc(1, sizeof(struct tcore_object_type));
+	if (!co)
 		return NULL;
-	}
 
-	/* Update parameters */
 	co->parent_plugin = plugin;
-	co->type = type;
 
-	/* Request Hook Hash table */
-	co->request_hooks = g_hash_table_new_full(g_direct_hash,
-		g_direct_equal, NULL, __free_request_hook);
+	co->type = type;
+	co->property = g_hash_table_new_full(g_str_hash, g_str_equal, free, free);
 
 	return co;
 }
 
 static gboolean _on_at_event(TcoreAT *at, const GSList *lines, void *user_data)
 {
-	struct callback_type *cb = user_data;
 	gboolean ret;
+
+	struct callback_type *cb = user_data;
 
 	ret = cb->callback(cb->co, lines, cb->user_data);
 	if (ret == FALSE) {
-		err("Callback failed");
+
 	}
 
 	return ret;
@@ -246,45 +149,50 @@ static void _remove_at_callback(TcoreAT *at, struct callback_type *cb)
 	tcore_at_remove_notification_full(at, cb->event, _on_at_event, cb);
 }
 
-static TcoreObjectMappingTable *_object_search_mapping_tbl_entry(GSList *mapping_tbl_list,
-	TcoreHal *hal)
+static object_mapping_table_t *_object_search_mapping_tbl_entry(GSList *mapping_tbl_list,
+														TcoreHal *hal)
 {
-	GSList *list = mapping_tbl_list;
-	TcoreObjectMappingTable *tbl_entry = NULL;
+	GSList *list;
+	object_mapping_table_t *tbl_entry = NULL;
 
-	for ( ; list ; list = list->next) {
+	for (list = mapping_tbl_list; list ; list = list->next) {
 		tbl_entry = list->data;
-		if (tbl_entry != NULL) {
-			/* Search for Table entry with matching 'hal' */
-			if (tbl_entry->hal == hal)
-				return tbl_entry;
+		if (tbl_entry == NULL)
+			continue;
+
+		/* Search for Table entry with matching 'hal' */
+		if (tbl_entry->hal == hal) {
+			return tbl_entry;
 		}
 	}
 
 	return NULL;
 }
 
-static TcoreObjectMappingTable *_object_search_mapping_tbl_entry_by_type(
-	GSList *mapping_tbl_list, guint type)
+static object_mapping_table_t *_object_search_mapping_tbl_entry_by_type(
+								GSList *mapping_tbl_list, unsigned int type)
 {
-	GSList *list = mapping_tbl_list;
-	TcoreObjectMappingTable *tbl_entry = NULL;
+	GSList *list;
+	GSList *co_list;
+	object_mapping_table_t *tbl_entry = NULL;
 
-	for ( ; list ; list = list->next) {
+	for (list = mapping_tbl_list; list ; list = list->next) {
 		tbl_entry = list->data;
-		if (tbl_entry != NULL) {
-			GSList *co_list = tbl_entry->object_type;
+		if (tbl_entry == NULL)
+			continue;
 
-			/* Search all the Table entries with matching 'type' */
-			for ( ; co_list ; co_list = co_list->next) {
-				if (co_list->data != NULL)
-					if (type == (guint)co_list->data)
-						return tbl_entry;
+		/* Search all the Table entries with matching 'type' */
+		for (co_list = tbl_entry->object_type ; co_list ; co_list = co_list->next) {
+			if (co_list->data == NULL)
+				continue;
+
+			if (type == (unsigned int)co_list->data) {
+				return tbl_entry;
 			}
 		}
 	}
 
-	return NULL;
+	return tbl_entry;
 }
 
 static CoreObject *_create_core_object_by_type(guint type,
@@ -295,57 +203,57 @@ static CoreObject *_create_core_object_by_type(guint type,
 	switch (type) {
 	case CORE_OBJECT_TYPE_MODEM:
 		/* Create Core Object */
-		co = tcore_modem_new(plugin, NULL, hal);
+		co = tcore_modem_new(plugin, "modem", NULL, hal);
 	break;
 
 	case CORE_OBJECT_TYPE_CALL:
 		/* Create Core Object */
-		co = tcore_call_new(plugin, NULL, hal);
+		co = tcore_call_new(plugin, "call", NULL, hal);
 	break;
 
 	case CORE_OBJECT_TYPE_SS:
 		/* Create Core Object */
-		co = tcore_ss_new(plugin, NULL, hal);
+		co = tcore_ss_new(plugin, "ss", NULL, hal);
 	break;
 
 	case CORE_OBJECT_TYPE_NETWORK:
 		/* Create Core Object */
-		co = tcore_network_new(plugin, NULL, hal);
+		co = tcore_network_new(plugin, "network", NULL, hal);
 	break;
 
 	case CORE_OBJECT_TYPE_PS:
 		/* Create Core Object */
-		co = tcore_ps_new(plugin, NULL, hal);
+		co = tcore_ps_new(plugin, "ps", NULL, hal);
 	break;
 
 	case CORE_OBJECT_TYPE_SIM:
 		/* Create Core Object */
-		co = tcore_sim_new(plugin, NULL, hal);
+		co = tcore_sim_new(plugin, "sim", NULL, hal);
 	break;
 
 	case CORE_OBJECT_TYPE_SAT:
 		/* Create Core Object */
-		co = tcore_sat_new(plugin, NULL, hal);
+		co = tcore_sat_new(plugin, "sat", NULL, hal);
 	break;
 
 	case CORE_OBJECT_TYPE_SAP:
 		/* Create Core Object */
-		co = tcore_sap_new(plugin, NULL, hal);
+		co = tcore_sap_new(plugin, "sap", NULL, hal);
 	break;
 
 	case CORE_OBJECT_TYPE_SMS:
 		/* Create Core Object */
-		co = tcore_sms_new(plugin, NULL, hal);
+		co = tcore_sms_new(plugin, "sms", NULL, hal);
 	break;
 
 	case CORE_OBJECT_TYPE_PHONEBOOK:
 		/* Create Core Object */
-		co = tcore_phonebook_new(plugin, NULL, hal);
+		co = tcore_phonebook_new(plugin, "phonebook", NULL, hal);
 	break;
 
 	case CORE_OBJECT_TYPE_GPS:
 		/* Create Core Object */
-		co = tcore_gps_new(plugin, NULL, hal);
+		co = tcore_gps_new(plugin, "gps", NULL, hal);
 	break;
 
 	case CORE_OBJECT_TYPE_CUSTOM:		/* Fall through */
@@ -356,11 +264,16 @@ static CoreObject *_create_core_object_by_type(guint type,
 	return co;
 }
 
-static gboolean _init_core_object_by_type(guint type,
-	TcorePlugin *plugin, TcoreObjectInitializer *initializer_list)
+
+static gboolean _init_core_object_by_type(unsigned int type,
+	TcorePlugin *plugin, struct object_initializer *initializer_list)
 {
-	CoreObject *co = tcore_plugin_ref_core_object(plugin, type);
 	gboolean ret = FALSE;
+	CoreObject *co = tcore_plugin_ref_core_object(plugin, type);
+	if (co == NULL) {
+		err("No Core Object of type: [0x%x]", type);
+		return FALSE;
+	}
 
 	switch (type) {
 	case CORE_OBJECT_TYPE_MODEM: {
@@ -437,8 +350,9 @@ static gboolean _init_core_object_by_type(guint type,
 	return ret;
 }
 
-static void _deinit_core_object_by_type(guint type,
-	TcorePlugin *plugin, TcoreObjectDeinitializer *deinitializer_list)
+
+static void _deinit_core_object_by_type(unsigned int type,
+			TcorePlugin *plugin, struct object_deinitializer *deinitializer_list)
 {
 	CoreObject *co;
 
@@ -536,104 +450,19 @@ static void _deinit_core_object_by_type(guint type,
 	tcore_object_free(co);
 }
 
-static TcoreHookReturn __object_exec_request_hooks(CoreObject *co,
-	TcoreCommand command, const void *request,
-	TcoreObjectResponseCallback cb, const void *cb_data)
-{
-	CoreObjectRequestHook *req_hook;
 
-	/* Look-up Request Hook Hash table if Request hooks are added for the 'command' */
-	req_hook = g_hash_table_lookup(co->request_hooks, (gconstpointer)command);
-	if (req_hook != NULL) {
-		CoreObjectRequestCallbacks *req_hook_node;
-		GSList *req_hook_list = req_hook->request_hooks_list;
-		CoreObjectRequestList *req_list;
-
-		/* Request list to hold Response hooks */
-		req_list = tcore_try_malloc0(sizeof(CoreObjectRequestList));
-		if (req_list == NULL) {
-			err("Failed to allocate memory");
-			return TCORE_HOOK_RETURN_CONTINUE;
-		}
-		req_list->request = (void *)request;
-
-		/* Prepend the 'request' to Request list for Response hook addition */
-		req_hook->request_list = g_slist_prepend(req_hook->request_list, req_list);
-
-		for ( ; req_hook_list ; req_hook_list = req_hook_list->next) {
-			req_hook_node = req_hook_list->data;
-			if ((req_hook_node != NULL) && req_hook_node->func) {
-				/* Invoke Request hook */
-				if (req_hook_node->func(co, command, request,
-						req_hook_node->user_data,
-						cb, cb_data)
-						== TCORE_HOOK_RETURN_STOP_PROPAGATION) {
-					dbg("Request hook requests Stop propogation");
-					return TCORE_HOOK_RETURN_STOP_PROPAGATION;
-				}
-			}
-		}
-	}
-
-	return TCORE_HOOK_RETURN_CONTINUE;
-}
-
-static TcoreHookReturn __object_exec_response_hooks(CoreObject *co,
-	TcoreCommand command, const void *request, gint result, const void *response)
-{
-	CoreObjectRequestHook *req_hook;
-
-	/* Look-up Request Hook Hash table if Request hooks are added for the 'command' */
-	req_hook = g_hash_table_lookup(co->request_hooks, (gconstpointer)command);
-	if (req_hook != NULL) {
-		GSList *req_list = req_hook->request_list;
-		CoreObjectRequestList *req_list_node;
-
-		for ( ; req_list ; req_list = req_list->next) {
-			req_list_node = req_list->data;
-			if (req_list_node != NULL) {
-				if (req_list_node->request == request) {
-					GSList *resp_list = req_list_node->response_hook_list;
-					CoreObjectResponseHook *resp_hook_node;
-
-					for ( ; resp_list ; resp_list = resp_list->next) {
-						resp_hook_node = resp_list->data;
-						if (resp_hook_node != NULL && resp_hook_node->func) {
-							/* Invoke Response hook */
-							if (resp_hook_node->func(co,
-									result, command,
-									response, resp_hook_node->user_data)
-									== TCORE_HOOK_RETURN_STOP_PROPAGATION) {
-								dbg("Response hook requests Stop propogation");
-								return TCORE_HOOK_RETURN_STOP_PROPAGATION;
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-
-	return TCORE_HOOK_RETURN_CONTINUE;
-}
-
-CoreObject *tcore_object_new(TcorePlugin *plugin, TcoreHal *hal)
+CoreObject *tcore_object_new(TcorePlugin *plugin,
+		const char *name, TcoreHal *hal)
 {
 	CoreObject *co;
 
 	co = _object_new(plugin, CORE_OBJECT_TYPE_DEFAULT);
-	if (co == NULL) {
-		err("Failed to allocate memory");
+	if (!co)
 		return NULL;
-	}
 
-	/* Set HAL */
 	tcore_object_set_hal(co, hal);
+	tcore_object_set_name(co, name);
 
-	/*
-	 * Add Core Obejct to Plug-in is Core Object list
-	 * if Plug-in is available
-	 */
 	if (plugin)
 		tcore_plugin_add_core_object(plugin, co);
 
@@ -642,32 +471,61 @@ CoreObject *tcore_object_new(TcorePlugin *plugin, TcoreHal *hal)
 
 void tcore_object_free(CoreObject *co)
 {
-	if (co == NULL) {
-		err("Core object is NULL");
+	GSList *l = NULL;
+	struct callback_type *cb = NULL;
+
+	if (!co)
 		return;
-	}
-	dbg("Type: [0x%x]", co->type);
+
+	dbg("co_name=%s", co->name);
 
 	if (co->free_hook)
 		co->free_hook(co);
+	else {
+		if (co->object)
+			warn("free_hook is null, private-object couldn't be freed!!");
+	}
 
-	/* Free resources */
-	g_slist_free_full(co->callbacks, __free_callback_data);
-	g_hash_table_destroy(co->request_hooks);
-	tcore_free(co);
+	if (co->property) {
+		g_hash_table_destroy(co->property);
+	}
+
+	if (co->callbacks) {
+		for (l = co->callbacks; l; l = l->next) {
+			cb = l->data;
+			if (!cb)
+				continue;
+
+			if (cb->event)
+				free(cb->event);
+
+			free(cb);
+		}
+
+		g_slist_free(co->callbacks);
+		co->callbacks = NULL;
+	}
+
+	if (co->parent_plugin)
+		tcore_plugin_remove_core_object(co->parent_plugin, co);
+
+	if (co->name)
+		free(co->name);
+
+	memset(co, 0, sizeof(CoreObject));
+	free(co);
 }
 
 CoreObject *tcore_object_clone(CoreObject *src, TcorePlugin *new_parent)
 {
 	CoreObject *dest;
 	TcorePlugin *p;
-	GSList *list;
+
+	GSList *l = NULL;
 	struct callback_type *cb = NULL;
 
-	if (src == NULL) {
-		err("Source Core object is NULL");
+	if (!src)
 		return NULL;
-	}
 
 	if (new_parent)
 		p = new_parent;
@@ -675,12 +533,9 @@ CoreObject *tcore_object_clone(CoreObject *src, TcorePlugin *new_parent)
 		p = src->parent_plugin;
 
 	dest = _object_new(p, src->type);
-	if (dest == NULL) {
-		err("Destination Core object is NULL");
+	if (!dest)
 		return NULL;
-	}
 
-	/* Clone the parameters */
 	dest->object = src->object;
 	dest->user_data = src->user_data;
 	dest->free_hook = src->free_hook;
@@ -688,16 +543,16 @@ CoreObject *tcore_object_clone(CoreObject *src, TcorePlugin *new_parent)
 	dest->dispatcher = src->dispatcher;
 	dest->hal = src->hal;
 
-	for (list = src->callbacks; list; list = list->next) {
-		cb = list->data;
-		if (cb != NULL)
-			tcore_object_add_callback(dest, cb->event, cb->callback, cb->user_data);
+	for (l = src->callbacks; l; l = l->next) {
+		cb = l->data;
+		if (!cb)
+			continue;
+
+		tcore_object_add_callback(dest, cb->event, cb->callback, cb->user_data);
 	}
 
-	/* Add Cloned Core Object to Plug-in */
 	tcore_plugin_add_core_object(p, dest);
 
-	/* Invoke Clone hook */
 	if (src->clone_hook)
 		src->clone_hook(src, dest);
 
@@ -705,353 +560,263 @@ CoreObject *tcore_object_clone(CoreObject *src, TcorePlugin *new_parent)
 }
 
 CoreObject *tcore_object_clone_template_object(TcorePlugin *p,
-				guint co_type)
+				unsigned int co_type)
 {
 	CoreObject *template_co;
 
-	/* Find Template Core object */
 	template_co = tcore_server_find_template_object(tcore_plugin_ref_server(p), co_type);
-	if (template_co == NULL) {
-		err("Failed to find Template Core object");
+	if(template_co == NULL)
 		return NULL;
-	}
 
 	return tcore_object_clone(template_co, p);
+
 }
 
-TelReturn tcore_object_set_free_hook(CoreObject *co,
-		TcoreObjectFreeHook free_hook)
+const char *tcore_object_ref_name(CoreObject *co)
 {
-	if (co == NULL) {
-		err("Core object is NULL");
-		return TEL_RETURN_INVALID_PARAMETER;
-	}
+	if (!co)
+		return NULL;
+
+	return co->name;
+}
+
+TReturn tcore_object_set_free_hook(CoreObject *co,
+		CoreObjectFreeHook free_hook)
+{
+	if (!co)
+		return TCORE_RETURN_EINVAL;
 
 	co->free_hook = free_hook;
 
-	return TEL_RETURN_SUCCESS;
+	return TCORE_RETURN_SUCCESS;
 }
 
 
-TelReturn tcore_object_set_clone_hook(CoreObject *co,
-		TcoreObjectCloneHook clone_hook)
+TReturn tcore_object_set_clone_hook(CoreObject *co,
+		CoreObjectCloneHook clone_hook)
 {
-	if (co == NULL) {
-		err("Core object is NULL");
-		return TEL_RETURN_INVALID_PARAMETER;
-	}
+	if (!co)
+		return TCORE_RETURN_EINVAL;
 
 	co->clone_hook = clone_hook;
 
-	return TEL_RETURN_SUCCESS;
+	return TCORE_RETURN_SUCCESS;
+}
+
+TReturn tcore_object_set_name(CoreObject *co, const char *name)
+{
+	if (!co)
+		return TCORE_RETURN_EINVAL;
+
+	if (co->name) {
+		free(co->name);
+		co->name = NULL;
+	}
+
+	if (name)
+		co->name = strdup(name);
+
+	return TCORE_RETURN_SUCCESS;
 }
 
 TcorePlugin *tcore_object_ref_plugin(CoreObject *co)
 {
-	if (co == NULL) {
-		err("Core object is NULL");
+	if (!co)
 		return NULL;
-	}
 
 	return co->parent_plugin;
 }
 
-TelReturn tcore_object_link_object(CoreObject *co, void *object)
+TReturn tcore_object_link_object(CoreObject *co, void *object)
 {
-	if (co == NULL) {
-		err("Core object is NULL");
-		return TEL_RETURN_INVALID_PARAMETER;
-	}
+	if (!co)
+		return TCORE_RETURN_EINVAL;
 
 	co->object = object;
 
-	return TEL_RETURN_SUCCESS;
+	return TCORE_RETURN_SUCCESS;
 }
 
 void *tcore_object_ref_object(CoreObject *co)
 {
-	if (co == NULL) {
-		err("Core object is NULL");
+	if (!co)
 		return NULL;
-	}
 
 	return co->object;
 }
 
-TelReturn tcore_object_set_type(CoreObject *co, guint type)
+TReturn tcore_object_set_type(CoreObject *co, unsigned int type)
 {
-	if (co == NULL) {
-		err("Core object is NULL");
-		return TEL_RETURN_INVALID_PARAMETER;
-	}
+	if (!co)
+		return TCORE_RETURN_EINVAL;
 
 	co->type = type;
-	dbg("Set core_object to type: [0x%x])", type);
 
-	return TEL_RETURN_SUCCESS;
+	return TCORE_RETURN_SUCCESS;
 }
 
-guint tcore_object_get_type(CoreObject *co)
+unsigned int tcore_object_get_type(CoreObject *co)
 {
-	if (co == NULL) {
-		err("Core object is NULL");
+	if (!co)
 		return 0;
-	}
 
 	return co->type;
 }
 
-TelReturn tcore_object_set_hal(CoreObject *co, TcoreHal *hal)
+TReturn tcore_object_set_hal(CoreObject *co, TcoreHal *hal)
 {
 	TcoreAT *at;
 	struct callback_type *cb = NULL;
-	GSList *list;
+	GSList *l = NULL;
 
-	if (co == NULL) {
-		err("Core object is NULL");
-		return TEL_RETURN_INVALID_PARAMETER;
-	}
-
-	dbg("Core Object Type: [0x%x] HAL: [0x%x]", co->type, hal);
+	if (!co)
+		return TCORE_RETURN_EINVAL;
 
 	if (co->hal) {
-		/* Remove unsolicited callbacks */
+		// remove unsolicited callbacks
 		if (tcore_hal_get_mode(co->hal) == TCORE_HAL_MODE_AT) {
 			at = tcore_hal_get_at(co->hal);
-			for (list = co->callbacks; list != NULL; list = list->next) {
-				cb = list->data;
-				if (cb != NULL) {
-					tcore_at_remove_notification_full(at,
-						cb->event, _on_at_event, cb);
-				}
+			for (l = co->callbacks; l; l = l->next) {
+				cb = l->data;
+				if (!cb)
+					continue;
+
+				tcore_at_remove_notification_full(at, cb->event, _on_at_event, cb);
 			}
 		}
 	}
 
 	co->hal = hal;
-	if (hal == NULL) {
-		dbg("hal is NULL");
-		return TEL_RETURN_SUCCESS;
-	}
+	if (!hal)
+		return TCORE_RETURN_SUCCESS;
 
-	/* Register unsolicited callbacks */
+	// register unsolicited callbacks
 	if (tcore_hal_get_mode(hal) == TCORE_HAL_MODE_AT) {
 		at = tcore_hal_get_at(hal);
-		for (list = co->callbacks; list != NULL; list = list->next) {
-			cb = list->data;
-			if (cb != NULL) {
-				if (cb->event[0] == 27)
-					tcore_at_add_notification(at,
-						cb->event + 1, TRUE, _on_at_event, cb);
-				else
-					tcore_at_add_notification(at,
-						cb->event, FALSE, _on_at_event, cb);
-			}
+		for (l = co->callbacks; l; l = l->next) {
+			cb = l->data;
+			if (!cb)
+				continue;
+
+			if (cb->event[0] == 27)
+				tcore_at_add_notification(at, cb->event + 1, TRUE, _on_at_event, cb);
+			else
+				tcore_at_add_notification(at, cb->event, FALSE, _on_at_event, cb);
 		}
 	}
 
-	return TEL_RETURN_SUCCESS;
+	return TCORE_RETURN_SUCCESS;
 }
 
 TcoreHal *tcore_object_get_hal(CoreObject *co)
 {
-	if (co == NULL) {
-		err("Core object is NULL");
+	if (!co)
 		return NULL;
-	}
 
 	return co->hal;
 }
 
-TelReturn tcore_object_link_user_data(CoreObject *co,
+TReturn tcore_object_link_user_data(CoreObject *co,
 		void *user_data)
 {
-	if (co == NULL) {
-		err("Core object is NULL");
-		return TEL_RETURN_INVALID_PARAMETER;
-	}
+	if (!co)
+		return TCORE_RETURN_EINVAL;
 
 	co->user_data = user_data;
 
-	return TEL_RETURN_SUCCESS;
+	return TCORE_RETURN_SUCCESS;
 }
 
 void *tcore_object_ref_user_data(CoreObject *co)
 {
-	if (co == NULL) {
-		err("Core object is NULL");
+	if (!co)
 		return NULL;
-	}
 
 	return co->user_data;
 }
 
-/* TODO - Need to move the static function and rename accordingly */
-static void tcore_object_response_callback(CoreObject *co,
-	gint result, const void *response, void *user_data)
+TReturn tcore_object_dispatch_request(CoreObject *co,
+		UserRequest *ur)
 {
-	TcoreObjectRespData *resp_cb_data = (TcoreObjectRespData *)user_data;
+	if (!co || !ur)
+		return TCORE_RETURN_EINVAL;
 
-	if (resp_cb_data == NULL) {
-		err("Response Callback data is NULL");
-		return;
-	}
+	if (!co->dispatcher)
+		return TCORE_RETURN_ENOSYS;
 
-	/* Invoke Response hooks */
-	if (__object_exec_response_hooks(co,
-			resp_cb_data->command,
-			resp_cb_data->request, result, response)
-			!= TCORE_HOOK_RETURN_STOP_PROPAGATION) {
-		/* Invoke response callback */
-		if (resp_cb_data->resp_cb)
-			resp_cb_data->resp_cb(tcore_object_ref_plugin(co),
-				result, response, resp_cb_data->resp_cbdata);
-	}
-
-	/* Remove Request and Response Hooks */
-	__free_response_hook(co, resp_cb_data->command, resp_cb_data->request);
-
-	/* Free resource */
-	tcore_free(resp_cb_data->request);
-	tcore_free(resp_cb_data);
+	return co->dispatcher(co, ur);
 }
 
-TelReturn tcore_object_dispatch_request(CoreObject *co,
-		gboolean exec_hooks, TcoreCommand command,
-		const void *request, guint request_len,
-		TcorePluginResponseCallback cb, const void *user_data)
+TReturn tcore_object_set_dispatcher(CoreObject *co,
+		CoreObjectDispatcher func)
 {
-	void *dispatch_request;
-	TcoreObjectRespData *resp_cb_data;
-	TelReturn ret = TEL_RETURN_FAILURE;
-
-	if (co == NULL) {
-		err("Core object is NULL");
-		return TEL_RETURN_FAILURE;
-	}
-
-	if (request_len)
-		dispatch_request = tcore_memdup(request, request_len);
-	else
-		dispatch_request = tcore_malloc0(sizeof(guint));
-
-	/* Allocate Response callback data */
-	resp_cb_data = tcore_malloc0(sizeof(TcoreObjectRespData));
-	resp_cb_data->resp_cb = cb;
-	resp_cb_data->resp_cbdata = (void *)user_data;
-
-	resp_cb_data->command = command;
-	resp_cb_data->request = dispatch_request;
-
-	if (exec_hooks == TRUE) {
-		/* Invoke Request hooks */
-		if (__object_exec_request_hooks(co, command, dispatch_request,
-				tcore_object_response_callback, (const void *)resp_cb_data)
-				== TCORE_HOOK_RETURN_STOP_PROPAGATION) {
-			dbg("Hooks return - [STOP PROPOGATION]");
-			return TEL_RETURN_SUCCESS;
-		}
-	}
-
-	/*
-	 * Dispatch Request to corresponding Core object
-	 * if 'dispatcher' is available.
-	 */
-	if (co->dispatcher) {
-		ret = co->dispatcher(co, command, dispatch_request,
-			tcore_object_response_callback, (const void *)resp_cb_data);
-		dbg("Dispatch Request - [%s]",
-			(ret == TEL_RETURN_SUCCESS) ? "SUCCESS" : "FAIL");
-	} else {
-		err("Dispatcher is NULL");
-	}
-
-	/*
-	 * Free resources,
-	 * in case Request processing is not Successful
-	 */
-	if (ret != TEL_RETURN_SUCCESS) {
-		tcore_free(dispatch_request);
-		tcore_free(resp_cb_data);
-	}
-
-	return ret;
-}
-
-TelReturn tcore_object_set_dispatcher(CoreObject *co,
-		TcoreObjectDispatcher func)
-{
-	if ((co == NULL) || (func == NULL)) {
-		err("co: [%p] func: [%p]", co, func);
-		return TEL_RETURN_INVALID_PARAMETER;
-	}
+	if (!co || !func)
+		return TCORE_RETURN_EINVAL;
 
 	co->dispatcher = func;
 
-	return TEL_RETURN_SUCCESS;
+	return TCORE_RETURN_SUCCESS;
 }
 
-TelReturn tcore_object_override_callback(CoreObject *co,
-		const gchar *event, TcoreObjectCallback callback, void *user_data)
+TReturn tcore_object_override_callback(CoreObject *co,
+		const char *event, tcore_object_callback callback, void *user_data)
 {
-	struct callback_type *cb;
-	GSList *list;
+	struct callback_type *cb = NULL;
+	GSList *l = NULL;
 	TcoreAT *at = NULL;
 
-	if ((co == NULL) || (event == NULL) || (callback == NULL)) {
-		err("co: [%p] event: [%p] callback: [%p]", co, event, callback);
-		return TEL_RETURN_INVALID_PARAMETER;
-	}
+	if ((co == NULL) || (event == NULL) || (callback == NULL))
+		return TCORE_RETURN_EINVAL;
 
-	if (strlen(event) < 1) {
-		err("Invalid event!!!");
-		return TEL_RETURN_INVALID_PARAMETER;
-	}
+	if (strlen(event) < 1)
+		return TCORE_RETURN_EINVAL;
 
-	if (co->hal)
+	if (co->hal) {
 		if (tcore_hal_get_mode(co->hal) == TCORE_HAL_MODE_AT)
 			at = tcore_hal_get_at(co->hal);
+	}
 
-	for (list = co->callbacks; list ; list = list->next) {
-		cb = list->data;
-		if (cb != NULL) {
-			if (g_strcmp0(cb->event, event) == 0) {
-				if (at)
-					_remove_at_callback(at, cb);
+	for (l = co->callbacks; l; l = l->next) {
+		cb = l->data;
+		if (cb == NULL)
+			continue;
 
-				/* Free resources */
-				co->callbacks = g_slist_remove(co->callbacks, cb);
-				__free_callback_data(cb);
-			}
-		}
+		if (g_strcmp0(cb->event, event) != 0)
+			continue;
+
+		if (at)
+			_remove_at_callback(at, cb);
+
+		g_free(cb->event);
+		co->callbacks = g_slist_remove(co->callbacks, cb);
+		g_free(cb);
 	}
 
 	return tcore_object_add_callback(co, event, callback, user_data);
 }
 
-TelReturn tcore_object_add_callback(CoreObject *co,
-	const gchar *event, TcoreObjectCallback callback, void *user_data)
+TReturn tcore_object_add_callback(CoreObject *co,
+		const char *event,
+		CoreObjectCallback callback, void *user_data)
 {
 	struct callback_type *cb = NULL;
 	TcoreAT *at = NULL;
 
-	if ((co == NULL) || (event == NULL) || (callback == NULL)) {
-		err("co: [%p] event: [%p] callback: [%p]", co, event, callback);
-		return TEL_RETURN_INVALID_PARAMETER;
-	}
+	if (!co || !event || !callback)
+		return TCORE_RETURN_EINVAL;
 
-	if (strlen(event) < 1) {
-		err("Invalid event!!!");
-		return TEL_RETURN_INVALID_PARAMETER;
-	}
+	if (strlen(event) < 1)
+		return TCORE_RETURN_EINVAL;
 
-	cb = tcore_malloc0(sizeof(struct callback_type));
+	cb = calloc(1, sizeof(struct callback_type));
+	if (!cb)
+		return TCORE_RETURN_ENOMEM;
+
 	cb->co = co;
-	cb->event = tcore_strdup(event);
+	cb->event = strdup(event);
 	cb->callback = callback;
 	cb->user_data = user_data;
 
-	/* Callbacks are appended - FCFS principle */
 	co->callbacks = g_slist_append(co->callbacks, cb);
 
 	if (co->hal) {
@@ -1065,360 +830,188 @@ TelReturn tcore_object_add_callback(CoreObject *co,
 		}
 	}
 
-	return TEL_RETURN_SUCCESS;
+	return TCORE_RETURN_SUCCESS;
 }
 
-TelReturn tcore_object_del_callback(CoreObject *co,
-	const gchar *event, TcoreObjectCallback callback)
+TReturn tcore_object_del_callback(CoreObject *co,
+		const char *event, CoreObjectCallback callback)
 {
-	struct callback_type *cb;
-	GSList *list;
+	struct callback_type *cb = NULL;
+	GSList *l = NULL;
 	TcoreAT *at = NULL;
 
-	if ((co == NULL) || (event == NULL)
-			|| (callback == NULL) || (co->callbacks == NULL)) {
-		err("co: [%p] event: [%p] callback: [%p] co->callbacks: [%p]",
-				co, event, callback, (co ? co->callbacks : NULL));
-		return TEL_RETURN_INVALID_PARAMETER;
-	}
+	if (!co || !event || !callback || !co->callbacks)
+		return TCORE_RETURN_EINVAL;
 
-	if (strlen(event) < 1) {
-		err("Invalid event!!!");
-		return TEL_RETURN_INVALID_PARAMETER;
-	}
+	if (strlen(event) == 0)
+		return TCORE_RETURN_EINVAL;
 
-	if (co->hal)
+	if (co->hal) {
 		if (tcore_hal_get_mode(co->hal) == TCORE_HAL_MODE_AT)
 			at = tcore_hal_get_at(co->hal);
-
-	for (list = co->callbacks; list ; list = list->next) {
-		cb = list->data;
-		if (cb != NULL) {
-			if (cb->callback == callback) {
-				if (g_strcmp0(cb->event, event) == 0) {
-					if (at)
-						_remove_at_callback(at, cb);
-
-					/* Free resources */
-					co->callbacks = g_slist_remove(co->callbacks, cb);
-					__free_callback_data(cb);
-				}
-			}
-		}
 	}
 
-	return TEL_RETURN_SUCCESS;
-}
-
-TelReturn tcore_object_emit_callback(CoreObject *co,
-	const gchar *event, const void *event_info)
-{
-	struct callback_type *cb;
-	GSList *list;
-
-	if ((co == NULL) || (event == NULL)) {
-		err("co: [%p] event: [%p]", co, event);
-		return TEL_RETURN_INVALID_PARAMETER;
-	}
-
-	for (list = co->callbacks ; list ; list = list->next) {
-		cb = list->data;
-		if (cb != NULL) {
-			if (g_strcmp0(cb->event, event) == 0) {
-				if (cb->callback) {
-					if (cb->callback(co, event_info, cb->user_data) == FALSE) {
-						err("Callback failed");
-
-						/* Free resource */
-						co->callbacks = g_slist_remove(co->callbacks, cb);
-						__free_callback_data(cb);
-					}
-				}
-			}
-		}
-	}
-
-	return TEL_RETURN_SUCCESS;
-}
-
-TelReturn tcore_object_add_request_hook(CoreObject *co,
-	TcoreCommand command, TcoreRequestHook func, void *user_data)
-{
-	CoreObjectRequestHook *req_hook;
-	CoreObjectRequestCallbacks *req_hook_node;
-
-	if ((co == NULL) || (func == NULL)) {
-		err("co: [%p] func: [%p]", co, func);
-		return TEL_RETURN_INVALID_PARAMETER;
-	}
-
-	/* Create Request hook list node */
-	req_hook_node = tcore_malloc0(sizeof(CoreObjectRequestCallbacks));
-	req_hook_node->func = func;
-	req_hook_node->user_data = user_data;
-
-	req_hook = g_hash_table_lookup(co->request_hooks, (gconstpointer)command);
-	if (req_hook == NULL) {
-		/* Create Request Hook (Hash table) node */
-		req_hook = tcore_malloc0(sizeof(CoreObjectRequestHook));
-		if (req_hook == NULL) {
-			err("Failed to allocate memory");
-
-			/* Free resource */
-			tcore_free(req_hook_node);
-			return TEL_RETURN_MEMORY_FAILURE;
+	l = co->callbacks;
+	while (l) {
+		cb = l->data;
+		if (!cb) {
+			l = l->next;
+			continue;
 		}
 
-		/* Insert Request Hook node to Hash table */
-		g_hash_table_insert(co->request_hooks, (gpointer)command, req_hook);
+		if (cb->callback != callback) {
+			l = l->next;
+			continue;
+		}
+
+		if (g_strcmp0(cb->event, event) != 0) {
+			l = l->next;
+			continue;
+		}
+
+		if (at)
+			_remove_at_callback(at, cb);
+
+		l = l->next;
+		co->callbacks = g_slist_remove(co->callbacks, cb);
+		free(cb->event);
+		free(cb);
 	}
 
-	/* Append request hook node to Request hooks list */
-	req_hook->request_hooks_list = g_slist_append(req_hook->request_hooks_list, req_hook_node);
-	dbg("Request hook added for Command: [0x%x]", command);
-
-	return TEL_RETURN_SUCCESS;
+	return TCORE_RETURN_SUCCESS;
 }
 
-void tcore_object_remove_request_hook(CoreObject *co,
-	TcoreCommand command, TcoreRequestHook func)
+TReturn tcore_object_emit_callback(CoreObject *co,
+		const char *event, const void *event_info)
 {
-	CoreObjectRequestHook *req_hook;
-	CoreObjectRequestCallbacks *req_hook_node;
-	GSList *req_hook_list;
+	struct callback_type *cb = NULL;
+	GSList *l = NULL;
+	TReturn ret;
 
-	if ((co == NULL) || (func == NULL)) {
-		err("co: [%p] func: [%p]", co, func);
-		return;
-	}
+	if (!co || !event)
+		return TCORE_RETURN_EINVAL;
 
-	req_hook = g_hash_table_lookup(co->request_hooks, (gconstpointer)command);
-	if (req_hook == NULL) {
-		err("No request hooks for Command: [0x%x]", command);
-		return;
-	}
+	l = co->callbacks;
+	while (l) {
+		cb = l->data;
+		if (!cb) {
+			l = l->next;
+			continue;
+		}
 
-	req_hook_list = req_hook->request_hooks_list;
-	while (req_hook_list) {
-		req_hook_node = req_hook_list->data;
-		if (req_hook_node != NULL) {
-			if (req_hook_node->func == func) {
-				GSList *tmp_list = req_hook_list->next;
+		if (g_strcmp0(cb->event, event) != 0) {
+			l = l->next;
+			continue;
+		}
 
-				/* Remove node */
-				req_hook->request_hooks_list =
-					g_slist_remove(req_hook->request_hooks_list, req_hook_node);
-				dbg("Request hook removed for Command: [0x%x]", command);
-
-				/* Free resource */
-				tcore_free(req_hook_node);
-
-				/* Continue to next node */
-				req_hook_list = tmp_list;
+		if (cb->callback) {
+			ret = cb->callback(co, event_info, cb->user_data);
+			if (ret == FALSE) {
+				l = l->next;
+				co->callbacks = g_slist_remove(co->callbacks, cb);
 				continue;
 			}
 		}
 
-		/* Continue to next node */
-		req_hook_list = req_hook_list->next;
+		l = l->next;
 	}
+
+	return TCORE_RETURN_SUCCESS;
 }
 
-TelReturn tcore_object_add_response_hook(CoreObject *co,
-	TcoreCommand command, const void *request,
-	TcoreResponseHook func, void *user_data)
+static GSList *_set_property_real (CoreObject *co, const char *key,
+		const char *value, GSList *list)
 {
-	CoreObjectRequestHook *req_hook;
+	char *prev;
 
-	if ((co == NULL) || (func == NULL)) {
-		err("co: [%p] func: [%p]", co, func);
-		return TEL_RETURN_INVALID_PARAMETER;
+	if (!co || !key)
+		return list;
+
+	if (!value) {
+		g_hash_table_remove (co->property, key);
+		return g_slist_append (list, (char *)key);
 	}
 
-	/* Look-up Request Hook Hash table if Request hooks are added for the 'command' */
-	req_hook = g_hash_table_lookup(co->request_hooks, (gconstpointer)command);
-	if (req_hook != NULL) {
-		GSList *req_list = req_hook->request_list;
-		CoreObjectRequestList *req_list_node;
+	prev = g_hash_table_lookup(co->property, key);
+	if (prev != NULL) {
+		/*
+		 * If same data, no change & no callback emit
+		 */
+		if (strcmp (prev, value) == 0)
+			return list;
 
-		for ( ; req_list ; req_list = req_list->next) {
-			req_list_node = req_list->data;
-			if (req_list_node != NULL) {
-				if (req_list_node->request == request) {
-					CoreObjectResponseHook *resp_hook_node;
-
-					/* Response hook node */
-					resp_hook_node = tcore_try_malloc0(sizeof(CoreObjectResponseHook));
-					if (resp_hook_node == NULL) {
-						err("Failed to allocate memory");
-						return TEL_RETURN_MEMORY_FAILURE;
-					}
-					resp_hook_node->func = func;
-					resp_hook_node->user_data = user_data;
-
-					/* Append Response hook node to Response hook list */
-					req_list_node->response_hook_list =
-						g_slist_append(req_list_node->response_hook_list, resp_hook_node);
-					dbg("Response hook added for Command: [0x%x]", command);
-
-					return TEL_RETURN_SUCCESS;
-				}
-			}
-		}
+		g_hash_table_replace(co->property, strdup(key), strdup(value));
 	}
 	else {
-		err("Abnormal behavior... Response Hooks need to be added in Request hook callbacks!!!");
+		g_hash_table_insert(co->property, strdup(key), strdup(value));
 	}
 
-	return TEL_RETURN_FAILURE;
+	return g_slist_append (list, (char *)key);
 }
 
-void tcore_object_remove_response_hook(CoreObject *co,
-	TcoreCommand command, TcoreResponseHook func)
+TReturn tcore_object_set_property_full(CoreObject *co, const char *first_property, ...)
 {
-	CoreObjectRequestHook *req_hook;
+	va_list argptr;
+	GSList *list = NULL;
+	const char *k;
+	const char *v;
 
-	if ((co == NULL) || (func == NULL)) {
-		err("co: [%p] func: [%p]", co, func);
-		return;
+	if (!co || !first_property)
+		return TCORE_RETURN_EINVAL;
+
+	va_start (argptr, first_property);
+
+	k = first_property;
+	v = va_arg (argptr, char *);
+	list = _set_property_real (co, k, v, list);
+
+	while (1) {
+		k = va_arg (argptr, char *);
+		if (!k)
+			break;
+
+		v = va_arg (argptr, char *);
+		list = _set_property_real (co, k, v, list);
 	}
 
-	req_hook = g_hash_table_lookup(co->request_hooks, (gconstpointer)command);
-	if (req_hook != NULL) {
-		GSList *req_list = req_hook->request_list;
-		CoreObjectRequestList *request_node;
+	va_end (argptr);
 
-		for ( ; req_list ; req_list = req_list->next) {
-			request_node = req_list->data;
-			if (request_node != NULL) {
-				CoreObjectResponseHook *response_node;
-				GSList *resp_list = request_node->response_hook_list;
+	if (!list)
+		return TCORE_RETURN_SUCCESS;
 
-				while (resp_list) {
-					GSList *tmp_list = resp_list->next;
+	if (g_slist_length(list) > 0)
+		tcore_object_emit_callback (co,
+				CORE_OBJECT_EVENT_PROPERTY_CHANGED, list);
 
-					response_node = resp_list->data;
-					if (response_node != NULL) {
-						if (response_node->func == func) {
-							/* Remove and free response hook node */
-							request_node->response_hook_list =
-								g_slist_remove(request_node->response_hook_list, response_node);
-							dbg("Response hook removed for Command: [0x%x]", command);
+	g_slist_free (list);
 
-							tcore_free(response_node);
-						}
-					}
-
-					resp_list = tmp_list;
-				}
-			}
-		}
-	}
+	return TCORE_RETURN_SUCCESS;
 }
 
-TelReturn tcore_object_add_notification_hook(CoreObject *co,
-	TcoreNotification command, TcoreNotificationHook func, void *user_data)
+const char *tcore_object_ref_property(CoreObject *co, const char *key)
 {
-	CoreObjectNotificationHook *noti_hook;
+	if (!co || !key)
+		return NULL;
 
-	if ((co == NULL) || (func == NULL)) {
-		err("co: [%p] func: [%p]", co, func);
-		return TEL_RETURN_INVALID_PARAMETER;
-	}
-
-	/* Notification hook node */
-	noti_hook = tcore_try_malloc0(sizeof(CoreObjectNotificationHook));
-	if (noti_hook == NULL) {
-		err("Failed to allocate memory");
-		return TEL_RETURN_MEMORY_FAILURE;
-	}
-	noti_hook->command = command;
-	noti_hook->func = func;
-	noti_hook->user_data = user_data;
-
-	/* Append Notification hook node to Notification hook list */
-	co->notification_hooks =
-			g_slist_append(co->notification_hooks, noti_hook);
-
-	dbg("Notification hook added for Command: [0x%x]", command);
-
-	return TEL_RETURN_SUCCESS;
+	return g_hash_table_lookup(co->property, key);
 }
 
-void tcore_object_remove_notification_hook(CoreObject *co,
-	TcoreNotification command, TcoreNotificationHook func)
+GHashTable *tcore_object_ref_property_hash(CoreObject *co)
 {
-	GSList *noti_list;
-	CoreObjectNotificationHook *noti_hook;
+	if (!co)
+		return NULL;
 
-	if ((co == NULL) || (func == NULL)) {
-		err("co: [%p] func: [%p]", co, func);
-		return;
-	}
-
-	noti_list = co->notification_hooks;
-	while (noti_list) {
-		GSList *tmp_list = noti_list->next;
-
-		noti_hook = noti_list->data;
-		if (noti_hook != NULL) {
-			if (noti_hook->func == func) {
-				/* Remove and free Notification hook node */
-				co->notification_hooks =
-					g_slist_remove(co->notification_hooks, noti_hook);
-				dbg("Notification hook removed for Command: [0x%x]", command);
-
-				tcore_free(noti_hook);
-			}
-		}
-
-		noti_list = tmp_list;
-	}
+	return co->property;
 }
-
-TelReturn tcore_object_send_notification(CoreObject *co,
-	TcoreNotification command, guint data_len, void *data)
-{
-	TcorePlugin *plugin;
-	GSList *noti_list;
-	CoreObjectNotificationHook *noti_hook;
-
-	if (co == NULL) {
-		err("Core object is NULL");
-		return TEL_RETURN_INVALID_PARAMETER;
-	}
-
-	plugin = tcore_object_ref_plugin(co);
-
-	/* Invoke Notification Hooks */
-	for (noti_list = co->notification_hooks; noti_list; noti_list = noti_list->next) {
-		noti_hook = noti_list->data;
-		if (noti_hook != NULL) {
-			dbg("noti_hook->command[0x%x], Command: [0x%x]",noti_hook->command, command);
-			if (noti_hook->command == command) {
-				dbg("Invoking hook_func() for Command: [0x%x]", command);
-				if (noti_hook->func(plugin, command, data_len, data, noti_hook->user_data)
-						== TCORE_HOOK_RETURN_STOP_PROPAGATION) {
-					dbg("Notification hook requests Stop propogation");
-					return TEL_RETURN_SUCCESS;
-				}
-			}
-		}
-	}
-
-	/* Dispatch the Notification to Server */
-	return tcore_plugin_send_notification(plugin, command, data_len, data);
-}
-
 void *tcore_object_add_mapping_tbl_entry(void *mapping_tbl,
-	guint object_type, TcoreHal *hal)
+						unsigned int object_type, TcoreHal *hal)
 {
 	GSList *mapping_tbl_list = mapping_tbl;
-	TcoreObjectMappingTable *tbl_entry;
+	object_mapping_table_t *tbl_entry;
 
 	if (hal == NULL) {
 		err("Mapping Table: [0x%x] HAL: [0x%x]", mapping_tbl, hal);
-		return NULL;
+		return mapping_tbl;
 	}
 
 	/*
@@ -1439,8 +1032,13 @@ void *tcore_object_add_mapping_tbl_entry(void *mapping_tbl,
 		 * new Table entry is created
 		 */
 
-		tbl_entry = tcore_malloc0(sizeof(TcoreObjectMappingTable));
-		tbl_entry->hal = hal;
+		tbl_entry = g_try_new0(object_mapping_table_t, 1);
+		if (tbl_entry != NULL)
+			tbl_entry->hal = hal;
+		else {
+			err("Failed to allocate memory");
+			return mapping_tbl_list;
+		}
 
 		/* Add the Mapping Table entry to Mapping Table */
 		mapping_tbl_list = g_slist_append(mapping_tbl_list, tbl_entry);
@@ -1471,7 +1069,7 @@ void tcore_object_remove_mapping_tbl(void *mapping_tbl)
 void *tcore_object_remove_mapping_tbl_entry(void *mapping_tbl, TcoreHal *hal)
 {
 	GSList *mapping_tbl_list = mapping_tbl;
-	TcoreObjectMappingTable *tbl_entry;
+	object_mapping_table_t *tbl_entry;
 
 	if (mapping_tbl_list == NULL) {
 		err("Mapping Table is NULL");
@@ -1494,16 +1092,16 @@ void *tcore_object_remove_mapping_tbl_entry(void *mapping_tbl, TcoreHal *hal)
 	mapping_tbl_list = g_slist_remove(mapping_tbl_list, tbl_entry);
 
 	/* Free Table entry */
-	tcore_free(tbl_entry);
+	g_free(tbl_entry);
 
 	return mapping_tbl_list;
 }
 
 void tcore_object_remove_mapping_tbl_entry_by_type(void *mapping_tbl,
-	guint co_type)
+							unsigned int co_type)
 {
 	GSList *mapping_tbl_list;
-	TcoreObjectMappingTable *tbl_entry;
+	object_mapping_table_t *tbl_entry;
 
 	if (mapping_tbl == NULL) {
 		err("Mapping Table is NULL");
@@ -1526,7 +1124,8 @@ void tcore_object_remove_mapping_tbl_entry_by_type(void *mapping_tbl,
 void tcore_object_print_mapping_tbl(void *mapping_tbl)
 {
 	GSList *mapping_tbl_list;
-	TcoreObjectMappingTable *tbl_entry = NULL;
+	object_mapping_table_t *tbl_entry = NULL;
+
 
 	if (mapping_tbl == NULL) {
 		err("Mapping Table is NULL");
@@ -1537,15 +1136,16 @@ void tcore_object_print_mapping_tbl(void *mapping_tbl)
 
 	for ( ; mapping_tbl_list ; mapping_tbl_list = mapping_tbl_list->next) {
 		tbl_entry = mapping_tbl_list->data;
-		if (tbl_entry != NULL) {
-			_util_print_mapping_tbl_entry(tbl_entry);
-		}
+		if (tbl_entry == NULL)
+			continue;
+
+		_util_print_mapping_tbl_entry(tbl_entry);
 	}
 }
 
 /* Initialize Core Objects */
-TelReturn tcore_object_init_objects(TcorePlugin *plugin,
-	TcoreObjectInitializer *initializer_list)
+TReturn tcore_object_init_objects(TcorePlugin *plugin,
+						struct object_initializer *initializer_list)
 {
 	GSList *mapping_tbl_list;
 	gboolean ret = FALSE;
@@ -1560,10 +1160,10 @@ TelReturn tcore_object_init_objects(TcorePlugin *plugin,
 	 * else, it is treated as a Failure.
 	 */
 	if (mapping_tbl_list != NULL) {
-		TcoreObjectMappingTable *tbl_entry;
+		object_mapping_table_t *tbl_entry;
 		GSList *mtbl_list;
 		GSList *object_type_list;
-		guint type;
+		unsigned int type;
 
 		/* Create each Core Object based on the Mapping Table entries */
 		mtbl_list = mapping_tbl_list;
@@ -1579,12 +1179,13 @@ TelReturn tcore_object_init_objects(TcorePlugin *plugin,
 					co = _create_core_object_by_type(type, plugin, tbl_entry->hal);
 					if (co == NULL) {
 						err("Failed to create Core Object - Type: [0x%x]", type);
-						return TEL_RETURN_FAILURE;
+						return TCORE_RETURN_FAILURE;
 					}
 					dbg("Created Core Object - Type: [0x%x]", type);
 				}
 			}
 		}
+
 
 		/* Initialize each Core Object based on the Mapping Table entries */
 		mtbl_list = mapping_tbl_list;
@@ -1595,35 +1196,35 @@ TelReturn tcore_object_init_objects(TcorePlugin *plugin,
 				ret = FALSE;
 
 				object_type_list = tbl_entry->object_type;
+
 				for ( ; object_type_list ; object_type_list = object_type_list->next) {
-					type = (guint)object_type_list->data;
+					type = (unsigned int)object_type_list->data;
+					dbg("Core Object type: [0x%x]", type);
 
 					ret = _init_core_object_by_type(type, plugin, initializer_list);
 					if (ret == FALSE) {
-						err("Failed to initialize Core Object - Type: [0x%x]", type);
-						return TEL_RETURN_FAILURE;
+						err("Failed to initialize Core Object Type [0x%x]", type);
+						return TCORE_RETURN_FAILURE;
 					}
 					dbg("Initialized Core Object - Type: [0x%x]", type);
 				}
 			}
 		}
-	}
-	else {
+	} else {
 		err("Mapping Table is NOT present");
 	}
-
 	if (ret == FALSE) {
 		err("Failed to create/initialize Core Objects");
-		return TEL_RETURN_FAILURE;
+		return TCORE_RETURN_FAILURE;
 	}
 
 	dbg("Successfully initialized Core Objects");
-	return TEL_RETURN_SUCCESS;
+	return TCORE_RETURN_SUCCESS;
 }
 
 /* De-initialize Core Objects */
 void tcore_object_deinit_objects(TcorePlugin *plugin,
-	TcoreObjectDeinitializer *deinitializer_list)
+						struct object_deinitializer *deinitializer_list)
 {
 	GSList *mapping_tbl_list;
 
@@ -1638,26 +1239,26 @@ void tcore_object_deinit_objects(TcorePlugin *plugin,
 	 * just return with an Error log.
 	 */
 	if (mapping_tbl_list != NULL) {
-		TcoreObjectMappingTable *tbl_entry;
+		object_mapping_table_t *tbl_entry;
 		GSList *object_type_list;
-		guint type;
+		unsigned int type;
 
 		/* De-initialize each Core Object based on the Mapping Table entries */
 		for ( ; mapping_tbl_list ; mapping_tbl_list = mapping_tbl_list->next) {
 			tbl_entry = mapping_tbl_list->data;
-			if (tbl_entry != NULL) {
-				object_type_list = tbl_entry->object_type;
-				for ( ; object_type_list ; object_type_list = object_type_list->next) {
-					type = (guint)object_type_list->data;
-					dbg("Core Object type: [0x%x]", type);
+			if (tbl_entry == NULL)
+				continue;
 
-					_deinit_core_object_by_type(type, plugin, deinitializer_list);
-				}
+			object_type_list = tbl_entry->object_type;
+
+			for ( ; object_type_list ; object_type_list = object_type_list->next) {
+				type = (unsigned int)object_type_list->data;
+				dbg("Core Object type: [0x%x]", type);
+
+				_deinit_core_object_by_type(type, plugin, deinitializer_list);
 			}
 		}
 		dbg("Successfully de-initialized Core Objects");
-	}
-	else {
+	} else
 		err("Mapping Table is NOT present");
-	}
 }

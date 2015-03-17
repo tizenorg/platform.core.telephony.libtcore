@@ -1,8 +1,9 @@
 /*
  * libtcore
  *
- * Copyright (c) 2013 Samsung Electronics Co. Ltd. All rights reserved.
- * Copyright (c) 2013 Intel Corporation. All rights reserved.
+ * Copyright (c) 2012 Samsung Electronics Co., Ltd. All rights reserved.
+ *
+ * Contact: Ja-young Gu <jygu@samsung.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,33 +18,29 @@
  * limitations under the License.
  */
 
-#ifndef __CO_GPS_H__
-#define __CO_GPS_H__
+#ifndef __TCORE_CO_GPS_H__
+#define __TCORE_CO_GPS_H__
 
-#include "core_object.h"
-#include <tel_gps.h>
-#include <tel_return.h>
+#include <core_object.h>
 
-#ifdef __cplusplus
-extern "C" {
+__BEGIN_DECLS
+
+struct tcore_gps_operations {
+	TReturn (*confirm_measure_pos)(CoreObject *o, UserRequest *ur);
+	TReturn (*set_frequency_aiding)(CoreObject *o, UserRequest *ur);
+	TReturn (*enable_smart_assistant)(CoreObject *o, UserRequest *ur);
+	TReturn (*disable_smart_assistant)(CoreObject *o, UserRequest *ur);
+	TReturn (*sync_smart_assistant_area_list)(CoreObject *o, UserRequest *ur);
+	TReturn (*del_smart_assistant_area_list)(CoreObject *o, UserRequest *ur);
+	TReturn (*add_smart_assistant_area)(CoreObject *o, UserRequest *ur);
+	TReturn (*modify_smart_assistant_area)(CoreObject *o, UserRequest *ur);
+	TReturn (*set_smart_assistant_info)(CoreObject *o, UserRequest *ur);
+};
+
+CoreObject*  tcore_gps_new(TcorePlugin *p, const char *name, struct tcore_gps_operations *ops, TcoreHal *hal);
+void         tcore_gps_free(CoreObject *o);
+void tcore_gps_set_ops(CoreObject *o, struct tcore_gps_operations *ops);
+
+__END_DECLS
+
 #endif
-
-typedef struct {
-    TelReturn (*confirm_measure_pos)(CoreObject *co, const TelGpsDataInfo *gps_data,
-				TcoreObjectResponseCallback cb, void *cb_data);
-    TelReturn (*set_frequency_aiding)(CoreObject *co, gboolean state,
-				TcoreObjectResponseCallback cb, void *cb_data);
-} TcoreGpsOps;
-
-
-CoreObject *tcore_gps_new(TcorePlugin *plugin, TcoreGpsOps *ops, TcoreHal *hal);
-void tcore_gps_free(CoreObject *co);
-
-gboolean tcore_gps_set_ops(CoreObject *co, TcoreGpsOps *ops);
-void tcore_gps_override_ops(CoreObject *co, TcoreGpsOps *ops);
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif/* __CO_GPS_H__ */

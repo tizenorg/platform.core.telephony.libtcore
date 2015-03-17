@@ -1,8 +1,9 @@
 /*
  * libtcore
  *
- * Copyright (c) 2013 Samsung Electronics Co. Ltd. All rights reserved.
- * Copyright (c) 2013 Intel Corporation. All rights reserved.
+ * Copyright (c) 2012 Samsung Electronics Co., Ltd. All rights reserved.
+ *
+ * Contact: Ja-young Gu <jygu@samsung.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,14 +18,10 @@
  * limitations under the License.
  */
 
-#ifndef __PLUGIN_H__
-#define __PLUGIN_H__
+#ifndef __TCORE_PLUGIN_H__
+#define __TCORE_PLUGIN_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-typedef void (*TcoreResponseCallback)(gint result, const void *response, void *user_data);
+__BEGIN_DECLS
 
 enum tcore_plugin_priority {
 	TCORE_PLUGIN_PRIORITY_HIGH = -100,
@@ -33,7 +30,7 @@ enum tcore_plugin_priority {
 };
 
 struct tcore_plugin_define_desc {
-	gchar *name;
+	const gchar *name;
 	enum tcore_plugin_priority priority;
 	int version;
 	gboolean (*load)();
@@ -42,53 +39,36 @@ struct tcore_plugin_define_desc {
 };
 
 
-TcorePlugin *tcore_plugin_new(Server *server,
-		const struct tcore_plugin_define_desc *desc,
-		const gchar *filename, void *handle);
-void tcore_plugin_free(TcorePlugin *plugin);
+TcorePlugin* tcore_plugin_new(Server *server,
+                 const struct tcore_plugin_define_desc *desc,
+                 const char *filename, void *handle);
+void         tcore_plugin_free(TcorePlugin *plugin);
 
-const struct tcore_plugin_define_desc *tcore_plugin_get_description(TcorePlugin *plugin);
+const struct tcore_plugin_define_desc*
+             tcore_plugin_get_description(TcorePlugin *plugin);
 
-gchar *tcore_plugin_get_filename(TcorePlugin *plugin);
-const gchar *tcore_plugin_ref_plugin_name(TcorePlugin *plugin);
-Server *tcore_plugin_ref_server(TcorePlugin *plugin);
+char*        tcore_plugin_get_filename(TcorePlugin *plugin);
+const char*        tcore_plugin_ref_plugin_name(TcorePlugin *plugin);
+Server*      tcore_plugin_ref_server(TcorePlugin *plugin);
 
-TelReturn tcore_plugin_link_user_data(TcorePlugin *plugin, void *user_data);
-void *tcore_plugin_ref_user_data(TcorePlugin *plugin);
+TReturn      tcore_plugin_link_user_data(TcorePlugin *plugin, void *user_data);
+void*        tcore_plugin_ref_user_data(TcorePlugin *plugin);
 
-TelReturn tcore_plugin_add_core_object(TcorePlugin *plugin, CoreObject *co);
-TelReturn tcore_plugin_remove_core_object(TcorePlugin *plugin, CoreObject *co);
+TReturn      tcore_plugin_add_core_object(TcorePlugin *plugin, CoreObject *co);
+TReturn      tcore_plugin_remove_core_object(TcorePlugin *plugin, CoreObject *co);
 
-GSList *tcore_plugin_ref_core_objects(TcorePlugin *plugin);
 CoreObject *tcore_plugin_ref_core_object(TcorePlugin *plugin, unsigned int type);
-GSList *tcore_plugin_get_core_objects_bytype(TcorePlugin *plugin,
-		unsigned int type);
+GSList*      tcore_plugin_get_core_objects(TcorePlugin *plugin);
+GSList*      tcore_plugin_get_core_objects_bytype(TcorePlugin *plugin,
+                 unsigned int type);
 
-TelReturn tcore_plugin_core_object_event_emit(TcorePlugin *plugin,
-		const gchar *event, const void *event_info);
+TReturn      tcore_plugin_core_object_event_emit(TcorePlugin *plugin,
+                 const char *event, const void *event_info);
 
-TelReturn tcore_plugin_link_property(TcorePlugin *plugin, const gchar *key,
-		void *data);
-void *tcore_plugin_ref_property(TcorePlugin *plugin, const gchar *key);
+TReturn      tcore_plugin_link_property(TcorePlugin *plugin, const char *key,
+                 void *data);
+void*        tcore_plugin_ref_property(TcorePlugin *plugin, const char *key);
 
-TelReturn tcore_plugin_add_request_hook(TcorePlugin *plugin,
-	TcoreCommand command, TcoreRequestHook func, void *user_data);
-void tcore_plugin_remove_request_hook(TcorePlugin *plugin,
-	TcoreCommand command, TcoreRequestHook func);
-TelReturn tcore_plugin_add_notification_hook(TcorePlugin *plugin,
-	TcoreNotification command, TcoreNotificationHook func, void *user_data);
-void tcore_plugin_remove_notification_hook(TcorePlugin *plugin,
-	TcoreNotification command, TcoreNotificationHook func);
+__END_DECLS
 
-TelReturn tcore_plugin_dispatch_request(TcorePlugin *plugin,
-		gboolean exec_hooks, TcoreCommand command,
-		const void *request, guint request_len,
-		TcoreResponseCallback cb, const void *user_data);
-TelReturn tcore_plugin_send_notification(TcorePlugin *plugin,
-	TcoreNotification command, guint data_len, void *data);
-
-#ifdef __cplusplus
-}
 #endif
-
-#endif	/* __PLUGIN_H__ */

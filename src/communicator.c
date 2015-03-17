@@ -1,8 +1,9 @@
 /*
  * libtcore
  *
- * Copyright (c) 2013 Samsung Electronics Co. Ltd. All rights reserved.
- * Copyright (c) 2013 Intel Corporation. All rights reserved.
+ * Copyright (c) 2012 Samsung Electronics Co., Ltd. All rights reserved.
+ *
+ * Contact: Ja-young Gu <jygu@samsung.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,8 +30,8 @@
 #include "communicator.h"
 
 struct tcore_communicator_type {
-	gchar *name;
-	TcoreCommunicatorOps *ops;
+	const char *name;
+	struct tcore_communitor_operations *ops;
 
 	void *user_data;
 
@@ -38,25 +39,21 @@ struct tcore_communicator_type {
 };
 
 
-Communicator* tcore_communicator_new(TcorePlugin *plugin,
-	const gchar *name, TcoreCommunicatorOps *ops)
+Communicator* tcore_communicator_new(TcorePlugin *plugin, const char *name,
+		struct tcore_communitor_operations *ops)
 {
 	Communicator *comm;
 
-	comm = g_try_new0(struct tcore_communicator_type, 1);
-	if (comm == NULL) {
-		err("Failed to allocate memory");
+	comm = calloc(1, sizeof(struct tcore_communicator_type));
+	if (!comm)
 		return NULL;
-	}
 
-	/* Update parameters */
-	comm->name = tcore_strdup(name);
+	if (name)
+		comm->name = strdup(name);
+
 	comm->parent_plugin = plugin;
 	comm->ops = ops;
 
-	dbg("Comunicator '%s' created", name);
-
-	/* Add communicator to Server */
 	tcore_server_add_communicator(tcore_plugin_ref_server(plugin), comm);
 
 	return comm;
@@ -64,70 +61,79 @@ Communicator* tcore_communicator_new(TcorePlugin *plugin,
 
 void tcore_communicator_free(Communicator *comm)
 {
-	if (comm == NULL) {
-		err("Communicator is NULL");
+	if (!comm)
 		return;
-	}
 
-	dbg("Comunicator '%s' free", comm->name);
+	if (comm->name)
+		free((void *)comm->name);
 
-	/* Free resources */
-	tcore_free((void *)comm->name);
-	tcore_free(comm);
+	free(comm);
 }
 
 TcorePlugin *tcore_communicator_ref_plugin(Communicator *comm)
 {
-	if (comm == NULL) {
-		err("Communicator is NULL");
+	if (!comm)
 		return NULL;
-	}
 
 	return comm->parent_plugin;
 }
 
-const gchar *tcore_communicator_ref_name(Communicator *comm)
+const char *tcore_communicator_ref_name(Communicator *comm)
 {
-	if (comm == NULL) {
-		err("Communicator is NULL");
+	if (!comm)
 		return NULL;
-	}
 
 	return comm->name;
 }
 
-TelReturn tcore_communicator_link_user_data(Communicator *comm, void *data)
+TReturn tcore_communicator_link_user_data(Communicator *comm, void *data)
 {
-	if (comm == NULL) {
-		err("Communicator is NULL");
-		return TEL_RETURN_INVALID_PARAMETER;
-	}
+	if (!comm)
+		return TCORE_RETURN_EINVAL;
 
 	comm->user_data = data;
 
-	return TEL_RETURN_SUCCESS;
+	return TCORE_RETURN_SUCCESS;
 }
 
 void *tcore_communicator_ref_user_data(Communicator *comm)
 {
-	if (comm == NULL) {
-		err("Communicator is NULL");
+	if (!comm)
 		return NULL;
-	}
 
 	return comm->user_data;
 }
 
-TelReturn tcore_communicator_send_notification(Communicator *comm,
-	TcorePlugin *source, gint command, guint data_len, const void *data)
+TReturn tcore_communicator_dispatch_request(Communicator *comm, UserRequest *ur)
 {
-	if ((comm == NULL) || (comm->ops == NULL)
-			|| (comm->ops->send_notification == NULL)) {
-		err("comm: [%p] ops: [%p] send_notiifcation: [%p]",
-				comm, (comm ? comm->ops : NULL),
-				((comm && comm->ops) ? comm->ops->send_notification : NULL));
-		return TEL_RETURN_INVALID_PARAMETER;
-	}
+	Server *s;
+
+	if (!comm || !ur)
+		return TCORE_RETURN_EINVAL;
+
+	s = tcore_plugin_ref_server(comm->parent_plugin);
+
+	return tcore_server_dispatch_request(s, ur);
+}
+
+TReturn tcore_communicator_send_response(Communicator *comm, UserRequest *ur,
+		enum tcore_response_command command,
+		unsigned int data_len, const void *data)
+{
+	if (!comm || !comm->ops || !comm->ops->send_response)
+		return TCORE_RETURN_EINVAL;
+
+	dbg("ur = 0x%x", (unsigned int)ur);
+
+	return comm->ops->send_response(comm, ur, command, data_len, data);
+}
+
+TReturn tcore_communicator_send_notification(Communicator *comm,
+		CoreObject *source, enum tcore_notification_command command,
+		unsigned int data_len, const void *data)
+{
+	if (!comm || !comm->ops || !comm->ops->send_notification)
+		return TCORE_RETURN_EINVAL;
 
 	return comm->ops->send_notification(comm, source, command, data_len, data);
 }

@@ -1,8 +1,9 @@
 /*
  * libtcore
  *
- * Copyright (c) 2013 Samsung Electronics Co. Ltd. All rights reserved.
- * Copyright (c) 2013 Intel Corporation. All rights reserved.
+ * Copyright (c) 2012 Samsung Electronics Co., Ltd. All rights reserved.
+ *
+ * Contact: Ja-young Gu <jygu@samsung.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,38 +18,38 @@
  * limitations under the License.
  */
 
-#ifndef __CO_MODEM_H__
-#define __CO_MODEM_H__
+#ifndef __TCORE_CO_MODEM_H__
+#define __TCORE_CO_MODEM_H__
 
-#include "core_object.h"
-#include <tel_modem.h>
-#include <tel_return.h>
+#include <core_object.h>
 
-#ifdef __cplusplus
-extern "C" {
+__BEGIN_DECLS
+
+
+struct tcore_modem_operations {
+	TReturn (*power_on)(CoreObject *o, UserRequest *ur);
+	TReturn (*power_off)(CoreObject *o, UserRequest *ur);
+	TReturn (*power_reset)(CoreObject *o, UserRequest *ur);
+	TReturn (*power_low)(CoreObject *o, UserRequest *ur);
+	TReturn (*set_flight_mode)(CoreObject *o, UserRequest *ur);
+	TReturn (*get_imei)(CoreObject *o, UserRequest *ur);
+	TReturn (*get_version)(CoreObject *o, UserRequest *ur);
+	TReturn (*get_sn)(CoreObject *o, UserRequest *ur);
+	TReturn (*dun_pin_ctrl)(CoreObject *o, UserRequest *ur);
+	TReturn (*get_flight_mode)(CoreObject *o, UserRequest *ur);
+};
+
+
+CoreObject*      tcore_modem_new(TcorePlugin *p, const char *name, struct tcore_modem_operations *ops, TcoreHal *hal);
+void             tcore_modem_free(CoreObject *o);
+
+void tcore_modem_set_ops(CoreObject *o, struct tcore_modem_operations *ops);
+
+TReturn          tcore_modem_set_flight_mode_state(CoreObject *o, gboolean flag);
+gboolean         tcore_modem_get_flight_mode_state(CoreObject *o);
+TReturn          tcore_modem_set_powered(CoreObject *o, gboolean pwr);
+gboolean         tcore_modem_get_powered(CoreObject *o);
+
+__END_DECLS
+
 #endif
-
-typedef struct {
-	TelReturn (*set_power_status)(CoreObject *co, TelModemPowerStatus status, TcoreObjectResponseCallback cb, void *cb_data);
-	TelReturn (*set_flight_mode)(CoreObject *co, gboolean enable, TcoreObjectResponseCallback cb, void *cb_data);
-	TelReturn (*get_flight_mode)(CoreObject *co, TcoreObjectResponseCallback cb, void *cb_data);
-	TelReturn (*get_version)(CoreObject *co, TcoreObjectResponseCallback cb, void *cb_data);
-	TelReturn (*get_imei)(CoreObject *co, TcoreObjectResponseCallback cb, void *cb_data);
-} TcoreModemOps;
-
-CoreObject *tcore_modem_new(TcorePlugin *plugin, TcoreModemOps *ops, TcoreHal *hal);
-void tcore_modem_free(CoreObject *co);
-
-gboolean tcore_modem_set_ops(CoreObject *co, TcoreModemOps *ops);
-void tcore_modem_override_ops(CoreObject *co, TcoreModemOps *ops);
-
-gboolean tcore_modem_set_flight_mode_state(CoreObject *co, gboolean state);
-gboolean tcore_modem_get_flight_mode_state(CoreObject *co, gboolean *state);
-gboolean tcore_modem_set_powered(CoreObject *co, gboolean pwr);
-gboolean tcore_modem_get_powered(CoreObject *co, gboolean *pwr);
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif /* __CO_MODEM_H__ */

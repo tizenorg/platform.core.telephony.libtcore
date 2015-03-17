@@ -1,8 +1,9 @@
 /*
  * libtcore
  *
- * Copyright (c) 2013 Samsung Electronics Co. Ltd. All rights reserved.
- * Copyright (c) 2013 Intel Corporation. All rights reserved.
+ * Copyright (c) 2012 Samsung Electronics Co., Ltd. All rights reserved.
+ *
+ * Contact: Ja-young Gu <jygu@samsung.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,34 +18,28 @@
  * limitations under the License.
  */
 
-#ifndef __CO_SAP_H__
-#define __CO_SAP_H__
+#ifndef __TCORE_CO_SAP_H__
+#define __TCORE_CO_SAP_H__
 
-#include "core_object.h"
-#include <tel_sap.h>
+#include <core_object.h>
 
-#ifdef __cplusplus
-extern "C" {
+__BEGIN_DECLS
+
+struct tcore_sap_operations {
+	TReturn (*connect)(CoreObject *o, UserRequest *ur);
+	TReturn (*disconnect)(CoreObject *o, UserRequest *ur);
+	TReturn (*req_status)(CoreObject *o, UserRequest *ur);
+	TReturn (*set_transport_protocol)(CoreObject *o, UserRequest *ur);
+	TReturn (*set_power)(CoreObject *o, UserRequest *ur);
+	TReturn (*get_atr)(CoreObject *o, UserRequest *ur);
+	TReturn (*transfer_apdu)(CoreObject *o, UserRequest *ur);
+	TReturn (*get_cardreader_status)(CoreObject *o, UserRequest *ur);
+};
+
+CoreObject* tcore_sap_new(TcorePlugin *p, const char *name, struct tcore_sap_operations *ops, TcoreHal *hal);
+void        tcore_sap_free(CoreObject *o);
+void tcore_sap_set_ops(CoreObject *o, struct tcore_sap_operations *ops);
+
+__END_DECLS
+
 #endif
-
-typedef struct {
-	TelReturn (*req_connect)(CoreObject *co, unsigned int max_msg_size, TcoreObjectResponseCallback cb, void *cb_data);
-	TelReturn (*req_disconnect)(CoreObject *co, TcoreObjectResponseCallback cb, void *cb_data);
-	TelReturn (*get_atr)(CoreObject *co, TcoreObjectResponseCallback cb, void *cb_data);
-	TelReturn (*req_transfer_apdu)(CoreObject *co, const TelSapApdu *apdu_data, TcoreObjectResponseCallback cb, void *cb_data);
-	TelReturn (*req_transport_protocol)(CoreObject *co, TelSimSapProtocol protocol, TcoreObjectResponseCallback cb, void *cb_data);
-	TelReturn (*req_power_operation)(CoreObject *co, TelSapPowerMode power_mode, TcoreObjectResponseCallback cb, void *cb_data);
-	TelReturn (*get_cardreader_status)(CoreObject *co, TcoreObjectResponseCallback cb, void *cb_data);
-} TcoreSapOps;
-
-CoreObject *tcore_sap_new(TcorePlugin *plugin, TcoreSapOps *sap_ops, TcoreHal *hal);
-void tcore_sap_free(CoreObject *co);
-
-gboolean tcore_sap_set_ops(CoreObject *co, TcoreSapOps *ops);
-void tcore_sap_override_ops(CoreObject *co, TcoreSapOps *sap_ops);
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif /* __CO_SAP_H__ */

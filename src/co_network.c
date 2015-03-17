@@ -1,8 +1,9 @@
 /*
  * libtcore
  *
- * Copyright (c) 2013 Samsung Electronics Co. Ltd. All rights reserved.
- * Copyright (c) 2013 Intel Corporation. All rights reserved.
+ * Copyright (c) 2012 Samsung Electronics Co., Ltd. All rights reserved.
+ *
+ * Contact: Ja-young Gu <jygu@samsung.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,452 +18,837 @@
  * limitations under the License.
  */
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include <glib.h>
 
 #include "tcore.h"
 #include "plugin.h"
+#include "queue.h"
+#include "user_request.h"
 #include "co_network.h"
 
-typedef struct {
-	TcoreNetworkOps *ops;
+struct private_object_data {
+	struct tcore_network_operations *ops;
 
-	TelNetworkRegStatus cs_status;
-	TelNetworkRegStatus ps_status;
-	TelNetworkAct act;
-	gboolean roam_state;
-
+	enum telephony_network_service_type service_type;
+	enum telephony_network_access_technology act;
+	enum telephony_network_service_domain_status cs_domain_status;
+	enum telephony_network_service_domain_status ps_domain_status;
+	char *plmn;
+	gboolean roaming_state;
+	int restricted_state;
 	unsigned int lac;
 	unsigned int rac;
 	unsigned int cell_id;
+	gboolean gsm_dtm_support; // DTM (Dual Transfer Mode)
 
-	char *plmn;
-	char *short_name;
-	char *long_name;
+	char *network_name_short;
+	char *network_name_full;
+	char *network_name_spn;
+	enum tcore_network_name_priority network_name_priority;
+	GHashTable *operator_info_hash;
+};
 
-	GHashTable *operator_name_hash;
-} PrivateObject;
-
-static TelReturn _dispatcher(CoreObject *co,
-	TcoreCommand command, const void *request,
-	TcoreObjectResponseCallback cb, const void *user_data)
+static TReturn _dispatcher(CoreObject *co, UserRequest *ur)
 {
-	TcoreNetworkOps *network = NULL;
-	PrivateObject *po = tcore_object_ref_object(co);
-	tcore_check_return_value_assert(po != NULL, TEL_RETURN_INVALID_PARAMETER);
-	tcore_check_return_value_assert(po->ops != NULL, TEL_RETURN_INVALID_PARAMETER);
+	enum tcore_request_command command;
+	struct private_object_data *po = NULL;
 
-	network = po->ops;
-
-	switch (command) {
-	case TCORE_COMMAND_NETWORK_GET_IDENTITY_INFO:
-		if (network->get_identity_info)
-			return network->get_identity_info(co, cb, (void *)user_data);
-		break;
-
-	case TCORE_COMMAND_NETWORK_SEARCH:
-		if (network->search)
-			return network->search(co, cb, (void *)user_data);
-		break;
-
-	case TCORE_COMMAND_NETWORK_CANCEL_SEARCH:
-		if (network->cancel_search)
-			return network->cancel_search(co, cb, (void *)user_data);
-		break;
-
-	case TCORE_COMMAND_NETWORK_SELECT_AUTOMATIC:
-		if (network->select_automatic)
-			return network->select_automatic(co, cb, (void *)user_data);
-		break;
-
-	case TCORE_COMMAND_NETWORK_SELECT_MANUAL:
-		if (network->select_manual)
-			return network->select_manual(co,
-				(TelNetworkSelectManualInfo *)request,
-				cb, (void *)user_data);
-		break;
-
-	case TCORE_COMMAND_NETWORK_GET_SELECTION_MODE:
-		if (network->get_selection_mode)
-			return network->get_selection_mode(co, cb, (void *)user_data);
-		break;
-
-	case TCORE_COMMAND_NETWORK_SET_PREFERRED_PLMN:
-		if (network->set_preferred_plmn)
-			return network->set_preferred_plmn(co,
-				(const TelNetworkPreferredPlmnInfo *)request,
-				cb, (void *)user_data);
-		break;
-
-	case TCORE_COMMAND_NETWORK_GET_PREFERRED_PLMN:
-		if (network->get_preferred_plmn)
-			return network->get_preferred_plmn(co, cb, (void *)user_data);
-		break;
-
-	case TCORE_COMMAND_NETWORK_SET_MODE:
-		if (network->set_mode)
-			return network->set_mode(co,
-				*((TelNetworkMode *)request),
-				cb, (void *)user_data);
-		break;
-
-	case TCORE_COMMAND_NETWORK_GET_MODE:
-		if (network->get_mode)
-			return network->get_mode(co, cb, (void *)user_data);
-		break;
-
-	case TCORE_COMMAND_NETWORK_GET_NEIGHBORING_CELL_INFO:
-		if (network->get_neighboring_cell_info)
-			return network->get_neighboring_cell_info(co,
-				cb, (void *)user_data);
-		break;
-
-	default:
-		err("Unsupported Command: [0x%x]",command);
-		return TEL_NETWORK_RESULT_INVALID_PARAMETER;
-
-	}
-	err("Unsupported Operation");
-	return TEL_RETURN_OPERATION_NOT_SUPPORTED;
-}
-
-static void _po_free_hook(CoreObject *co)
-{
-	PrivateObject *po = tcore_object_ref_object(co);
-	tcore_check_return(po != NULL);
-
-	g_hash_table_destroy(po->operator_name_hash);
-	tcore_free(po->plmn);
-	tcore_free(po->short_name);
-	tcore_free(po->long_name);
-	tcore_free(po->ops);
-	tcore_free(po);
-	tcore_object_link_object(co, NULL);
-}
-
-static void _po_clone_hook(CoreObject *src, CoreObject *dest)
-{
-	PrivateObject *dest_po = NULL;
-	PrivateObject *src_po = tcore_object_ref_object(src);
-	tcore_check_return_assert(src_po != NULL);
-	tcore_check_return_assert(src_po->ops != NULL);
-
-	dest_po = tcore_malloc0(sizeof(PrivateObject));
-	dest_po->ops = tcore_memdup(src_po->ops, sizeof(TcoreNetworkOps));
-	tcore_object_link_object(dest, dest_po);
-}
-
-void tcore_network_override_ops(CoreObject *co, TcoreNetworkOps *ops)
-{
-	PrivateObject *po = tcore_object_ref_object(co);
-	tcore_check_return_assert(po != NULL);
-	tcore_check_return_assert(po->ops != NULL);
-	tcore_check_return_assert(ops != NULL);
-
-	if (ops->get_identity_info)
-		po->ops->get_identity_info = ops->get_identity_info;
-	if (ops->search)
-		po->ops->search = ops->search;
-	if (ops->cancel_search)
-		po->ops->cancel_search = ops->cancel_search;
-	if (ops->select_automatic)
-		po->ops->select_automatic = ops->select_automatic;
-	if (ops->select_manual)
-		po->ops->select_manual = ops->select_manual;
-	if (ops->get_selection_mode)
-		po->ops->get_selection_mode = ops->get_selection_mode;
-	if (ops->set_preferred_plmn)
-		po->ops->set_preferred_plmn = ops->set_preferred_plmn;
-	if (ops->get_preferred_plmn)
-		po->ops->get_preferred_plmn = ops->get_preferred_plmn;
-	if (ops->set_mode)
-		po->ops->set_mode = ops->set_mode;
-	if (ops->get_mode)
-		po->ops->get_mode = ops->get_mode;
-	if (ops->get_neighboring_cell_info)
-		po->ops->get_neighboring_cell_info = ops->get_neighboring_cell_info;
-}
-
-gboolean tcore_network_set_ops(CoreObject *co, TcoreNetworkOps *ops)
-{
-	PrivateObject *po;
-	tcore_check_return_value(co != NULL, FALSE);
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_NETWORK, TCORE_RETURN_EINVAL);
 
 	po = tcore_object_ref_object(co);
-	tcore_check_return_value_assert(po != NULL, FALSE);
+	if (!po || !po->ops)
+		return TCORE_RETURN_ENOSYS;
 
-	if (po->ops != NULL) {
-		tcore_free(po->ops);
-		po->ops = NULL;
+	command = tcore_user_request_get_command(ur);
+	switch (command) {
+		case TREQ_NETWORK_SEARCH:
+			if (!po->ops->search)
+				return TCORE_RETURN_ENOSYS;
+
+			return po->ops->search(co, ur);
+
+		case TREQ_NETWORK_SET_PLMN_SELECTION_MODE:
+			if (!po->ops->set_plmn_selection_mode)
+				return TCORE_RETURN_ENOSYS;
+
+			return po->ops->set_plmn_selection_mode(co, ur);
+
+		case TREQ_NETWORK_GET_PLMN_SELECTION_MODE:
+			if (!po->ops->get_plmn_selection_mode)
+				return TCORE_RETURN_ENOSYS;
+
+			return po->ops->get_plmn_selection_mode(co, ur);
+
+		case TREQ_NETWORK_SET_SERVICE_DOMAIN:
+			if (!po->ops->set_service_domain)
+				return TCORE_RETURN_ENOSYS;
+
+			return po->ops->set_service_domain(co, ur);
+
+		case TREQ_NETWORK_GET_SERVICE_DOMAIN:
+			if (!po->ops->get_service_domain)
+				return TCORE_RETURN_ENOSYS;
+
+			return po->ops->get_service_domain(co, ur);
+
+		case TREQ_NETWORK_SET_BAND:
+			if (!po->ops->set_band)
+				return TCORE_RETURN_ENOSYS;
+
+			return po->ops->set_band(co, ur);
+
+		case TREQ_NETWORK_GET_BAND:
+			if (!po->ops->get_band)
+				return TCORE_RETURN_ENOSYS;
+
+			return po->ops->get_band(co, ur);
+
+		case TREQ_NETWORK_SET_PREFERRED_PLMN:
+			if (!po->ops->set_preferred_plmn)
+				return TCORE_RETURN_ENOSYS;
+
+			return po->ops->set_preferred_plmn(co, ur);
+
+		case TREQ_NETWORK_GET_PREFERRED_PLMN:
+			if (!po->ops->get_preferred_plmn)
+				return TCORE_RETURN_ENOSYS;
+
+			return po->ops->get_preferred_plmn(co, ur);
+
+		case TREQ_NETWORK_SET_ORDER:
+			if (!po->ops->set_order)
+				return TCORE_RETURN_ENOSYS;
+
+			return po->ops->set_order(co, ur);
+
+		case TREQ_NETWORK_GET_ORDER:
+			if (!po->ops->get_order)
+				return TCORE_RETURN_ENOSYS;
+
+			return po->ops->get_order(co, ur);
+
+		case TREQ_NETWORK_SET_POWER_ON_ATTACH:
+			if (!po->ops->set_power_on_attach)
+				return TCORE_RETURN_ENOSYS;
+
+			return po->ops->set_power_on_attach(co, ur);
+
+		case TREQ_NETWORK_GET_POWER_ON_ATTACH:
+			if (!po->ops->get_power_on_attach)
+				return TCORE_RETURN_ENOSYS;
+
+			return po->ops->get_power_on_attach(co, ur);
+
+		case TREQ_NETWORK_SET_CANCEL_MANUAL_SEARCH:
+			if (!po->ops->set_cancel_manual_search)
+				return TCORE_RETURN_ENOSYS;
+
+			return po->ops->set_cancel_manual_search(co, ur);
+
+		case TREQ_NETWORK_GET_SERVING_NETWORK:
+			if (!po->ops->get_serving_network)
+				return TCORE_RETURN_ENOSYS;
+
+			return po->ops->get_serving_network(co, ur);
+
+		case TREQ_NETWORK_SET_MODE:
+			if (!po->ops->set_mode)
+				return TCORE_RETURN_ENOSYS;
+
+			return po->ops->set_mode(co, ur);
+
+		case TREQ_NETWORK_GET_MODE:
+			if (!po->ops->get_mode)
+				return TCORE_RETURN_ENOSYS;
+
+			return po->ops->get_mode(co, ur);
+
+		case TREQ_NETWORK_SET_NEIGHBORING_CELL_INFO:
+			if (!po->ops->set_neighboring_cell_info)
+				return TCORE_RETURN_ENOSYS;
+
+			return po->ops->set_neighboring_cell_info(co, ur);
+
+		case TREQ_NETWORK_GET_NEIGHBORING_CELL_INFO:
+			if (!po->ops->get_neighboring_cell_info)
+				return TCORE_RETURN_ENOSYS;
+
+			return po->ops->get_neighboring_cell_info(co, ur);
+
+		case TREQ_NETWORK_SET_DEFAULT_DATA_SUBSCRIPTION:
+			if (!po->ops->set_default_data_subscription)
+				return TCORE_RETURN_ENOSYS;
+
+			return po->ops->set_default_data_subscription(co, ur);
+
+		case TREQ_NETWORK_GET_DEFAULT_DATA_SUBSCRIPTION:
+			if (!po->ops->get_default_data_subscription)
+				return TCORE_RETURN_ENOSYS;
+
+			return po->ops->get_default_data_subscription(co, ur);
+
+		case TREQ_NETWORK_SET_DEFAULT_SUBSCRIPTION:
+			if (!po->ops->set_default_subscription)
+				return TCORE_RETURN_ENOSYS;
+
+			return po->ops->set_default_subscription(co, ur);
+
+		case TREQ_NETWORK_GET_DEFAULT_SUBSCRIPTION:
+			if (!po->ops->get_default_subscription)
+				return TCORE_RETURN_ENOSYS;
+
+			return po->ops->get_default_subscription(co, ur);
+
+		case TREQ_NETWORK_SET_EMERGENCY_CALLBACK_MODE:
+			if (!po->ops->set_emergency_callback_mode)
+				return TCORE_RETURN_ENOSYS;
+
+			return po->ops->set_emergency_callback_mode(co, ur);
+
+		case TREQ_NETWORK_SET_ROAMING_PREFERENCE:
+			if (!po->ops->set_roaming_preference)
+				return TCORE_RETURN_ENOSYS;
+
+			return po->ops->set_roaming_preference(co, ur);
+
+		case TREQ_NETWORK_GET_ROAMING_PREFERENCE:
+			if (!po->ops->get_roaming_preference)
+				return TCORE_RETURN_ENOSYS;
+
+			return po->ops->get_roaming_preference(co, ur);
+
+		case TREQ_NETWORK_GET_SUBSCRIPTION_INFO:
+			if (!po->ops->get_subscription_info)
+				return TCORE_RETURN_ENOSYS;
+
+			return po->ops->get_subscription_info(co, ur);
+
+		default:
+			break;
 	}
 
-	if (ops != NULL)
-		po->ops = tcore_memdup((gconstpointer)ops, sizeof(TcoreNetworkOps));
-
-	return TRUE;
+	return TCORE_RETURN_SUCCESS;
 }
 
-CoreObject *tcore_network_new(TcorePlugin *plugin,
-			TcoreNetworkOps *ops, TcoreHal *hal)
+static void _free_hook(CoreObject *co)
 {
-	CoreObject *co = NULL;
-	PrivateObject *po = NULL;
-	tcore_check_return_value_assert(plugin != NULL, NULL);
+	struct private_object_data *po = NULL;
 
-	co = tcore_object_new(plugin, hal);
-	tcore_check_return_value_assert(co != NULL, NULL);
+	CORE_OBJECT_CHECK(co, CORE_OBJECT_TYPE_NETWORK);
 
-	po = tcore_malloc0(sizeof(PrivateObject));
+	po = tcore_object_ref_object(co);
+	if (po) {
+		free(po);
+		tcore_object_link_object(co, NULL);
+	}
+}
 
-	if (ops != NULL)
-		po->ops = tcore_memdup(ops, sizeof(TcoreNetworkOps));
+CoreObject *tcore_network_new(TcorePlugin *plugin, const char *name,
+		struct tcore_network_operations *ops, TcoreHal *hal)
+{
+	CoreObject *o = NULL;
+	struct private_object_data *po = NULL;
 
-	po->operator_name_hash = g_hash_table_new_full(g_str_hash,
-			g_str_equal, g_free, g_free);
+	if (!plugin)
+		return NULL;
 
-	tcore_object_set_type(co, CORE_OBJECT_TYPE_NETWORK);
-	tcore_object_link_object(co, po);
-	tcore_object_set_free_hook(co, _po_free_hook);
-	tcore_object_set_clone_hook(co, _po_clone_hook);
-	tcore_object_set_dispatcher(co, _dispatcher);
-	return co;
+	o = tcore_object_new(plugin, name, hal);
+	if (!o)
+		return NULL;
+
+	po = calloc(1, sizeof(struct private_object_data));
+	if (!po) {
+		tcore_object_free(o);
+		return NULL;
+	}
+
+	po->ops = ops;
+	po->operator_info_hash = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
+
+	tcore_object_set_type(o, CORE_OBJECT_TYPE_NETWORK);
+	tcore_object_link_object(o, po);
+	tcore_object_set_free_hook(o, _free_hook);
+	tcore_object_set_dispatcher(o, _dispatcher);
+
+	return o;
 }
 
 void tcore_network_free(CoreObject *co)
 {
+	struct private_object_data *po = NULL;
+
 	CORE_OBJECT_CHECK(co, CORE_OBJECT_TYPE_NETWORK);
+
+	po = tcore_object_ref_object(co);
+	if (!po)
+		return;
+
+	if (po->network_name_short)
+		free(po->network_name_short);
+	if (po->network_name_full)
+		free(po->network_name_full);
+	if (po->network_name_spn)
+		free(po->network_name_spn);
+	if (po->plmn)
+		free(po->plmn);
+
+	if (po->operator_info_hash)
+		g_hash_table_destroy(po->operator_info_hash);
+
 	tcore_object_free(co);
 }
 
-gboolean tcore_network_get_cs_reg_status(CoreObject *co,
-		TelNetworkRegStatus *cs_status)
+void tcore_network_set_ops(CoreObject *o, struct tcore_network_operations *ops)
 {
-	PrivateObject *po = tcore_object_ref_object(co);
-	tcore_check_return_value_assert(po != NULL, FALSE);
-	tcore_check_return_value_assert(cs_status != NULL, FALSE);
+	struct private_object_data *po = NULL;
 
-	*cs_status = po->cs_status;
-	return TRUE;
+	CORE_OBJECT_CHECK(o, CORE_OBJECT_TYPE_NETWORK);
+
+	po = (struct private_object_data *)tcore_object_ref_object(o);
+	if (!po) {
+		return;
+	}
+
+	po->ops = ops;
 }
 
-gboolean tcore_network_set_cs_reg_status(CoreObject *co,
-		TelNetworkRegStatus cs_status)
+char* tcore_network_get_plmn(CoreObject *co)
 {
-	PrivateObject *po = tcore_object_ref_object(co);
-	tcore_check_return_value_assert(po != NULL, FALSE);
+	struct private_object_data *po = NULL;
 
-	po->cs_status = cs_status;
-	return TRUE;
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_NETWORK, NULL);
+
+	po = tcore_object_ref_object(co);
+	if (!po)
+		return NULL;
+
+	return g_strdup(po->plmn);
 }
 
-gboolean tcore_network_get_ps_reg_status(CoreObject *co,
-		TelNetworkRegStatus *ps_status)
+TReturn tcore_network_set_plmn(CoreObject *co, const char *plmn)
 {
-	PrivateObject *po = tcore_object_ref_object(co);
-	tcore_check_return_value_assert(po != NULL, FALSE);
-	tcore_check_return_value_assert(ps_status != NULL, FALSE);
+	struct private_object_data *po = NULL;
 
-	*ps_status = po->ps_status;
-	return TRUE;
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_NETWORK, TCORE_RETURN_EINVAL);
+
+	po = tcore_object_ref_object(co);
+	if (!po)
+		return TCORE_RETURN_EINVAL;
+
+	if (po->plmn)
+		free(po->plmn);
+
+	po->plmn = g_strdup(plmn);
+
+	return TCORE_RETURN_SUCCESS;
 }
 
-gboolean tcore_network_set_ps_reg_status(CoreObject *co,
-		TelNetworkRegStatus ps_status)
-{
-	PrivateObject *po = tcore_object_ref_object(co);
-	tcore_check_return_value_assert(po != NULL, FALSE);
 
-	po->ps_status = ps_status;
-	return TRUE;
+char* tcore_network_get_network_name(CoreObject *co,
+		enum tcore_network_name_type type)
+{
+	struct private_object_data *po = NULL;
+
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_NETWORK, NULL);
+
+	po = tcore_object_ref_object(co);
+	if (!po)
+		return NULL;
+
+	if (type == TCORE_NETWORK_NAME_TYPE_SHORT)
+		return g_strdup(po->network_name_short);
+	else if (type == TCORE_NETWORK_NAME_TYPE_FULL)
+		return g_strdup(po->network_name_full);
+	else if (type == TCORE_NETWORK_NAME_TYPE_SPN)
+		return g_strdup(po->network_name_spn);
+	else
+		return NULL;
 }
 
-gboolean tcore_network_set_access_technology(CoreObject *co,
-		TelNetworkAct act)
+TReturn tcore_network_set_network_name(CoreObject *co,
+		enum tcore_network_name_type type, const char *network_name)
 {
-	PrivateObject *po = tcore_object_ref_object(co);
-	tcore_check_return_value_assert(po != NULL, FALSE);
+	struct private_object_data *po = NULL;
+
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_NETWORK, TCORE_RETURN_EINVAL);
+
+	po = tcore_object_ref_object(co);
+	if (!po)
+		return TCORE_RETURN_EINVAL;
+
+	switch (type) {
+		case TCORE_NETWORK_NAME_TYPE_SHORT:
+			if (po->network_name_short) {
+				free (po->network_name_short);
+				po->network_name_short = NULL;
+			}
+
+			if (network_name)
+				po->network_name_short = g_strdup (network_name);
+
+			break;
+
+		case TCORE_NETWORK_NAME_TYPE_FULL:
+			if (po->network_name_full) {
+				free (po->network_name_full);
+				po->network_name_full = NULL;
+			}
+
+			if (network_name)
+				po->network_name_full = g_strdup (network_name);
+
+			break;
+
+		case TCORE_NETWORK_NAME_TYPE_SPN:
+			if (po->network_name_spn) {
+				free (po->network_name_spn);
+				po->network_name_spn = NULL;
+			}
+
+			if (network_name)
+				po->network_name_spn = g_strdup (network_name);
+
+			break;
+
+		default:
+			return TCORE_RETURN_EINVAL;
+	}
+
+	return TCORE_RETURN_SUCCESS;
+}
+
+TReturn tcore_network_get_network_name_priority(CoreObject *co,
+		enum tcore_network_name_priority *priority)
+{
+	struct private_object_data *po = NULL;
+
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_NETWORK, TCORE_RETURN_EINVAL);
+
+	if (!priority)
+		return TCORE_RETURN_EINVAL;
+
+	po = tcore_object_ref_object(co);
+	if (!po)
+		return FALSE;
+
+	*priority = po->network_name_priority;
+
+	return TCORE_RETURN_SUCCESS;
+}
+
+TReturn tcore_network_set_network_name_priority(CoreObject *co,
+		enum tcore_network_name_priority priority)
+{
+	struct private_object_data *po = NULL;
+
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_NETWORK, TCORE_RETURN_EINVAL);
+
+	po = tcore_object_ref_object(co);
+	if (!po)
+		return TCORE_RETURN_EINVAL;
+
+	po->network_name_priority  = priority;
+
+	return TCORE_RETURN_SUCCESS;
+}
+
+gboolean tcore_network_get_roaming_state(CoreObject *co)
+{
+	struct private_object_data *po = NULL;
+
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_NETWORK, FALSE);
+
+	po = tcore_object_ref_object(co);
+	if (!po)
+		return FALSE;
+
+	return po->roaming_state;
+}
+
+TReturn tcore_network_set_roaming_state(CoreObject *co, gboolean state)
+{
+	struct private_object_data *po = NULL;
+
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_NETWORK, TCORE_RETURN_EINVAL);
+
+	po = tcore_object_ref_object(co);
+	if (!po)
+		return TCORE_RETURN_EINVAL;
+
+	po->roaming_state = state;
+	dbg("roaming_state = 0x%x", state);
+
+	return TCORE_RETURN_SUCCESS;
+}
+
+int tcore_network_get_restricted_state(CoreObject *co)
+{
+	struct private_object_data *po = NULL;
+
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_NETWORK, FALSE);
+
+	po = tcore_object_ref_object(co);
+	if (!po)
+		return FALSE;
+
+	return po->restricted_state;
+}
+
+TReturn tcore_network_set_restricted_state(CoreObject *co, int state)
+{
+	struct private_object_data *po = NULL;
+
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_NETWORK, TCORE_RETURN_EINVAL);
+
+	po = tcore_object_ref_object(co);
+	if (!po)
+		return TCORE_RETURN_EINVAL;
+
+	po->restricted_state = state;
+	dbg("restricted_state = 0x%x", state);
+
+	return TCORE_RETURN_SUCCESS;
+}
+
+TReturn tcore_network_get_service_status(CoreObject *co,
+		enum tcore_network_service_domain_type type,
+		enum telephony_network_service_domain_status *result)
+{
+	struct private_object_data *po = NULL;
+
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_NETWORK, TCORE_RETURN_EINVAL);
+
+	if (!result)
+		return TCORE_RETURN_EINVAL;
+
+	po = tcore_object_ref_object(co);
+	if (!po)
+		return TCORE_RETURN_EINVAL;
+
+	switch (type) {
+		case TCORE_NETWORK_SERVICE_DOMAIN_TYPE_CIRCUIT:
+			*result = po->cs_domain_status;
+			break;
+
+		case TCORE_NETWORK_SERVICE_DOMAIN_TYPE_PACKET:
+			*result = po->ps_domain_status;
+			break;
+		default:
+			err("invalid network type");
+			break;
+	}
+
+	return TCORE_RETURN_SUCCESS;
+}
+
+TReturn tcore_network_set_service_status(CoreObject *co,
+		enum tcore_network_service_domain_type type,
+		enum telephony_network_service_domain_status status)
+{
+	struct private_object_data *po = NULL;
+
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_NETWORK, TCORE_RETURN_EINVAL);
+
+	po = tcore_object_ref_object(co);
+	if (!po)
+		return TCORE_RETURN_EINVAL;
+
+	switch (type) {
+		case TCORE_NETWORK_SERVICE_DOMAIN_TYPE_CIRCUIT:
+			po->cs_domain_status = status;
+			dbg("cs.status = 0x%x", status);
+			break;
+
+		case TCORE_NETWORK_SERVICE_DOMAIN_TYPE_PACKET:
+			po->ps_domain_status = status;
+			dbg("ps.status = 0x%x", status);
+			break;
+		default:
+			err("invalid network type");
+			break;
+
+	}
+
+	return TCORE_RETURN_SUCCESS;
+}
+
+TReturn tcore_network_set_access_technology(CoreObject *co,
+		enum telephony_network_access_technology act)
+{
+	struct private_object_data *po = NULL;
+
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_NETWORK, TCORE_RETURN_EINVAL);
+
+	po = tcore_object_ref_object(co);
+	if (!po)
+		return TCORE_RETURN_EINVAL;
 
 	po->act = act;
-	return TRUE;
 
+	return TCORE_RETURN_SUCCESS;
 }
 
-gboolean tcore_network_get_access_technology(CoreObject *co,
-		TelNetworkAct *act)
+TReturn tcore_network_get_access_technology(CoreObject *co,
+		enum telephony_network_access_technology *result)
 {
-	PrivateObject *po = tcore_object_ref_object(co);
-	tcore_check_return_value_assert(po != NULL, FALSE);
-	tcore_check_return_value_assert(act != NULL, FALSE);
+	struct private_object_data *po = NULL;
 
-	*act = po->act;
-	return TRUE;
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_NETWORK, TCORE_RETURN_EINVAL);
+
+	if (!result)
+		return TCORE_RETURN_EINVAL;
+
+	po = tcore_object_ref_object(co);
+	if (!po)
+		return TCORE_RETURN_EINVAL;
+
+	*result = po->act;
+
+	return TCORE_RETURN_SUCCESS;
 }
 
-gboolean tcore_network_get_roam_state(CoreObject *co, gboolean *state)
+TReturn tcore_network_set_lac(CoreObject *co, unsigned int lac)
 {
-	PrivateObject *po = tcore_object_ref_object(co);
-	tcore_check_return_value_assert(po != NULL, FALSE);
-	tcore_check_return_value_assert(state != NULL, FALSE);
+	struct private_object_data *po = NULL;
 
-	*state = po->roam_state;
-	return TRUE;
-}
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_NETWORK, TCORE_RETURN_EINVAL);
 
-gboolean tcore_network_set_roam_state(CoreObject *co, gboolean state)
-{
-	PrivateObject *po = tcore_object_ref_object(co);
-	tcore_check_return_value_assert(po != NULL, FALSE);
-
-	po->roam_state = state;
-	return TRUE;
-}
-
-gboolean tcore_network_get_lac(CoreObject *co, unsigned int *lac)
-{
-	PrivateObject *po = tcore_object_ref_object(co);
-	tcore_check_return_value_assert(po != NULL, FALSE);
-	tcore_check_return_value_assert(lac != NULL, FALSE);
-
-	*lac = po->lac;
-	return TRUE;
-}
-
-gboolean tcore_network_set_lac(CoreObject *co, unsigned int lac)
-{
-	PrivateObject *po = tcore_object_ref_object(co);
-	tcore_check_return_value_assert(po != NULL, FALSE);
+	po = tcore_object_ref_object(co);
+	if (!po)
+		return TCORE_RETURN_EINVAL;
 
 	po->lac = lac;
-	return TRUE;
+
+	return TCORE_RETURN_SUCCESS;
 }
 
-gboolean tcore_network_get_rac(CoreObject *co, unsigned int *rac)
+TReturn tcore_network_get_lac(CoreObject *co, unsigned int *result)
 {
-	PrivateObject *po = tcore_object_ref_object(co);
-	tcore_check_return_value_assert(po != NULL, FALSE);
-	tcore_check_return_value_assert(rac != NULL, FALSE);
+	struct private_object_data *po = NULL;
 
-	*rac = po->rac;
-	return TRUE;
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_NETWORK, TCORE_RETURN_EINVAL);
+
+	if (!result)
+		return TCORE_RETURN_EINVAL;
+
+	po = tcore_object_ref_object(co);
+	if (!po)
+		return TCORE_RETURN_EINVAL;
+
+	*result = po->lac;
+
+	return TCORE_RETURN_SUCCESS;
 }
 
-gboolean tcore_network_set_rac(CoreObject *co, unsigned int rac)
+TReturn tcore_network_set_rac(CoreObject *co, unsigned int rac)
 {
-	PrivateObject *po = tcore_object_ref_object(co);
-	tcore_check_return_value_assert(po != NULL, FALSE);
+	struct private_object_data *po = NULL;
+
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_NETWORK, TCORE_RETURN_EINVAL);
+
+	po = tcore_object_ref_object(co);
+	if (!po)
+		return TCORE_RETURN_EINVAL;
 
 	po->rac = rac;
-	return TRUE;
+
+	return TCORE_RETURN_SUCCESS;
 }
 
-gboolean tcore_network_get_cell_id(CoreObject *co, unsigned int *cell_id)
+TReturn tcore_network_get_rac(CoreObject *co, unsigned int *result)
 {
-	PrivateObject *po = tcore_object_ref_object(co);
-	tcore_check_return_value_assert(po != NULL, FALSE);
-	tcore_check_return_value_assert(cell_id != NULL, FALSE);
+	struct private_object_data *po = NULL;
 
-	*cell_id = po->cell_id;
-	return TRUE;
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_NETWORK, TCORE_RETURN_EINVAL);
+
+	if (!result)
+		return TCORE_RETURN_EINVAL;
+
+	po = tcore_object_ref_object(co);
+	if (!po)
+		return TCORE_RETURN_EINVAL;
+
+	*result = po->rac;
+
+	return TCORE_RETURN_SUCCESS;
 }
 
-gboolean tcore_network_set_cell_id(CoreObject *co, unsigned int cell_id)
+TReturn tcore_network_set_cell_id(CoreObject *co, unsigned int cell_id)
 {
-	PrivateObject *po = tcore_object_ref_object(co);
-	tcore_check_return_value_assert(po != NULL, FALSE);
+	struct private_object_data *po = NULL;
+
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_NETWORK, TCORE_RETURN_EINVAL);
+
+	po = tcore_object_ref_object(co);
+	if (!po)
+		return TCORE_RETURN_EINVAL;
 
 	po->cell_id = cell_id;
-	return TRUE;
+
+	return TCORE_RETURN_SUCCESS;
 }
 
-gboolean tcore_network_get_plmn(CoreObject *co, char **plmn)
+TReturn tcore_network_get_cell_id(CoreObject *co, unsigned int *result)
 {
-	PrivateObject *po = tcore_object_ref_object(co);
-	tcore_check_return_value_assert(po != NULL, FALSE);
-	tcore_check_return_value_assert(plmn != NULL, FALSE);
+	struct private_object_data *po = NULL;
 
-	*plmn = tcore_strdup(po->plmn);
-	return TRUE;
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_NETWORK, TCORE_RETURN_EINVAL);
+
+	if (!result)
+		return TCORE_RETURN_EINVAL;
+
+	po = tcore_object_ref_object(co);
+	if (!po)
+		return TCORE_RETURN_EINVAL;
+
+	*result = po->cell_id;
+
+	return TCORE_RETURN_SUCCESS;
 }
 
-gboolean tcore_network_set_plmn(CoreObject *co, const char *plmn)
+gboolean tcore_network_get_gsm_dtm_support(CoreObject *co)
 {
-	PrivateObject *po = tcore_object_ref_object(co);
-	tcore_check_return_value_assert(po != NULL, FALSE);
-	tcore_check_return_value_assert(plmn != NULL, FALSE);
+	struct private_object_data *po = NULL;
 
-	tcore_free(po->plmn);
-	po->plmn = tcore_strdup(plmn);
-	return TRUE;
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_NETWORK, FALSE);
+
+	po = tcore_object_ref_object(co);
+	if (!po)
+		return FALSE;
+
+	return po->gsm_dtm_support;
 }
 
-gboolean tcore_network_get_short_name(CoreObject *co, char **short_name)
+TReturn tcore_network_set_gsm_dtm_support(CoreObject *co, gboolean state)
 {
-	PrivateObject *po = tcore_object_ref_object(co);
-	tcore_check_return_value_assert(po != NULL, FALSE);
-	tcore_check_return_value_assert(short_name != NULL, FALSE);
+	struct private_object_data *po = NULL;
 
-	*short_name = tcore_strdup(po->short_name);
-	return TRUE;
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_NETWORK, TCORE_RETURN_EINVAL);
+
+	po = tcore_object_ref_object(co);
+	if (!po)
+		return TCORE_RETURN_EINVAL;
+
+	po->gsm_dtm_support = state;
+	dbg("gsm_dtm_support = %d", state);
+
+	return TCORE_RETURN_SUCCESS;
 }
 
-gboolean tcore_network_set_short_name(CoreObject *co, const char *short_name)
+TReturn tcore_network_set_service_type(CoreObject *co,
+		enum telephony_network_service_type service_type)
 {
-	PrivateObject *po = tcore_object_ref_object(co);
-	tcore_check_return_value_assert(po != NULL, FALSE);
-	tcore_check_return_value_assert(short_name != NULL, FALSE);
+	struct private_object_data *po = NULL;
 
-	tcore_free(po->short_name);
-	po->short_name = tcore_strdup(short_name);
-	return TRUE;
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_NETWORK, TCORE_RETURN_EINVAL);
+
+	po = tcore_object_ref_object(co);
+	if (!po)
+		return TCORE_RETURN_EINVAL;
+
+	po->service_type = service_type;
+
+	return TCORE_RETURN_SUCCESS;
 }
 
-gboolean tcore_network_get_long_name(CoreObject *co, char **long_name)
+TReturn tcore_network_get_service_type(CoreObject *co,
+		enum telephony_network_service_type *result)
 {
-	PrivateObject *po = tcore_object_ref_object(co);
-	tcore_check_return_value_assert(po != NULL, FALSE);
-	tcore_check_return_value_assert(long_name != NULL, FALSE);
+	struct private_object_data *po = NULL;
 
-	*long_name = tcore_strdup(po->long_name);
-	return TRUE;
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_NETWORK, TCORE_RETURN_EINVAL);
+
+	if (!result)
+		return TCORE_RETURN_EINVAL;
+
+	po = tcore_object_ref_object(co);
+	if (!po)
+		return TCORE_RETURN_EINVAL;
+
+	*result = po->service_type;
+
+	return TCORE_RETURN_SUCCESS;
 }
 
-gboolean tcore_network_set_long_name(CoreObject *co, const char *long_name)
+TReturn tcore_network_operator_info_add(CoreObject *co,
+		const struct tcore_network_operator_info *noi)
 {
-	PrivateObject *po = tcore_object_ref_object(co);
-	tcore_check_return_value_assert(po != NULL, FALSE);
-	tcore_check_return_value_assert(long_name != NULL, FALSE);
+	struct private_object_data *po = NULL;
+	char plmn[7];
+	int mcc_index, mnc_index;
 
-	tcore_free(po->long_name);
-	po->long_name = tcore_strdup(long_name);
-	return TRUE;
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_NETWORK, TCORE_RETURN_EINVAL);
+
+	if (!noi)
+		return TCORE_RETURN_EINVAL;
+
+	mcc_index = atoi(noi->mcc);
+	mnc_index = atoi(noi->mnc);
+
+	if (mcc_index > 999 || mnc_index > 999) {
+		err("mcc_index %d mnc_index %d", mcc_index, mnc_index);
+		return TCORE_RETURN_EINVAL;
+	}
+
+	po = tcore_object_ref_object(co);
+	if (!po)
+		return TCORE_RETURN_EINVAL;
+
+	g_strlcpy(plmn, noi->mcc, 4);
+	g_strlcpy(plmn+3, noi->mnc, 3);
+
+	if (g_hash_table_lookup(po->operator_info_hash, plmn)) {
+		//dbg("Remove existed (key:%s)", plmn);
+		g_hash_table_remove(po->operator_info_hash, plmn);
+	}
+
+	//dbg("Adding mcc[%s] mnc[%s] name[%s] type[%d] in operator info table", noi->mcc, noi->mnc, noi->name, noi->type);
+	g_hash_table_insert(po->operator_info_hash, g_strdup(plmn), g_memdup(noi, sizeof(struct tcore_network_operator_info)));
+
+	return TCORE_RETURN_SUCCESS;
 }
 
-gboolean tcore_network_get_operator_name(CoreObject *co,
-		const char *plmn, char **name)
+struct tcore_network_operator_info *
+tcore_network_operator_info_find(CoreObject *co, const char *mcc, const char *mnc)
 {
-	PrivateObject *po = tcore_object_ref_object(co);
-	char *network_name;
-	tcore_check_return_value_assert(plmn != NULL, FALSE);
-	tcore_check_return_value_assert(name != NULL, FALSE);
-	tcore_check_return_value_assert(po != NULL, FALSE);
+	struct private_object_data *po = NULL;
+	struct tcore_network_operator_info *data;
+	char plmn[7];
+	int mcc_index, mnc_index;
 
-	network_name = (char *)g_hash_table_lookup(po->operator_name_hash, plmn);
-	*name = tcore_strdup(network_name);
-	return TRUE;
-}
+	CORE_OBJECT_CHECK_RETURN(co, CORE_OBJECT_TYPE_NETWORK, NULL);
 
+	if (!mcc || !mnc)
+		return NULL;
 
-gboolean tcore_network_set_operator_name(CoreObject *co,
-		const char *plmn, const char *name)
-{
-	PrivateObject *po = tcore_object_ref_object(co);
-	tcore_check_return_value_assert(plmn != NULL, FALSE);
-	tcore_check_return_value_assert(name != NULL, FALSE);
-	tcore_check_return_value_assert(po != NULL, FALSE);
+	mcc_index = atoi(mcc);
+	mnc_index = atoi(mnc);
 
-	dbg("Set Operator Name, PLMN: [%s], Name: [%s]", plmn, name);
+	if (mcc_index > 999 || mnc_index > 999) {
+		err("mcc_index %d mnc_index %d", mcc_index, mnc_index);
+		return NULL;
+	}
 
-	g_hash_table_insert(po->operator_name_hash,
-			tcore_strdup(plmn), tcore_strdup(name));
+	po = tcore_object_ref_object(co);
+	if (!po)
+		return NULL;
 
-	return TRUE;
+	g_strlcpy(plmn, mcc, 4);
+	g_strlcpy(plmn+3, mnc, 3);
+
+	data =  g_hash_table_lookup(po->operator_info_hash, plmn);
+
+	if (data) {
+		dbg("found mcc[%s], mnc[%s] name[%s] type[%d] in operator info table (%p)",
+			data->mcc, data->mnc, data->name, data->type, po->operator_info_hash);
+	} else {
+		dbg("mcc[%s] mnc[%s] not present in operator table (%p)",
+			mcc, mnc, po->operator_info_hash);
+	}
+
+	return data;
 }

@@ -1,8 +1,9 @@
 /*
  * libtcore
  *
- * Copyright (c) 2013 Samsung Electronics Co. Ltd. All rights reserved.
- * Copyright (c) 2013 Intel Corporation. All rights reserved.
+ * Copyright (c) 2012 Samsung Electronics Co., Ltd. All rights reserved.
+ *
+ * Contact: Ja-young Gu <jygu@samsung.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,33 +18,41 @@
  * limitations under the License.
  */
 
-#ifndef __COMMUNICATOR_H__
-#define __COMMUNICATOR_H__
+#ifndef __TCORE_COMMUNICATOR_H__
+#define __TCORE_COMMUNICATOR_H__
 
-#ifdef __cplusplus
-extern "C" {
+__BEGIN_DECLS
+
+struct tcore_communitor_operations {
+	TReturn (*send_response)(Communicator *comm, UserRequest *ur,
+        enum tcore_response_command command,
+        unsigned int data_len, const void *data);
+
+	TReturn (*send_notification)(Communicator *comm, CoreObject *source,
+        enum tcore_notification_command command,
+        unsigned int data_len, const void *data);
+};
+
+Communicator* tcore_communicator_new(TcorePlugin *plugin, const char *name,
+                  struct tcore_communitor_operations *ops);
+void          tcore_communicator_free();
+
+TcorePlugin*  tcore_communicator_ref_plugin(Communicator *comm);
+const char*   tcore_communicator_ref_name(Communicator *comm);
+
+TReturn       tcore_communicator_link_user_data(Communicator *comm, void *data);
+void*         tcore_communicator_ref_user_data(Communicator *comm);
+
+TReturn       tcore_communicator_send_response(Communicator *comm,
+                  UserRequest *ur,  enum tcore_response_command command,
+                  unsigned int data_len, const void *data);
+
+TReturn       tcore_communicator_send_notification(Communicator *comm,
+                  CoreObject *source, enum tcore_notification_command command,
+                  unsigned int data_len, const void *data);
+
+TReturn       tcore_communicator_dispatch_request(Communicator *comm, UserRequest *ur);
+
+__END_DECLS
+
 #endif
-
-typedef struct {
-	TelReturn (*send_notification)(Communicator *comm,
-	TcorePlugin *source, gint command, unsigned int data_len, const void *data);
-} TcoreCommunicatorOps ;
-
-Communicator *tcore_communicator_new(TcorePlugin *plugin,
-		const gchar *name, TcoreCommunicatorOps *ops);
-void tcore_communicator_free(Communicator *comm);
-
-TcorePlugin *tcore_communicator_ref_plugin(Communicator *comm);
-const gchar *tcore_communicator_ref_name(Communicator *comm);
-
-TelReturn tcore_communicator_link_user_data(Communicator *comm, void *data);
-void *tcore_communicator_ref_user_data(Communicator *comm);
-
-TelReturn tcore_communicator_send_notification(Communicator *comm,
-	TcorePlugin *source, gint command, guint data_len, const void *data);
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif	/* __COMMUNICATOR_H__ */

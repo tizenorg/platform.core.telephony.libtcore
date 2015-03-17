@@ -1,8 +1,9 @@
 /*
  * libtcore
  *
- * Copyright (c) 2013 Samsung Electronics Co. Ltd. All rights reserved.
- * Copyright (c) 2013 Intel Corporation. All rights reserved.
+ * Copyright (c) 2012 Samsung Electronics Co., Ltd. All rights reserved.
+ *
+ * Contact: Ja-young Gu <jygu@samsung.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,123 +21,154 @@
 #ifndef __TYPE_PS_H__
 #define __TYPE_PS_H__
 
-#ifdef __cplusplus
-extern "C" {
+__BEGIN_DECLS
+
+#define IPV6_ADDR_LEN 16
+#define IPV4_ADDR_LEN 4
+
+#define MAX_NUM_DEDICATED_BEARER 8
+
+enum telephony_ps_pdp_err {
+	PDP_FAILURE_CAUSE_NORMAL						= 0x00,			  // 0x00 : Normal Process ( no problem )
+	PDP_FAILURE_CAUSE_REL_BY_USER					= 0x01,			  // Call Released by User
+	PDP_FAILURE_CAUSE_REGULAR_DEACTIVATION			= 0x02,			  // Regular deactivation
+	PDP_FAILURE_CAUSE_LLC_SNDCP					= 0x03,			  // LLC SNDCP failure
+	PDP_FAILURE_CAUSE_INSUFFICIENT_RESOURCE		= 0x04,			  // Insufficient resources
+	PDP_FAILURE_CAUSE_UNKNOWN_APN					= 0x05,			  // Missing or unkown apn
+	PDP_FAILURE_CAUSE_UNKNOWN_PDP_ADDRESS			= 0x06,			  // Unknown pdp address or type
+	PDP_FAILURE_CAUSE_USER_AUTH_FAILED				= 0x07,			  // Unknown pdp address or type
+	PDP_FAILURE_CAUSE_ACT_REJ_GGSN					= 0x08,			  // Unknown pdp address or type
+	PDP_FAILURE_CAUSE_ACT_REJ_UNSPECIFIED			= 0x09,			  // Unknown pdp address or type
+	PDP_FAILURE_CAUSE_SVC_OPTION_NOT_SUPPORTED		= 0x0A,			  // Service option not supported
+	PDP_FAILURE_CAUSE_SVC_NOT_SUBSCRIBED			= 0x0B,			  // Requested service option not subscribed
+	PDP_FAILURE_CAUSE_SVC_OPT_OUT_ORDER			= 0x0C,			  // Service out of order
+    PDP_FAILURE_CAUSE_NSAPI_USED					= 0x0D,			  // NSAPI already used
+	PDP_FAILURE_CAUSE_QOS_NOT_ACCEPTED				= 0x0E,			  // QoS not accepted
+	PDP_FAILURE_CAUSE_NETWORK_FAILURE				= 0x0F,			  // Network Failure
+    PDP_FAILURE_CAUSE_REACT_REQUIRED				= 0x10,			  // Reactivation Required
+	PDP_FAILURE_CAUSE_FEATURE_NOT_SUPPORTED		= 0x11,			  // Feature not supported
+	PDP_FAILURE_CAUSE_TFT_FILTER_ERROR				= 0x12,			  // TFT or filter error
+	PDP_FAILURE_CAUSE_UNKOWN_PDP_CONTEXT			= 0x13,			  // Unkown PDP context
+	PDP_FAILURE_CAUSE_INVALID_MSG					= 0x14,			  // Invalied MSG
+	PDP_FAILURE_CAUSE_PROTOCOL_ERROR				= 0x15,			  // Protocol error
+	PDP_FAILURE_CAUSE_MOBILE_FAILURE_ERROR			= 0x16,			  // Mobile failure error
+	PDP_FAILURE_CAUSE_TIMEOUT_ERROR				= 0x17,			  // Timeout error
+	PDP_FAILURE_CAUSE_UNKNOWN_ERROR				= 0x18,			  // Unknown error
+	PDP_FAILURE_CAUSE_MAX,
+};
+
+enum telephony_ps_protocol_status {
+	TELEPHONY_HSDPA_OFF = 0x00,
+	TELEPHONY_HSDPA_ON = 0x01,
+	TELEPHONY_HSUPA_ON = 0x02,
+	TELEPHONY_HSPA_ON = 0x03,
+	TELEPHONY_HSPAP_ON = 0x04
+};
+
+enum telephony_ps_state {
+	TELEPHONY_PS_ON,
+	TELEPHONY_PS_3G_OFF,
+	TELEPHONY_PS_ROAMING_OFF,
+	TELEPHONY_PS_FLIGHT_MODE,
+	TELEPHONY_PS_NO_SERVICE,
+	TELEPHONY_PS_RESTRICTED_SERVICE
+};
+
+struct dedicated_bearer_info {
+	char profile_id;
+	char qci;
+	char gbr_dl;
+	char gbr_ul;
+	char max_br_dl;
+	char max_br_ul;
+};
+
+struct treq_ps_pdp_activate {
+	int context_id;
+	int secondary_context_id;
+	char apn[102];
+	char pdp_address[20];
+	int pdp_type;
+
+	char username[32];
+	char password[32];
+	char dns1[16];
+	char dns2[16];
+	int auth_type;
+};
+
+struct tresp_ps_set_pdp_activate {
+	int context_id;
+	int secondary_context_id;
+	int result;
+};
+
+
+struct treq_ps_pdp_deactivate {
+	int context_id;
+	int secondary_context_id;
+
+	char username[32];
+	char password[32];
+	char dns1[16];
+	char dns2[16];
+	int auth_type;
+};
+
+struct tresp_ps_set_pdp_deactivate {
+	int context_id;
+	int secondary_context_id;
+	int result;
+};
+
+struct tnoti_ps_call_status {
+	int context_id;
+	int state;
+	int result;
+};
+
+struct tnoti_ps_pdp_ipconfiguration {
+	int context_id;
+	int secondary_context_id;
+
+	enum telephony_ps_pdp_err err;
+	unsigned short field_flag;
+
+	char devname[16];
+
+	unsigned char ip_address[IPV4_ADDR_LEN];
+	unsigned char primary_dns[IPV4_ADDR_LEN];
+	unsigned char secondary_dns[IPV4_ADDR_LEN];
+	unsigned char gateway[IPV4_ADDR_LEN];
+	unsigned char subnet_mask[IPV4_ADDR_LEN];
+
+	char *ipv6_address;
+	char *ipv6_primary_dns;
+	char *ipv6_secondary_dns;
+	char *ipv6_gateway;
+
+	unsigned int pcscf_ipv4_count;
+	char **pcscf_ipv4;
+
+	unsigned int pcscf_ipv6_count;
+	char **pcscf_ipv6;
+};
+
+struct tnoti_ps_external_call {
+};
+
+struct tnoti_ps_protocol_status {
+	enum telephony_ps_protocol_status status;
+};
+
+struct tnoti_MIP_status {
+	int result;
+};
+
+struct tnoti_ps_dedicated_bearer_info {
+	unsigned char num_dedicated_bearer;
+	struct dedicated_bearer_info dedicated_bearer [MAX_NUM_DEDICATED_BEARER];
+};
+__END_DECLS
+
 #endif
-
-#define TCORE_PS_NUM_IP_ADDRESS_LEN_MAX	4
-#define TCORE_PS_STR_IP_ADDRESS_LEN_MAX	16
-
-#define TCORE_PS_PDP_ADDRESS_LEN_MAX	20
-#define TCORE_PS_APN_LEN_MAX			102
-
-#define TCORE_PS_DEVNAME_LEN_MAX		16
-#define TCORE_PS_USERNAME_LEN_MAX		32
-#define TCORE_PS_PASSWORD_LEN_MAX		32
-
-typedef enum {
-	TCORE_PS_FAILURE_CAUSE_NORMAL,
-	TCORE_PS_FAILURE_CAUSE_REL_BY_USER,
-	TCORE_PS_FAILURE_CAUSE_REGULAR_DEACTIVATION,
-	TCORE_PS_FAILURE_CAUSE_LLC_SNDCP,
-	TCORE_PS_FAILURE_CAUSE_INSUFFICIENT_RESOURCE,
-	TCORE_PS_FAILURE_CAUSE_UNKNOWN_APN,
-	TCORE_PS_FAILURE_CAUSE_UNKNOWN_PDP_ADDRESS,
-	TCORE_PS_FAILURE_CAUSE_USER_AUTH_FAILED,
-	TCORE_PS_FAILURE_CAUSE_ACT_REJ_GGSN,
-	TCORE_PS_FAILURE_CAUSE_ACT_REJ_UNSPECIFIED,
-	TCORE_PS_FAILURE_CAUSE_SVC_OPTION_NOT_SUPPORTED,
-	TCORE_PS_FAILURE_CAUSE_SVC_NOT_SUBSCRIBED,
-	TCORE_PS_FAILURE_CAUSE_SVC_OPT_OUT_ORDER,
-	TCORE_PS_FAILURE_CAUSE_NSAPI_USED,
-	TCORE_PS_FAILURE_CAUSE_QOS_NOT_ACCEPTED,
-	TCORE_PS_FAILURE_CAUSE_NETWORK_FAILURE,
-	TCORE_PS_FAILURE_CAUSE_REACT_REQUIRED,
-	TCORE_PS_FAILURE_CAUSE_FEATURE_NOT_SUPPORTED,
-	TCORE_PS_FAILURE_CAUSE_TFT_FILTER_ERROR,
-	TCORE_PS_FAILURE_CAUSE_UNKOWN_PDP_CONTEXT,
-	TCORE_PS_FAILURE_CAUSE_INVALID_MSG,
-	TCORE_PS_FAILURE_CAUSE_PROTOCOL_ERROR,
-	TCORE_PS_FAILURE_CAUSE_MOBILE_FAILURE_ERROR,
-	TCORE_PS_FAILURE_CAUSE_TIMEOUT_ERROR,
-	TCORE_PS_FAILURE_CAUSE_UNKNOWN_ERROR,
-	TCORE_PS_FAILURE_CAUSE_MAX
-} TcorePsFailureCause;
-
-typedef enum {
-	TCORE_PS_STATE_ON,
-	TCORE_PS_STATE_3G_OFF,
-	TCORE_PS_STATE_ROAMING_OFF,
-	TCORE_PS_STATE_FLIGHT_MODE,
-	TCORE_PS_STATE_NO_SERVICE,
-} TcorePsState;
-
-typedef enum {
-	TCORE_PS_CALL_STATE_CTX_DEFINED,
-	TCORE_PS_CALL_STATE_NOT_CONNECTED,
-	TCORE_PS_CALL_STATE_CONNECTED
-} TcorePsCallState;
-
-#if 0
-typedef struct {
-	gint context_id;
-	gint secondary_context_id;
-	gchar apn[TCORE_PS_APN_LEN_MAX];
-	gchar pdp_address[TCORE_PS_PDP_ADDRESS_LEN_MAX];
-	gint pdp_type;
-
-	gchar username[TCORE_PS_USERNAME_LEN_MAX];
-	gchar password[TCORE_PS_PASSWORD_LEN_MAX];
-	gchar dns1[TCORE_PS_STR_IP_ADDRESS_LEN_MAX];
-	gchar dns2[TCORE_PS_STR_IP_ADDRESS_LEN_MAX];
-	gint auth_type;
-} TreqPsPdpActivate;
-
-typedef struct {
-	gint context_id;
-	gint secondary_context_id;
-	gint result;
-} TrespPsSetPdpActivate;
-
-typedef struct {
-	gint context_id;
-	gint secondary_context_id;
-
-	gchar username[TCORE_PS_USERNAME_LEN_MAX];
-	gchar password[TCORE_PS_PASSWORD_LEN_MAX];
-	gchar dns1[TCORE_PS_STR_IP_ADDRESS_LEN_MAX];
-	gchar dns2[TCORE_PS_STR_IP_ADDRESS_LEN_MAX];
-	gint auth_type;
-} TreqPsPdpDeactivate;
-
-typedef struct {
-	gint context_id;
-	gint secondary_context_id;
-	gint result;
-} TrespPsSetPdpDeactivate;
-#endif
-
-typedef struct {
-	guint context_id;
-	TcorePsCallState state;
-} TcorePsCallStatusInfo;
-
-typedef struct {
-	gint context_id;
-	gint secondary_context_id;
-
-	TcorePsFailureCause err;
-	gushort field_flag;
-	guchar ip_address[TCORE_PS_NUM_IP_ADDRESS_LEN_MAX];
-	guchar primary_dns[TCORE_PS_NUM_IP_ADDRESS_LEN_MAX];
-	guchar secondary_dns[TCORE_PS_NUM_IP_ADDRESS_LEN_MAX];
-	guchar gateway[TCORE_PS_NUM_IP_ADDRESS_LEN_MAX];
-	guchar subnet_mask[TCORE_PS_NUM_IP_ADDRESS_LEN_MAX];
-	gchar devname[TCORE_PS_DEVNAME_LEN_MAX];
-} TcorePsPdpIpConf;
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif	/* __TYPE_PS_H__ */

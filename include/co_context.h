@@ -1,8 +1,9 @@
 /*
  * libtcore
  *
- * Copyright (c) 2013 Samsung Electronics Co. Ltd. All rights reserved.
- * Copyright (c) 2013 Intel Corporation. All rights reserved.
+ * Copyright (c) 2012 Samsung Electronics Co., Ltd. All rights reserved.
+ *
+ * Contact: Ja-young Gu <jygu@samsung.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,136 +18,137 @@
  * limitations under the License.
  */
 
-#ifndef __CO_CONTEXT_H__
-#define __CO_CONTEXT_H__
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+#ifndef __TCORE_CO_CONTEXT_H__
+#define __TCORE_CO_CONTEXT_H__
 
 #include <core_object.h>
-#include <tel_return.h>
-#include "type/ps.h"
 
-typedef enum {
-	TCORE_CONTEXT_STATE_DEACTIVATED,
-	TCORE_CONTEXT_STATE_DEFINING,
-	TCORE_CONTEXT_STATE_DEFINED,
-	TCORE_CONTEXT_STATE_ACTIVATING,
-	TCORE_CONTEXT_STATE_ACTIVATED,
-	TCORE_CONTEXT_STATE_DEACTIVATING,
-} TcoreContextState;
+__BEGIN_DECLS
 
-typedef enum {
-	TCORE_CONTEXT_TYPE_UNKNOWN,
-	TCORE_CONTEXT_TYPE_X25,
-	TCORE_CONTEXT_TYPE_IP,
-	TCORE_CONTEXT_TYPE_IHOST,
-	TCORE_CONTEXT_TYPE_PPP,
-	TCORE_CONTEXT_TYPE_IPV6,
-} TcoreContextType;
+enum co_context_state {
+	CONTEXT_STATE_DEACTIVATED,
+	CONTEXT_STATE_ACTIVATING,
+	CONTEXT_STATE_ACTIVATED,
+	CONTEXT_STATE_DEACTIVATING,
+};
 
-typedef enum {
-	TCORE_CONTEXT_ROLE_UNKNOWN,
-	TCORE_CONTEXT_ROLE_INTERNET,
-	TCORE_CONTEXT_ROLE_MMS,
-	TCORE_CONTEXT_ROLE_PREPAID_INTERNET,
-	TCORE_CONTEXT_ROLE_PREPAID_MMS,
-	TCORE_CONTEXT_ROLE_TETHERING,
-	TCORE_CONTEXT_ROLE_USER_DEFINED,
-} TcoreContextRole;
+enum co_context_type {
+	CONTEXT_TYPE_UNKNOWN,
+	CONTEXT_TYPE_X25,
+	CONTEXT_TYPE_IP,
+	CONTEXT_TYPE_IHOST,
+	CONTEXT_TYPE_PPP,
+	CONTEXT_TYPE_IPV6,
+	CONTEXT_TYPE_IPV4V6,
+};
 
-typedef enum {
-	TCORE_CONTEXT_D_COMP_OFF,
-	TCORE_CONTEXT_D_COMP_ON,
-	TCORE_CONTEXT_D_COMP_V42BIS,
-	TCORE_CONTEXT_D_COMP_V44,
-} TcoreContextDComp;
+enum co_context_role {
+	CONTEXT_ROLE_UNKNOWN = -1,
+	CONTEXT_ROLE_IMS = 0,
+	CONTEXT_ROLE_INTERNET,
+	CONTEXT_ROLE_MMS,
+	CONTEXT_ROLE_PREPAID_INTERNET,
+	CONTEXT_ROLE_PREPAID_MMS,
+	CONTEXT_ROLE_TETHERING,
+	CONTEXT_ROLE_IMS_EMERGENCY,
+	CONTEXT_ROLE_USER_DEFINED,
+};
 
-typedef enum {
-	TCORE_CONTEXT_H_COMP_OFF,
-	TCORE_CONTEXT_H_COMP_ON,
-	TCORE_CONTEXT_H_COMP_RFC1144,
-	TCORE_CONTEXT_H_COMP_RFC2507,
-	TCORE_CONTEXT_H_COMP_RFC3095
-} TcoreContextHComp;
+enum co_context_d_comp {
+	CONTEXT_D_COMP_OFF,
+	CONTEXT_D_COMP_ON,
+	CONTEXT_D_COMP_V42BIS,
+	CONTEXT_D_COMP_V44,
+};
 
-typedef enum {
-	TCORE_CONTEXT_AUTH_NONE,
-	TCORE_CONTEXT_AUTH_PAP,
-	TCORE_CONTEXT_AUTH_CHAP
-} TcoreContextAuth;
+enum co_context_h_comp {
+	CONTEXT_H_COMP_OFF,
+	CONTEXT_H_COMP_ON,
+	CONTEXT_H_COMP_RFC1144,
+	CONTEXT_H_COMP_RFC2507,
+	CONTEXT_H_COMP_RFC3095
+};
 
-CoreObject *tcore_context_new(TcorePlugin *p, TcoreHal *hal);
-void tcore_context_free(CoreObject *co);
+enum co_context_auth {
+	CONTEXT_AUTH_NONE,
+	CONTEXT_AUTH_PAP,
+	CONTEXT_AUTH_CHAP
+};
 
-gboolean tcore_context_get_state(CoreObject *co,  TcoreContextState *state);
-gboolean tcore_context_set_state(CoreObject *co, TcoreContextState state);
+typedef struct {
+	unsigned int count;
+	char **addr;
+} pcscf_addr;
 
-gboolean tcore_context_get_id(CoreObject *co, guint *id);
-gboolean tcore_context_set_id(CoreObject *co, guint id);
+enum co_context_tech {
+	CONTEXT_TECH_INVALID = -1,
+	CONTEXT_TECH_3GPP,
+	CONTEXT_TECH_3GPP2
+};
 
-gboolean tcore_context_get_role(CoreObject *co, TcoreContextRole *role);
-gboolean tcore_context_set_role(CoreObject *co, TcoreContextRole type);
+CoreObject*              tcore_context_new(TcorePlugin *p, const char *name, TcoreHal *hal);
+void                     tcore_context_free(CoreObject *o);
 
-gboolean tcore_context_get_apn(CoreObject *co, gchar **apn);
-gboolean tcore_context_set_apn(CoreObject *co, const gchar *apn);
+TReturn                  tcore_context_set_state(CoreObject *o, enum co_context_state state);
+enum co_context_state    tcore_context_get_state(CoreObject *o);
+TReturn                  tcore_context_set_id(CoreObject *o, unsigned char id);
+unsigned char             tcore_context_get_id(CoreObject *o);
+TReturn                  tcore_context_set_role(CoreObject *o, enum co_context_role type);
+enum co_context_role     tcore_context_get_role(CoreObject *o);
 
-gboolean tcore_context_get_address(CoreObject *co, gchar **addr);
-gboolean tcore_context_set_address(CoreObject *co, const gchar *addr);
+TReturn                  tcore_context_set_apn(CoreObject *o, const char *apn);
+char*                    tcore_context_get_apn(CoreObject *o);
+TReturn                  tcore_context_set_address(CoreObject *o, const char *addr);
+char*                    tcore_context_get_address(CoreObject *o);
+TReturn                  tcore_context_set_type(CoreObject *o, enum co_context_type type);
+enum co_context_type     tcore_context_get_type(CoreObject *o);
+TReturn                  tcore_context_set_data_compression(CoreObject *o, enum co_context_d_comp comp);
+enum co_context_d_comp   tcore_context_get_data_compression(CoreObject *o);
+TReturn                  tcore_context_set_header_compression(CoreObject *o, enum co_context_h_comp comp);
+enum co_context_h_comp   tcore_context_get_header_compression(CoreObject *o);
+TReturn tcore_context_set_tech_preference(CoreObject *o, enum co_context_tech tech);
+enum co_context_tech tcore_context_get_tech_preference(CoreObject *o);
+TReturn                  tcore_context_set_username(CoreObject *o, const char *username);
+char*                    tcore_context_get_username(CoreObject *o);
+TReturn                  tcore_context_set_password(CoreObject *o, const char *password);
+char*                    tcore_context_get_password(CoreObject *o);
+TReturn                  tcore_context_set_dns1(CoreObject *o, const char *dns);
+TReturn                  tcore_context_set_ipv6_dns1(CoreObject *o, const char *dns);
+char*                    tcore_context_get_dns1(CoreObject *o);
+TReturn                  tcore_context_set_dns2(CoreObject *o, const char *dns);
+TReturn                  tcore_context_set_ipv6_dns2(CoreObject *o, const char *dns);
+char*                    tcore_context_get_dns2(CoreObject *o);
+TReturn                  tcore_context_set_auth(CoreObject *o, enum co_context_auth auth);
+enum co_context_auth     tcore_context_get_auth(CoreObject *o);
+TReturn                  tcore_context_set_proxy(CoreObject *o, const char *proxy);
+char*                    tcore_context_get_proxy(CoreObject *o);
+TReturn                  tcore_context_set_mmsurl(CoreObject *o, const char *mmsurl);
+char*                    tcore_context_get_mmsurl(CoreObject *o);
+TReturn                  tcore_context_set_profile_name(CoreObject *o, const char *profile_name);
+char*                    tcore_context_get_profile_name(CoreObject *o);
+TReturn 		tcore_context_set_default_profile(CoreObject *o, gboolean default_conn);
+gboolean		tcore_context_get_default_profile(CoreObject *o);
 
-gboolean tcore_context_get_dns1(CoreObject *co, gchar **dns);
-gboolean tcore_context_set_dns1(CoreObject *co, const gchar *dns);
+TReturn                  tcore_context_set_devinfo(CoreObject *o, struct tnoti_ps_pdp_ipconfiguration *devinfo);
+TReturn                  tcore_context_reset_devinfo(CoreObject *o);
+void                     tcore_context_cp_service_info(CoreObject *dest, CoreObject *src);
 
-gboolean tcore_context_get_dns2(CoreObject *co, gchar **dns);
-gboolean tcore_context_set_dns2(CoreObject *co, const gchar *dns);
+char*                    tcore_context_get_ipv4_addr(CoreObject *o);
+char*                    tcore_context_get_ipv4_dns1(CoreObject *o);
+char*                    tcore_context_get_ipv4_dns2(CoreObject *o);
+char*                    tcore_context_get_ipv4_gw(CoreObject *o);
+char*                    tcore_context_get_ipv4_devname(CoreObject *o);
 
-gboolean tcore_context_get_type(CoreObject *co, TcoreContextType *type);
-gboolean tcore_context_set_type(CoreObject *co, TcoreContextType type);
+char*                    tcore_context_get_ipv6_addr(CoreObject *o);
+char*                    tcore_context_get_ipv6_dns1(CoreObject *o);
+char*                    tcore_context_get_ipv6_dns2(CoreObject *o);
+char*                    tcore_context_get_ipv6_gw(CoreObject *o);
 
-gboolean tcore_context_get_data_compression(CoreObject *co, TcoreContextDComp *comp);
-gboolean tcore_context_set_data_compression(CoreObject *co, TcoreContextDComp comp);
+pcscf_addr *tcore_context_get_pcscf_ipv4_addr(CoreObject *o);
+pcscf_addr *tcore_context_get_pcscf_ipv6_addr(CoreObject *o);
+TReturn tcore_context_set_attach_apn(CoreObject *o, gboolean flag);
+gboolean tcore_context_get_attach_apn(CoreObject *o);
 
-gboolean tcore_context_get_header_compression(CoreObject *co, TcoreContextHComp *comp);
-gboolean tcore_context_set_header_compression(CoreObject *co, TcoreContextHComp comp);
+__END_DECLS
 
-gboolean tcore_context_get_username(CoreObject *co, gchar **username);
-gboolean tcore_context_set_username(CoreObject *co, const gchar *username);
-
-gboolean tcore_context_get_password(CoreObject *co, gchar **password);
-gboolean tcore_context_set_password(CoreObject *co, const gchar *password);
-
-gboolean tcore_context_get_auth(CoreObject *co, TcoreContextAuth *auth);
-gboolean tcore_context_set_auth(CoreObject *co, TcoreContextAuth auth);
-
-gboolean tcore_context_get_proxy(CoreObject *co, gchar **proxy);
-gboolean tcore_context_set_proxy(CoreObject *co, const gchar *proxy);
-
-gboolean tcore_context_get_mmsurl(CoreObject *co, gchar **mmsurl);
-gboolean tcore_context_set_mmsurl(CoreObject *co, const gchar *mmsurl);
-
-gboolean tcore_context_get_profile_name(CoreObject *co, gchar **profile_name);
-gboolean tcore_context_set_profile_name(CoreObject *co, const gchar *profile_name);
-
-gboolean tcore_context_set_devinfo(CoreObject *co, TcorePsPdpIpConf *devinfo);
-gboolean tcore_context_reset_devinfo(CoreObject *co);
-
-gboolean tcore_context_get_ipv4_addr(CoreObject *co, gchar **ipv4);
-gboolean tcore_context_set_ipv4_addr(CoreObject *co, const gchar *addr);
-
-gboolean tcore_context_get_ipv4_dns1(CoreObject *co, gchar **ipv4_dns);
-gboolean tcore_context_get_ipv4_dns2(CoreObject *co, gchar **ipv4_dns2);
-gboolean tcore_context_set_ipv4_dns(CoreObject *co, const gchar *dns1, const gchar *dns2);
-
-gboolean tcore_context_get_ipv4_gw(CoreObject *co, gchar **ipv4_gw);
-
-gboolean tcore_context_get_ipv4_devname(CoreObject *co, gchar **dev_name);
-gboolean tcore_context_set_ipv4_devname(CoreObject *co, const gchar *name);
-
-void tcore_context_cp_service_info(CoreObject *dest, CoreObject *src);
-
-#ifdef __cplusplus
-}
 #endif
-
-#endif	/* __CO_CONTEXT_H__ */

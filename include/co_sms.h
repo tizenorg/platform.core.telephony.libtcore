@@ -1,8 +1,9 @@
 /*
  * libtcore
  *
- * Copyright (c) 2013 Samsung Electronics Co. Ltd. All rights reserved.
- * Copyright (c) 2013 Intel Corporation. All rights reserved.
+ * Copyright (c) 2012 Samsung Electronics Co., Ltd. All rights reserved.
+ *
+ * Contact: Ja-young Gu <jygu@samsung.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,47 +18,77 @@
  * limitations under the License.
  */
 
-#ifndef __CO_SMS_H__
-#define __CO_SMS_H__
+#ifndef __TCORE_CO_SMS_H__
+#define __TCORE_CO_SMS_H__
 
-#define tcore_sms_convert_to_semioctet_length(length)	((length + 1) / 2)
+#include <core_object.h>
 
-#include "core_object.h"
-#include <tel_sms.h>
-#include <tel_return.h>
+__BEGIN_DECLS
 
-#ifdef __cplusplus
-extern "C" {
+
+#define nDefaultSMSPWithoutAlphaId	28
+
+#define SMSPValidDestAddr			0x01
+#define SMSPValidSvcAddr			0x02
+#define SMSPValidPID				0x04
+#define SMSPValidDCS				0x08
+#define SMSPValidVP					0x10
+
+#define nDestAddrOffset				1
+#define nSCAAddrOffset				13
+#define nPIDOffset					25
+#define nDCSOffset					26
+#define nVPOffset					27
+
+struct property_sms_info {
+	int	g_trans_id;
+	int	SMSPRecordLen;
+};
+
+struct tcore_sms_operations {
+	TReturn (*send_umts_msg)(CoreObject *o, UserRequest *ur);
+	TReturn (*read_msg)(CoreObject *o, UserRequest *ur);
+	TReturn (*save_msg)(CoreObject *o, UserRequest *ur);
+	TReturn (*delete_msg)(CoreObject *o, UserRequest *ur);
+	TReturn (*get_storedMsgCnt)(CoreObject *o, UserRequest *ur);
+	TReturn (*get_sca)(CoreObject *o, UserRequest *ur);
+	TReturn (*set_sca)(CoreObject *o, UserRequest *ur);
+	TReturn (*get_cb_config)(CoreObject *o, UserRequest *ur);
+	TReturn (*set_cb_config)(CoreObject *o, UserRequest *ur);
+	TReturn (*set_mem_status)(CoreObject *o, UserRequest *ur);
+	TReturn (*get_pref_brearer)(CoreObject *o, UserRequest *ur);
+	TReturn (*set_pref_brearer)(CoreObject *o, UserRequest *ur);
+	TReturn (*set_delivery_report)(CoreObject *o, UserRequest *ur);
+	TReturn (*set_msg_status)(CoreObject *o, UserRequest *ur);
+	TReturn (*get_sms_params)(CoreObject *o, UserRequest *ur);
+	TReturn (*set_sms_params)(CoreObject *o, UserRequest *ur);
+	TReturn (*get_paramcnt)(CoreObject *o, UserRequest *ur);
+	TReturn (*send_cdma_msg)(CoreObject *o, UserRequest *ur);
+};
+
+/**
+ * This function is used to encode SMS Parameters to TPDU on EFsmsp
+ *
+ * @return		length of string
+ * @param[in]		incoming - telephony_sms_Params_t
+ * @param[in]		data - TPDU data
+ * @Interface		Synchronous.
+ * @remark
+ * @Refer
+ */
+int  _tcore_util_sms_encode_smsParameters(const struct telephony_sms_Params *incoming, unsigned char *data, int SMSPRecordLen);
+int  tcore_util_sms_decode_smsParameters(uint8_t *incoming, uint32_t length, struct telephony_sms_Params *params);
+
+
+void tcore_util_sms_semioctet_to_octect(int* nScLength);
+enum telephony_sms_ready_status  tcore_sms_get_ready_status(CoreObject *o);
+gboolean  tcore_sms_set_ready_status(CoreObject *o, enum telephony_sms_ready_status status);
+CoreObject* tcore_sms_new(TcorePlugin *p, const char *name, struct tcore_sms_operations *ops, TcoreHal *hal);
+void  tcore_sms_free(CoreObject * n);
+
+void tcore_sms_set_ops(CoreObject *o, struct tcore_sms_operations *ops);
+
+__END_DECLS
+
 #endif
 
-typedef struct tcore_sms_operations {
-	TelReturn (*send_sms)(CoreObject *co, const TelSmsSendInfo *send_info, TcoreObjectResponseCallback cb, void *cb_data);
-	TelReturn (*read_in_sim)(CoreObject *co, unsigned int index, TcoreObjectResponseCallback cb, void *cb_data);
-	TelReturn (*write_in_sim)(CoreObject *co, const TelSmsSimDataInfo *wdata, TcoreObjectResponseCallback cb, void *cb_data);
-	TelReturn (*delete_in_sim)(CoreObject *co, unsigned int index, TcoreObjectResponseCallback cb, void *cb_data);
-	TelReturn (*get_count)(CoreObject *co, TcoreObjectResponseCallback cb, void *cb_data);
-	TelReturn (*set_cb_config)(CoreObject *co, const TelSmsCbConfigInfo *cb_conf, TcoreObjectResponseCallback cb, void *cb_data);
-	TelReturn (*get_cb_config)(CoreObject *co, TcoreObjectResponseCallback cb, void *cb_data);
-	TelReturn (*get_parameters)(CoreObject *co, TcoreObjectResponseCallback cb, void *cb_data);
-	TelReturn (*set_parameters)(CoreObject *co, const TelSmsParamsInfo *params, TcoreObjectResponseCallback cb, void *cb_data);
-	TelReturn (*send_deliver_report)(CoreObject *co, const TelSmsDeliverReportInfo *dr_info, TcoreObjectResponseCallback cb, void *cb_data);
-	TelReturn (*set_sca)(CoreObject *co, const TelSmsSca *sca, TcoreObjectResponseCallback cb, void *cb_data);
-	TelReturn (*get_sca)(CoreObject *co, TcoreObjectResponseCallback cb, void *cb_data);
-	TelReturn (*set_memory_status)(CoreObject *co, gboolean available, TcoreObjectResponseCallback cb, void *cb_data);
-	TelReturn (*set_message_status)(CoreObject *co, const TelSmsStatusInfo *status_info, TcoreObjectResponseCallback cb, void *cb_data);
-} TcoreSmsOps;
-
-gboolean tcore_sms_get_ready_status(CoreObject *co, gboolean *status);
-gboolean tcore_sms_set_ready_status(CoreObject *co, gboolean status);
-
-CoreObject *tcore_sms_new(TcorePlugin *p, TcoreSmsOps *sms_ops, TcoreHal *hal);
-void tcore_sms_free(CoreObject *co);
-
-gboolean tcore_sms_set_ops(CoreObject *co, TcoreSmsOps *ops);
-void tcore_sms_override_ops(CoreObject *co, TcoreSmsOps *sms_ops);
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif /*__CO_SMS_H__*/

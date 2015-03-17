@@ -1,80 +1,61 @@
-%define major 3
-%define minor 0
-%define patchlevel 1
-%define dbus_gen_code_path %{_includedir}/tel-headers/introspection
+%define major 0
+%define minor 2
+%define patchlevel 63
 
-Name: libtcore
-Summary: Telephony-core library
-Version:    %{major}.%{minor}.%{patchlevel}
-Release:    1
-Group:      System/Libraries
-License:    Apache-2.0
-Source0:    libtcore-%{version}.tar.gz
-Source1001: 	libtcore.manifest
-Requires(post): /sbin/ldconfig
-Requires(postun): /sbin/ldconfig
+Name:           libtcore
+Version:        %{major}.%{minor}.%{patchlevel}
+Release:        1
+License:        Apache
+Summary:        Telephony-core library
+Group:          System/Libraries
+Source0:        libtcore-%{version}.tar.gz
 BuildRequires:  cmake
 BuildRequires:  pkgconfig(glib-2.0)
 BuildRequires:  pkgconfig(gudev-1.0)
+Requires(post): /sbin/ldconfig
+Requires(postun): /sbin/ldconfig
 
 %description
 Telephony-core library
 
 %package devel
 Summary:        Telephony-core library (Development)
-Requires:       %{name} = %{version}
 Group:          Development/Libraries
+Requires:       %{name} = %{version}
 
 %description devel
 Telephony-core library (Development)
 
-%package -n tel-headers
-Summary:        Telephony-common header files
-Group:          System/Libraries
-BuildRequires:  python
-BuildRequires:  python-xml
-BuildRequires:  pkgconfig(glib-2.0)
-BuildRequires:  pkgconfig(gudev-1.0)
-BuildRequires:  pkgconfig(gio-2.0)
-BuildRequires:  pkgconfig(gio-unix-2.0)
-BuildRequires:  pkgconfig(gobject-2.0)
-
-%description -n tel-headers
-Telephony-common header files
-
 %prep
 %setup -q
-cp %{SOURCE1001} .
 
 %build
-%cmake . -DDBUS_GEN_CODE_PATH=%{dbus_gen_code_path} -DVERSION=%{version}
-make %{?jobs:-j%jobs}
+cmake . -DCMAKE_INSTALL_PREFIX=%{_prefix} -DVERSION=%{version} \
+%ifarch %{arm}
+%else
+	-DARCH_EMUL=1 \
+%endif
 
-%post
-/sbin/ldconfig
+make %{?_smp_mflags}
+
+%post -p /sbin/ldconfig
 
 %postun -p /sbin/ldconfig
 
 %install
 %make_install
-mkdir -p %{buildroot}/usr/share/license
-cp LICENSE %{buildroot}/usr/share/license/%{name}
+mkdir -p %{buildroot}%{_datadir}/license
 
 %files
-%manifest %{name}.manifest
+%manifest libtcore.manifest
 %defattr(-,root,root,-)
+#%doc COPYING
 %{_libdir}/libtcore*
-/usr/share/license/%{name}
+#%{_bindir}/*
+%{_datadir}/license/libtcore
 
 %files devel
-%manifest %{name}.manifest
 %defattr(-,root,root,-)
 %{_includedir}/*
 %{_libdir}/pkgconfig/tcore.pc
 
-%files -n tel-headers
-%defattr(-,root,root,-)
-%{_includedir}/tel-headers
-%{dbus_gen_code_path}/tel_generated_code.h
-%{_libdir}/pkgconfig/tel-headers.pc
-%{_libdir}/libtel-headers*
