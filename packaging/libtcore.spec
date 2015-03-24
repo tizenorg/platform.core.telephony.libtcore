@@ -30,7 +30,9 @@ Telephony-core library (Development)
 %setup -q
 
 %build
-cmake . -DCMAKE_INSTALL_PREFIX=%{_prefix} -DVERSION=%{version} \
+cmake . -DCMAKE_INSTALL_PREFIX=%{_prefix} \
+	-DLIB_INSTALL_DIR=%{_libdir} \
+	-DVERSION=%{version} \
 %ifarch %{arm}
 %else
 	-DARCH_EMUL=1 \

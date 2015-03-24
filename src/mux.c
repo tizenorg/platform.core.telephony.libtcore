@@ -767,7 +767,7 @@ static gboolean _cmux_recv_cmux_data(tcore_cmux_object *cmux_obj,
 		return FALSE;
 	}
 
-	dbg("Dispatching to logical HAL - hal: [0x%x]", (unsigned int)hal);
+	dbg("Dispatching to logical HAL - hal: [%p]", hal);
 	if (tcore_hal_dispatch_response_data(hal, 0,
 			cmux_obj->internal_mux.info_field_len,
 			cmux_obj->internal_mux.info_field)
@@ -1328,13 +1328,13 @@ TReturn tcore_cmux_setup_internal_mux(tcore_cmux_mode mode,
 			|| (phy_hal == NULL)
 			|| (channel_setup_cb == NULL)
 			|| (setup_complete_cb == NULL)) {
-		err("CMUX Buffer size: [%d] Physical HAL: [0x%x] setup_complete_cb: [0x%x]",
-			cmux_buf_size, (unsigned int)phy_hal, setup_complete_cb);
+		err("CMUX Buffer size: [%d] Physical HAL: [%p] setup_complete_cb: [%p]",
+			cmux_buf_size, phy_hal, setup_complete_cb);
 		return TCORE_RETURN_EINVAL;
 	}
 
-	dbg("Physical HAL: [0x%x] cmux_buf_size: [%d]",
-								(unsigned int)phy_hal, cmux_buf_size);
+	dbg("Physical HAL: [%p] cmux_buf_size: [%d]",
+			phy_hal, cmux_buf_size);
 
 	/*
 	 * Max Channels
