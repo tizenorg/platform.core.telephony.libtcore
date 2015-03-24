@@ -781,7 +781,7 @@ GSList *tcore_call_object_get_all_session_ids(CoreObject *o)
 	while (call_list) {
 		call_obj = call_list->data;
 		if (call_obj->is_volte_call == TRUE)
-			session_ids = g_slist_append(session_ids, (gpointer)call_obj->session_id);
+			session_ids = g_slist_append(session_ids, GINT_TO_POINTER(call_obj->session_id));
 
 		call_list = g_slist_next(call_list);
 	}

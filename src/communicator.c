@@ -123,7 +123,7 @@ TReturn tcore_communicator_send_response(Communicator *comm, UserRequest *ur,
 	if (!comm || !comm->ops || !comm->ops->send_response)
 		return TCORE_RETURN_EINVAL;
 
-	dbg("ur = 0x%x", (unsigned int)ur);
+	dbg("ur = %p", ur);
 
 	return comm->ops->send_response(comm, ur, command, data_len, data);
 }
