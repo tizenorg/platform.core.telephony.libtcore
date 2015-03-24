@@ -1192,7 +1192,7 @@ TReturn tcore_util_netif_set_mtu(const char *name, unsigned int mtu)
 	memset(&ifr, 0, sizeof(struct ifreq));
 	strncpy(ifr.ifr_name, name, IFNAMSIZ);
 	ifr.ifr_name[IFNAMSIZ - 1] = '\0';
-	ifr.ifr_data = (void*)mtu;
+	ifr.ifr_data = (void*)(unsigned long)mtu;
 
 	ret = ioctl(fd, SIOCSIFMTU, &ifr);
 	if (ret < 0) {

@@ -96,7 +96,7 @@ void tcore_user_request_free(UserRequest *ur)
 	if(ur->metainfo)
 		free(ur->metainfo);
 
-	dbg("user_request(0x%x) free.", (unsigned int)ur);
+	dbg("user_request(0x%x) free.", (unsigned long)ur);
 
 	free(ur);
 }

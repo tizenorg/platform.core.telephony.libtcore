@@ -129,7 +129,7 @@ void tcore_pending_free(TcorePending *pending)
 	if (!pending)
 		return;
 
-	dbg("pending(0x%x) free, id=0x%x", (unsigned int)pending, pending->id);
+	dbg("pending(0x%x) free, id=0x%x", (unsigned long)pending, pending->id);
 
 	if (pending->queue) {
 		enum tcore_hal_mode mode = tcore_hal_get_mode(pending->queue->hal);
@@ -465,7 +465,7 @@ TReturn tcore_queue_push(TcoreQueue *queue, TcorePending *pending)
 	}
 
 	dbg("pending(%p) push to queue(%p). queue length=%d",
-			(unsigned int)pending, queue, g_queue_get_length(queue->gq));
+			(unsigned long)pending, queue, g_queue_get_length(queue->gq));
 
 	return TCORE_RETURN_SUCCESS;
 }
@@ -651,7 +651,7 @@ TcorePending *tcore_queue_ref_next_pending(TcoreQueue *queue)
 	} while (pending != NULL);
 
 	if (pending->flag_sent == TRUE) {
-		dbg("pending(0x%x) is waiting state.", (unsigned int)pending);
+		dbg("pending(0x%x) is waiting state.", (unsigned long)pending);
 		return NULL;
 	}
 
@@ -711,7 +711,7 @@ TReturn tcore_queue_cancel_pending_by_command(TcoreQueue *queue, enum tcore_requ
 		if (!pending)
 			break;
 
-		dbg("pending(0x%x) cancel", (unsigned int)pending);
+		dbg("pending(0x%x) cancel", (unsigned long)pending);
 
 		if (queue->hal) {
 			dbg("hal %p", queue->hal);

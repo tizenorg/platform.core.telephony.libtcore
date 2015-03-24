@@ -186,7 +186,7 @@ static object_mapping_table_t *_object_search_mapping_tbl_entry_by_type(
 			if (co_list->data == NULL)
 				continue;
 
-			if (type == (unsigned int)co_list->data) {
+			if (type == (unsigned long)co_list->data) {
 				return tbl_entry;
 			}
 		}
@@ -1047,7 +1047,7 @@ void *tcore_object_add_mapping_tbl_entry(void *mapping_tbl,
 	/*
 	 * Appending the Core Object type to the list of Core Objects types
 	 */
-	tbl_entry->object_type = g_slist_append(tbl_entry->object_type, (gpointer)object_type);
+	tbl_entry->object_type = g_slist_append(tbl_entry->object_type, (gpointer)(unsigned long)object_type);
 	dbg("Added Mapping Table entry - HAL: [0x%x] Object type: [0x%x]", hal, object_type);
 
 	return mapping_tbl_list;
@@ -1118,7 +1118,7 @@ void tcore_object_remove_mapping_tbl_entry_by_type(void *mapping_tbl,
 	}
 
 	/* Remove the Core Object type from the list */
-	tbl_entry->object_type = g_slist_remove(tbl_entry->object_type, (gconstpointer)co_type);
+	tbl_entry->object_type = g_slist_remove(tbl_entry->object_type, (gconstpointer)(unsigned long)co_type);
 }
 
 void tcore_object_print_mapping_tbl(void *mapping_tbl)
@@ -1174,7 +1174,7 @@ TReturn tcore_object_init_objects(TcorePlugin *plugin,
 
 				object_type_list = tbl_entry->object_type;
 				for ( ; object_type_list ; object_type_list = object_type_list->next) {
-					type = (guint)object_type_list->data;
+					type = (unsigned long)object_type_list->data;
 
 					co = _create_core_object_by_type(type, plugin, tbl_entry->hal);
 					if (co == NULL) {
@@ -1198,7 +1198,7 @@ TReturn tcore_object_init_objects(TcorePlugin *plugin,
 				object_type_list = tbl_entry->object_type;
 
 				for ( ; object_type_list ; object_type_list = object_type_list->next) {
-					type = (unsigned int)object_type_list->data;
+					type = (unsigned long)object_type_list->data;
 					dbg("Core Object type: [0x%x]", type);
 
 					ret = _init_core_object_by_type(type, plugin, initializer_list);
@@ -1241,7 +1241,7 @@ void tcore_object_deinit_objects(TcorePlugin *plugin,
 	if (mapping_tbl_list != NULL) {
 		object_mapping_table_t *tbl_entry;
 		GSList *object_type_list;
-		unsigned int type;
+		unsigned long type;
 
 		/* De-initialize each Core Object based on the Mapping Table entries */
 		for ( ; mapping_tbl_list ; mapping_tbl_list = mapping_tbl_list->next) {
@@ -1252,7 +1252,7 @@ void tcore_object_deinit_objects(TcorePlugin *plugin,
 			object_type_list = tbl_entry->object_type;
 
 			for ( ; object_type_list ; object_type_list = object_type_list->next) {
-				type = (unsigned int)object_type_list->data;
+				type = (unsigned long)object_type_list->data;
 				dbg("Core Object type: [0x%x]", type);
 
 				_deinit_core_object_by_type(type, plugin, deinitializer_list);

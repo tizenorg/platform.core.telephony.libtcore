@@ -69,7 +69,7 @@ struct call_object {
 		long end;
 	} time;
 	gboolean is_volte_call;
-	int session_id; // VoLTE only
+	long session_id; // VoLTE only
 	int conf_call_session_id; // Conference call session-id (VoLTE only)
 	gboolean early_media; // VoLTE only
 };
