@@ -74,13 +74,19 @@ enum telephony_ps_state {
 	TELEPHONY_PS_RESTRICTED_SERVICE
 };
 
-struct dedicated_bearer_info {
-	char profile_id;
+struct qos_parameter {
+	char profile_type;
 	char qci;
-	char gbr_dl;
-	char gbr_ul;
-	char max_br_dl;
-	char max_br_ul;
+	unsigned int gbr_dl;
+	unsigned int gbr_ul;
+	unsigned int max_br_dl;
+	unsigned int max_br_ul;
+};
+
+struct dedicated_bearer_info {
+	int secondary_context_id;
+	unsigned char num_dedicated_bearer;
+	struct qos_parameter qos[MAX_NUM_DEDICATED_BEARER];
 };
 
 struct treq_ps_pdp_activate {
@@ -124,7 +130,7 @@ struct tresp_ps_set_pdp_deactivate {
 struct tnoti_ps_call_status {
 	int context_id;
 	int state;
-	int result;
+	int result; /* specified in 3GPP TS 24.008 10.5.6.6. */
 };
 
 struct tnoti_ps_pdp_ipconfiguration {
@@ -135,6 +141,7 @@ struct tnoti_ps_pdp_ipconfiguration {
 	unsigned short field_flag;
 
 	char devname[16];
+	unsigned long mtu; 
 
 	unsigned char ip_address[IPV4_ADDR_LEN];
 	unsigned char primary_dns[IPV4_ADDR_LEN];
@@ -166,8 +173,8 @@ struct tnoti_MIP_status {
 };
 
 struct tnoti_ps_dedicated_bearer_info {
-	unsigned char num_dedicated_bearer;
-	struct dedicated_bearer_info dedicated_bearer [MAX_NUM_DEDICATED_BEARER];
+	int primary_context_id;
+	struct dedicated_bearer_info dedicated_bearer;
 };
 __END_DECLS
 

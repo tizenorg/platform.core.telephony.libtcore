@@ -41,11 +41,11 @@
 
 /* CMUX Commands */
 #define CMUX_COMMAND_SABM				0x2F
-#define CMUX_COMMAND_UA					0x63
-#define CMUX_COMMAND_DM					0x0F
-#define CMUX_COMMAND_DISC					0x43
-#define CMUX_COMMAND_UIH					0xEF
-#define CMUX_COMMAND_UI					0x03
+#define CMUX_COMMAND_UA				0x63
+#define CMUX_COMMAND_DM				0x0F
+#define CMUX_COMMAND_DISC				0x43
+#define CMUX_COMMAND_UIH				0xEF
+#define CMUX_COMMAND_UI				0x03
 
 /* CMUX Delimiter Byte */
 #define CMUX_FRAME_DELIMITER				0xF9
@@ -161,7 +161,7 @@ struct cmux_channel {
 
 /* CMUX structure - Internal */
 struct cmux_internal {
-	tcore_cmux_channel *channel_info[CMUX_CHANNEL_MAX];
+	tcore_cmux_channel * channel_info[CMUX_CHANNEL_MAX];
 
 	int is_waiting;
 
@@ -206,7 +206,7 @@ static GSList *g_cmux_obj = NULL;
 
 /* All the local functions declared below */
 static void _cmux_on_confirmation_message_send(TcorePending *plugin,
-											gboolean result, void *user_data);
+	gboolean result, void *user_data);
 
 tcore_cmux_object *_cmux_new(int max_channels, unsigned int buffer_size);
 static void _cmux_free(tcore_cmux_object *cmux_obj);
@@ -215,7 +215,7 @@ static void _cmux_channel_init(tcore_cmux_object *cmux_obj, int channel_id);
 static void _cmux_close_channel(tcore_cmux_object *cmux_obj, int channel_id);
 
 static TcoreHal *_cmux_create_logical_hal(tcore_cmux_object *cmux_obj,
-								tcore_cmux_channel *channel);
+	tcore_cmux_channel *channel);
 
 static gboolean _cmux_recv_cmux_data(tcore_cmux_object *cmux_obj,
 				tcore_cmux_channel *channel);
@@ -228,16 +228,15 @@ static void _cmux_flush_channel_data(tcore_cmux_object *cmux_obj);
 
 static TReturn _cmux_send_data(TcoreHal *hal, int data_len, unsigned char *data);
 static unsigned char *_cmux_encode_cmux_frame(tcore_cmux_object *cmux_obj,
-						unsigned char *data, unsigned int length, int channel_id,
-						int frame_type, unsigned char EA_bit, unsigned char CR_bit,
-						unsigned char PF_bit, int *out_data_len);
+	unsigned char *data, unsigned int length, int channel_id,
+	int frame_type, unsigned char EA_bit, unsigned char CR_bit,
+	unsigned char PF_bit, int *out_data_len);
 
 static tcore_cmux_object *_cmux_get_cmux_object(TcorePlugin *plugin);
 
 static unsigned char _cmux_calc_crc(unsigned char *header, int length);
 static int _cmux_check_recv_crc(unsigned char *data,
-									unsigned char length,
-									unsigned char rcv_fcs);
+	unsigned char length, unsigned char rcv_fcs);
 
 static unsigned char _cmux_calc_crc(unsigned char *header, int length)
 {
@@ -259,8 +258,7 @@ static unsigned char _cmux_calc_crc(unsigned char *header, int length)
 }
 
 static int _cmux_check_recv_crc(unsigned char *data,
-									unsigned char length,
-									unsigned char rcv_fcs)
+	unsigned char length, unsigned char rcv_fcs)
 {
 	unsigned char fcs = 0xFF;	/* Init */
 
@@ -442,23 +440,25 @@ static void _cmux_control_channel_handle(tcore_cmux_object *cmux_obj)
 		while ((*msg_start_ptr++ & 0x01))
 			msg_len++;
 
-		if ((cmd_type & 0x02) == 0x02) {	/* This is a command Request */
+		if ((cmd_type & 0x02) == 0x02) { /* This is a command Request */
 			switch (cmd_type) {
-				case CMUX_COMMAND_MSC:
-					dbg("Modem Status Command");
-					break;
-				case CMUX_COMMAND_CLD:
-					dbg("Multiplexer close down");
+			case CMUX_COMMAND_MSC:
+				dbg("Modem Status Command");
+			break;
 
-					cmux_obj->cmux_state = CMUX_CLOSED;
+			case CMUX_COMMAND_CLD:
+				dbg("Multiplexer close down");
 
-					/* TODO - Need to notify regarding CMUX closure */
-					tcore_cmux_close(cmux_obj->phy_hal, NULL, NULL);
-					break;
-				default:
-					/* We will be supporting these commands in Phase 2 */
-					dbg("Default");
-					break;
+				cmux_obj->cmux_state = CMUX_CLOSED;
+
+				/* TODO - Need to notify regarding CMUX closure */
+				tcore_cmux_close(cmux_obj->phy_hal, NULL, NULL);
+			break;
+
+			default:
+				/* We will be supporting these commands in Phase 2 */
+				dbg("Default");
+			break;
 			}
 		}
 	} else
@@ -485,176 +485,182 @@ static void _cmux_process_channel_data(tcore_cmux_object *cmux_obj,
 	dbg("Frame Type: [0x%02x]", frame_type);
 
 	switch (frame_type) {
-		case CMUX_COMMAND_UI:
-		case CMUX_COMMAND_UIH:
-			dbg("Received UI/UIH Frame");
-			if (channel_id == CMUX_CHANNEL_0) {              /* This is control info */
-				dbg("Control information");
-				_cmux_control_channel_handle(cmux_obj);
-			} else {
-				dbg("Normal information");
+	case CMUX_COMMAND_UI:
+	case CMUX_COMMAND_UIH:
+		dbg("Received UI/UIH Frame");
+		if (channel_id == CMUX_CHANNEL_0) {              /* This is control info */
+			dbg("Control information");
+			_cmux_control_channel_handle(cmux_obj);
+		} else {
+			dbg("Normal information");
 
-				/* Put in the logical HAL queue, this goes to the Cobject */
-				if (FALSE == _cmux_recv_cmux_data(cmux_obj, channel))
-					err("Failed receive callback");
-			}
-			break;
-		case CMUX_COMMAND_UA:
-			dbg("Received UA Frame - Channel State: [%d]", channel->channel_state);
-			if (CMUX_CHANNEL_SABM_SEND_WAITING_FOR_UA == channel->channel_state) {
-				channel->channel_state = CMUX_CHANNEL_ESTABLISHED;
+			/* Put in the logical HAL queue, this goes to the Cobject */
+			if (FALSE == _cmux_recv_cmux_data(cmux_obj, channel))
+				err("Failed receive callback");
+		}
+	break;
 
-				if (channel->channel_id != CMUX_CHANNEL_0) {
-					TcoreHal *hal;
+	case CMUX_COMMAND_UA:
+		dbg("Received UA Frame - Channel State: [%d]", channel->channel_state);
+		if (CMUX_CHANNEL_SABM_SEND_WAITING_FOR_UA == channel->channel_state) {
+			channel->channel_state = CMUX_CHANNEL_ESTABLISHED;
 
-					/* Create Logical HAL */
-					hal = _cmux_create_logical_hal(cmux_obj, channel);
-					if (hal != NULL) {
-						dbg("Invoking CMUX Channel Setup callback for [%d] channel",
-													channel->channel_id);
-						/*
-						 * 'channel_setup_cb' cannot be NULL as it is MANDATED during
-						 * CMUX setup operation.
-						 */
-						cmux_obj->internal_mux.channel_setup_cb(channel->channel_id, hal,
-										cmux_obj->internal_mux.channel_setup_user_data);
-					} else
-						err("Failed to Create Logical HAL");
-				}
+			if (channel->channel_id != CMUX_CHANNEL_0) {
+				TcoreHal *hal;
 
-				count++;
-				dbg("Count: [%d]", count);
-				if (cmux_obj->max_cmux_channels == count) {
-					dbg("Invoking CMUX Channel Setup Complete callback - Total Channels: [%d]",
-													count);
+				/* Create Logical HAL */
+				hal = _cmux_create_logical_hal(cmux_obj, channel);
+				if (hal != NULL) {
+					dbg("Invoking CMUX Channel Setup callback for [%d] channel",
+												channel->channel_id);
 					/*
-					 * 'setup_complete_cb' cannot be NULL as it is MANDATED during
+					 * 'channel_setup_cb' cannot be NULL as it is MANDATED during
 					 * CMUX setup operation.
 					 */
-					cmux_obj->internal_mux.setup_complete_cb(
-						cmux_obj->internal_mux.setup_complete_user_data);
-
-					/* Reset 'count' */
-					count = 0;
-				}
-			} else if (CMUX_CHANNEL_DISC_SEND_WAITING_FOR_UA ==
-										channel->channel_state) {
-				channel->channel_state = CMUX_CHANNEL_CLOSED;
-
-				if (channel_id == CMUX_CHANNEL_0) {
-					cmux_obj->cmux_state = CMUX_CLOSED;
-
-					/* TODO - Need to notify regarding CMUX closure */
-					tcore_cmux_close(cmux_obj->phy_hal, NULL, NULL);
-				}
-			} else
-				err("Received UA in wrong state!!!");
-
-			break;
-		case CMUX_COMMAND_DM:
-			/*
-			 * 5.4.1 DLC Establishment : If the responding station is not ready or unwilling
-			 * to establish the particular DLC it will reply with a DM frame with the
-			 * F-bit set to 1.
-			 */
-			dbg("Received DM Frame");
-			if ((channel->channel_state == CMUX_CHANNEL_ESTABLISHED)
-				|| (channel->channel_state ==
-							CMUX_CHANNEL_SABM_SEND_WAITING_FOR_UA)) {
-				/* Channel State set to Close */
-				channel->channel_state = CMUX_CHANNEL_CLOSED;
+					cmux_obj->internal_mux.channel_setup_cb(channel->channel_id, hal,
+									cmux_obj->internal_mux.channel_setup_user_data);
+				} else
+					err("Failed to Create Logical HAL");
 			}
+
+			count++;
+			dbg("Count: [%d]", count);
+			if (cmux_obj->max_cmux_channels == count) {
+				dbg("Invoking CMUX Channel Setup Complete callback - Total Channels: [%d]",
+												count);
+				/*
+				 * 'setup_complete_cb' cannot be NULL as it is MANDATED during
+				 * CMUX setup operation.
+				 */
+				cmux_obj->internal_mux.setup_complete_cb(
+					cmux_obj->internal_mux.setup_complete_user_data);
+
+				/* Reset 'count' */
+				count = 0;
+			}
+		} else if (CMUX_CHANNEL_DISC_SEND_WAITING_FOR_UA ==
+									channel->channel_state) {
+			channel->channel_state = CMUX_CHANNEL_CLOSED;
+
+			if (channel_id == CMUX_CHANNEL_0) {
+				cmux_obj->cmux_state = CMUX_CLOSED;
+
+				/* TODO - Need to notify regarding CMUX closure */
+				tcore_cmux_close(cmux_obj->phy_hal, NULL, NULL);
+			}
+		} else
+			err("Received UA in wrong state!!!");
+
+	break;
+
+	case CMUX_COMMAND_DM:
+		/*
+		 * 5.4.1 DLC Establishment : If the responding station is not ready or unwilling
+		 * to establish the particular DLC it will reply with a DM frame with the
+		 * F-bit set to 1.
+		 */
+		dbg("Received DM Frame");
+		if ((channel->channel_state == CMUX_CHANNEL_ESTABLISHED)
+			|| (channel->channel_state ==
+						CMUX_CHANNEL_SABM_SEND_WAITING_FOR_UA)) {
+			/* Channel State set to Close */
+			channel->channel_state = CMUX_CHANNEL_CLOSED;
+		}
+
+		/* Flush the Channel data */
+		_cmux_flush_channel_data(cmux_obj);
+	break;
+
+	case CMUX_COMMAND_DISC:
+		dbg("Received DISC Frame");
+		if (channel->poll_final_bit == 0) {
+			/*
+			 * In the case where a CMUX_COMMAND_SABM or
+			 * CMUX_COMMAND_DISC command with
+			 * the P bit set to 0 is received then the received frame shall be
+			 * discarded.
+			 */
 
 			/* Flush the Channel data */
 			_cmux_flush_channel_data(cmux_obj);
-			break;
-		case CMUX_COMMAND_DISC:
-			dbg("Received DISC Frame");
-			if (channel->poll_final_bit == 0) {
+		} else {
+			if (channel->channel_state == CMUX_CHANNEL_CLOSED) {
 				/*
-				 * In the case where a CMUX_COMMAND_SABM or
-				 * CMUX_COMMAND_DISC command with
-				 * the P bit set to 0 is received then the received frame shall be
-				 * discarded.
+				 * If a CMUX_COMMAND_DISC command is received while in
+				 * disconnected mode a CMUX_COMMAND_DM response should
+				 * be sent
 				 */
 
-				/* Flush the Channel data */
-				_cmux_flush_channel_data(cmux_obj);
-			} else {
-				if (channel->channel_state == CMUX_CHANNEL_CLOSED) {
-					/*
-					 * If a CMUX_COMMAND_DISC command is received while in
-					 * disconnected mode a CMUX_COMMAND_DM response should
-					 * be sent
-					 */
-
-					/* Encoding frame */
-					send_data = _cmux_encode_cmux_frame(cmux_obj, NULL,
-											0, channel_id, CMUX_COMMAND_DM,
-											0x01, 0x01, 0x01, &len);
-				} else {				/* Send Unnumbered Acknowledgement */
-					/* Encoding frame */
-					send_data = _cmux_encode_cmux_frame(cmux_obj, NULL,
-											0, channel_id, CMUX_COMMAND_UA,
-											0x01, 0x01, 0x01, &len);
-				}
-
-				if (len == 0) {
-					err("Failed to encode");
-					return;
-				}
-
-				/* Send CMUX data */
-				ret = _cmux_send_data(cmux_obj->phy_hal, len, send_data);
-                dbg("return %d", ret);
-
-				/* Flush the Channel data */
-				_cmux_flush_channel_data(cmux_obj);
-
-				/*
-				 * 5.3.4 Disconnect (DISC) command: CMUX_COMMAND_DISC
-				 * command sent at DLCI 0 have the same meaning as the
-				 * Multiplexer Close Down command.
-				 */
-				if (channel_id == CMUX_CHANNEL_0) {
-					cmux_obj->cmux_state = CMUX_CLOSED;
-
-					/* Close CMUX */
-					/* TODO - Need to notify regarding CMUX closure */
-					tcore_cmux_close(cmux_obj->phy_hal, NULL, NULL);
-				}
-			}
-			break;
-		case CMUX_COMMAND_SABM:
-			dbg("Received SABM Frame");
-			if (channel->poll_final_bit == 0) {
-				/*
-				 * In the case where a CMUX_COMMAND_SABM or CMUX_COMMAND_DISC
-				 * command with the P bit set to 0 is received then the received frame
-				 * shall be discarded.
-				 */
-
-				/* Flush the Channel data */
-				_cmux_flush_channel_data(cmux_obj);
-			} else {
 				/* Encoding frame */
 				send_data = _cmux_encode_cmux_frame(cmux_obj, NULL,
-										0, channel_id, CMUX_COMMAND_UA,
+										0, channel_id, CMUX_COMMAND_DM,
 										0x01, 0x01, 0x01, &len);
-				if (len != 0)
-					/* Send CMUX data */
-					ret = _cmux_send_data(cmux_obj->phy_hal, len, send_data);
-				else
-					err("Failed to encode");
-
-				if (channel->channel_state != CMUX_CHANNEL_ESTABLISHED)
-					/* Channel State set to Established */
-					channel->channel_state = CMUX_CHANNEL_ESTABLISHED;
+			} else {				/* Send Unnumbered Acknowledgement */
+				/* Encoding frame */
+				send_data = _cmux_encode_cmux_frame(cmux_obj, NULL,
+						0, channel_id, CMUX_COMMAND_UA,
+						0x01, 0x01, 0x01, &len);
 			}
-		break;
-		default:
-			warn("invalid frame_type");
-		break;	
+
+			if (len == 0) {
+				err("Failed to encode");
+				return;
+			}
+
+			/* Send CMUX data */
+			ret = _cmux_send_data(cmux_obj->phy_hal, len, send_data);
+			dbg("return %d", ret);
+
+			/* Flush the Channel data */
+			_cmux_flush_channel_data(cmux_obj);
+
+			/*
+			 * 5.3.4 Disconnect (DISC) command: CMUX_COMMAND_DISC
+			 * command sent at DLCI 0 have the same meaning as the
+			 * Multiplexer Close Down command.
+			 */
+			if (channel_id == CMUX_CHANNEL_0) {
+				cmux_obj->cmux_state = CMUX_CLOSED;
+
+				/* Close CMUX */
+				/* TODO - Need to notify regarding CMUX closure */
+				tcore_cmux_close(cmux_obj->phy_hal, NULL, NULL);
+			}
+		}
+	break;
+
+	case CMUX_COMMAND_SABM:
+		dbg("Received SABM Frame");
+		if (channel->poll_final_bit == 0) {
+			/*
+			 * In the case where a CMUX_COMMAND_SABM or CMUX_COMMAND_DISC
+			 * command with the P bit set to 0 is received then the received frame
+			 * shall be discarded.
+			 */
+
+			/* Flush the Channel data */
+			_cmux_flush_channel_data(cmux_obj);
+		} else {
+			/* Encoding frame */
+			send_data = _cmux_encode_cmux_frame(cmux_obj, NULL,
+									0, channel_id, CMUX_COMMAND_UA,
+									0x01, 0x01, 0x01, &len);
+			if (len != 0)
+				/* Send CMUX data */
+				ret = _cmux_send_data(cmux_obj->phy_hal, len, send_data);
+			else
+				err("Failed to encode");
+
+			if (channel->channel_state != CMUX_CHANNEL_ESTABLISHED) {
+				/* Channel State set to Established */
+				channel->channel_state = CMUX_CHANNEL_ESTABLISHED;
+			}
+		}
+	break;
+
+	default:
+		warn("invalid frame_type");
+	break;
 	}
 
 	dbg("Exit");
@@ -713,8 +719,7 @@ static void _cmux_process_rcv_frame(tcore_cmux_object *cmux_obj, int length)
 		} else {
 			cmux_obj->internal_mux.info_field_len = *(frame_process_ptr + 1) << 7;
 			cmux_obj->internal_mux.info_field_len =
-						(cmux_obj->internal_mux.info_field_len
-						| ((*frame_process_ptr++ & 0xFE) >> 1));
+				(cmux_obj->internal_mux.info_field_len | ((*frame_process_ptr++ & 0xFE) >> 1));
 			header_length = 4;
 			frame_process_ptr++;
 		}
@@ -745,9 +750,9 @@ static TReturn _cmux_send_data(TcoreHal *hal, int data_len, unsigned char *data)
 
 	/* Directly send to Physical HAL */
 	ret = tcore_hal_send_data(hal, data_len, (void *) data);
-	if (ret != TCORE_RETURN_SUCCESS) {
+	if (ret != TCORE_RETURN_SUCCESS)
 		err("Failed to send CMUX data");
-	} else
+	else
 		dbg("Successfully sent CMUX data");
 
 	dbg("Exit");
@@ -767,7 +772,7 @@ static gboolean _cmux_recv_cmux_data(tcore_cmux_object *cmux_obj,
 		return FALSE;
 	}
 
-	dbg("Dispatching to logical HAL - hal: [%p]", hal);
+	dbg("Dispatching to logical HAL - hal: [0x%x]", (unsigned int)hal);
 	if (tcore_hal_dispatch_response_data(hal, 0,
 			cmux_obj->internal_mux.info_field_len,
 			cmux_obj->internal_mux.info_field)
@@ -1049,18 +1054,18 @@ static void _cmux_close_channel(tcore_cmux_object *cmux_obj, int channel_id)
 		/* Send DSC command */
 		/* Encoding frame */
 		send_data = _cmux_encode_cmux_frame(cmux_obj, NULL, 0, channel_id,
-						CMUX_COMMAND_DISC, 0x01, 0x01, 0x01, &len);
+			CMUX_COMMAND_DISC, 0x01, 0x01, 0x01, &len);
 		if (len != 0) {
 			/* Send CMUX data */
 			ret = _cmux_send_data(cmux_obj->phy_hal, len, send_data);
-            dbg("return %d", ret);
-        }
-		else {
+			dbg("return %d", ret);
+		} else {
 			err("Failed to encode");
-        }
-	} else
+		}
+	} else {
 		/* Channel is already closed */
 		err("Channel is already closed");
+	}
 
 	dbg("Exit");
 }
@@ -1135,35 +1140,42 @@ DECODE_STATE_CHANGE:
 	if (++pos >= length)
 		return;
 
-	switch(decode_state) {
-		case TCORE_CMUX_DECODE_FLAG_HUNT:
-			full_frame_len = 0;
-			dec_length = 0;
-			dec_fcs = 0xFF;
-			dec_data = cmux_obj->cmux_buffer;
-			goto FLAG_HUNT;
-		break;
-		case TCORE_CMUX_DECODE_ADDR_HUNT:
-			goto ADDR_HUNT;
-		break;
-		case TCORE_CMUX_DECODE_CONTROL_HUNT:
-			goto CONTROL_HUNT;
-		break;
-		case TCORE_CMUX_DECODE_LENGTH1_HUNT:
-			goto LENGTH1_HUNT;
-		break;
-		case TCORE_CMUX_DECODE_LENGTH2_HUNT:
-			goto LENGTH2_HUNT;
-		break;
-		case TCORE_CMUX_DECODE_DATA_HUNT:
-			goto DATA_HUNT;
-		break;
-		case TCORE_CMUX_DECODE_FCS_HUNT:
-			goto FCS_HUNT;
-		break;
-		default:
-			warn("invalid decode_state");
-		break;	
+	switch (decode_state) {
+	case TCORE_CMUX_DECODE_FLAG_HUNT:
+		full_frame_len = 0;
+		dec_length = 0;
+		dec_fcs = 0xFF;
+		dec_data = cmux_obj->cmux_buffer;
+		goto FLAG_HUNT;
+	break;
+
+	case TCORE_CMUX_DECODE_ADDR_HUNT:
+		goto ADDR_HUNT;
+	break;
+
+	case TCORE_CMUX_DECODE_CONTROL_HUNT:
+		goto CONTROL_HUNT;
+	break;
+
+	case TCORE_CMUX_DECODE_LENGTH1_HUNT:
+		goto LENGTH1_HUNT;
+	break;
+
+	case TCORE_CMUX_DECODE_LENGTH2_HUNT:
+		goto LENGTH2_HUNT;
+	break;
+
+	case TCORE_CMUX_DECODE_DATA_HUNT:
+		goto DATA_HUNT;
+	break;
+
+	case TCORE_CMUX_DECODE_FCS_HUNT:
+		goto FCS_HUNT;
+	break;
+
+	default:
+		warn("invalid decode_state");
+	break;
 	}
 
 FLAG_HUNT:
@@ -1333,14 +1345,13 @@ TReturn tcore_cmux_setup_internal_mux(tcore_cmux_mode mode,
 		return TCORE_RETURN_EINVAL;
 	}
 
-	dbg("Physical HAL: [%p] cmux_buf_size: [%d]",
-			phy_hal, cmux_buf_size);
+	dbg("Physical HAL: [%p] cmux_buf_size: [%d]", phy_hal, cmux_buf_size);
 
 	/*
 	 * Max Channels
 	 *	(+ 1) is for CMUX Control Channel
 	 */
-	if ((max_channels +1) >= CMUX_CHANNEL_MAX) {
+	if ((max_channels + 1) >= CMUX_CHANNEL_MAX) {
 		err("Number of Channels requested is greater than supported");
 		return TCORE_RETURN_EINVAL;
 	}

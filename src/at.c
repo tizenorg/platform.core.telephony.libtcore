@@ -32,17 +32,15 @@
 #include "at.h"
 #include "core_object.h"
 
-#define NUM_ELEMS(x) (sizeof(x)/sizeof(x[0]))
-#define MODE_HEX 	0
-#define MODE_BIN	1
+#define NUM_ELEMS(x)		(sizeof(x)/sizeof(x[0]))
+#define MODE_HEX		0
+#define MODE_BIN		1
 
-#define CR '\r'
-#define LF '\n'
+#define CR			'\r'
+#define LF			'\n'
 
-#define MAX_AT_RESPONSE    255  // for testing
-//#define MAX_AT_RESPONSE    8191
-
-typedef gboolean (*rfs_hook_cb) (const gchar *data);
+/* Response buffer would grow on requirement */
+#define MAX_AT_RESPONSE	255
 
 struct tcore_at_type {
 	TcoreHal *hal;
@@ -63,7 +61,7 @@ struct tcore_at_type {
 	struct _notification *pdu_noti;
 	GSList *pdu_lines;
 
-	rfs_hook_cb rfs_hook;
+	RfsHookCb rfs_hook;
 	gboolean data_mode;
 };
 
@@ -82,7 +80,7 @@ struct _notification {
  * See 27.007 annex B
  */
 static const char *list_final_responses_success[] = {
-    "OK",
+	"OK",
 	"CONNECT",
 };
 
@@ -91,31 +89,37 @@ static const char *list_final_responses_success[] = {
  * See 27.007 annex B
  */
 static const char *list_final_responses_error[] = {
-    "ERROR",
-    "+CMS ERROR:",
-    "+CME ERROR:",
-    "NO ANSWER",
-    "NO DIALTONE",
-    "NO CARRIER",
+	"ERROR",
+	"+CMS ERROR:",
+	"+CME ERROR:",
+	"NO ANSWER",
+	"NO DIALTONE",
+	"NO CARRIER",
+	"COMMAND NOT SUPPORT",	/* For Huawei Cellular dongle */
 };
 
-static int _check_final_response(const char *line)
+/**
+ * 'typedef' to define final response received
+ */
+typedef enum {
+	TCORE_AT_FINAL_RESPONSE_UNKNOWN = 0,
+	TCORE_AT_FINAL_RESPONSE_SUCCESS,
+	TCORE_AT_FINAL_RESPONSE_FAILURE,
+} tcore_at_final_response;
+
+static tcore_at_final_response _check_final_response(const char *line)
 {
 	unsigned int i;
 
-	for (i = 0; i < NUM_ELEMS(list_final_responses_success); i++) {
-		if (g_str_has_prefix(line, list_final_responses_success[i])) {
-			return 1;
-		}
-	}
+	for (i = 0; i < NUM_ELEMS(list_final_responses_success); i++)
+		if (g_str_has_prefix(line, list_final_responses_success[i]))
+			return TCORE_AT_FINAL_RESPONSE_SUCCESS;
 
-	for (i = 0; i < NUM_ELEMS(list_final_responses_error); i++) {
-		if (g_str_has_prefix(line, list_final_responses_error[i])) {
-			return 2;
-		}
-	}
+	for (i = 0; i < NUM_ELEMS(list_final_responses_error); i++)
+		if (g_str_has_prefix(line, list_final_responses_error[i]))
+			return TCORE_AT_FINAL_RESPONSE_FAILURE;
 
-	return 0;
+	return TCORE_AT_FINAL_RESPONSE_UNKNOWN;
 }
 
 
@@ -142,11 +146,11 @@ static char *_find_next_EOL(char *cur)
 	return *cur == '\0' ? NULL : cur;
 }
 
-static struct tcore_at_response* _response_new()
+static struct tcore_at_response *_response_new()
 {
 	struct tcore_at_response *resp;
 
-	resp = calloc(1, sizeof(struct tcore_at_response));
+	resp = g_try_malloc0(sizeof(struct tcore_at_response));
 	if (!resp)
 		return NULL;
 
@@ -158,14 +162,13 @@ static void _response_free(struct tcore_at_response *resp)
 	if (!resp)
 		return;
 
-	if (resp->lines) {
+	if (resp->lines)
 		g_slist_free_full(resp->lines, g_free);
-	}
 
 	if (resp->final_response)
-		free(resp->final_response);
+		g_free(resp->final_response);
 
-	free(resp);
+	g_free(resp);
 }
 
 
@@ -177,7 +180,7 @@ static void _response_add(struct tcore_at_response *resp,
 
 	dbg("current lines = %d", g_slist_length(resp->lines));
 
-	resp->lines = g_slist_append(resp->lines, strdup(line));
+	resp->lines = g_slist_append(resp->lines, g_strdup(line));
 }
 
 static void _emit_pending_response(TcoreAT *at)
@@ -188,9 +191,8 @@ static void _emit_pending_response(TcoreAT *at)
 		return;
 
 	p = tcore_queue_pop(tcore_hal_ref_queue(at->hal));
-	if (!p) {
-		dbg("no pending");
-	}
+	if (!p)
+		info("NO pending request!");
 
 	tcore_pending_emit_response_callback(p, sizeof(TcoreATResponse), at->resp);
 	tcore_user_request_unref(tcore_pending_ref_user_request(p));
@@ -216,7 +218,9 @@ static void _emit_unsolicited_message(TcoreAT *at, const char *line)
 	if (!at || !line)
 		return;
 
-	dbg("at->pdu_status  %d line 0x%x at->data_mode %d", at->pdu_status, line, at->data_mode);
+	dbg("pdu_status:  [%s] data_mode: [%s]",
+		(at->pdu_status ? "TRUE" : "FALSE"),
+		(at->data_mode == MODE_BIN ? "Binary" : "Hex"));
 	if (at->pdu_status == FALSE) {
 		g_hash_table_iter_init(&iter, at->unsolicited_table);
 
@@ -235,6 +239,7 @@ static void _emit_unsolicited_message(TcoreAT *at, const char *line)
 			at->pdu_status = TRUE;
 			at->pdu_noti = noti;
 			at->pdu_lines = g_slist_append(NULL, g_strdup(line));
+
 			dbg("PDU mode");
 			return;
 		}
@@ -242,22 +247,20 @@ static void _emit_unsolicited_message(TcoreAT *at, const char *line)
 		if (at->data_mode == MODE_BIN) {
 			at->pdu_lines = g_slist_append(at->pdu_lines, (gpointer)line);
 			data = at->pdu_lines;
-		} else {
+		} else
 			data = g_slist_append(NULL, g_strdup(line));
-		}
-	}
-	else {
+	} else {
 		noti = at->pdu_noti;
 		at->pdu_status = FALSE;
 		at->pdu_noti = NULL;
 
 		if (at->data_mode == MODE_BIN) {
 			dbg("Binary mode");
+
 			at->pdu_lines = g_slist_append(at->pdu_lines, (gpointer)line);
 			dbg("at->pdu_lines: 0x%x", at->pdu_lines);
-		} else {
+		} else
 			at->pdu_lines = g_slist_append(at->pdu_lines, g_strdup(line));
-		}
 
 		data = at->pdu_lines;
 	}
@@ -280,16 +283,13 @@ static void _emit_unsolicited_message(TcoreAT *at, const char *line)
 		p = p->next;
 	}
 
-	dbg(" Free the list");
-	if (at->data_mode != MODE_BIN) {
+	if (at->data_mode != MODE_BIN)
 		g_slist_free_full(data, g_free);
-	}
+
 	at->pdu_lines = NULL;
 
-	if (g_slist_length(noti->callbacks) == 0) {
+	if (g_slist_length(noti->callbacks) == 0)
 		g_hash_table_remove(at->unsolicited_table, key);
-	}
-	dbg("exit");
 }
 
 static void _free_noti_list(void *data)
@@ -302,60 +302,27 @@ static void _free_noti_list(void *data)
 	g_slist_free_full(noti->callbacks, g_free);
 }
 
-#if 0
-static void _msgat(const char *prefix, const char *str)
-{
-	unsigned int i;
-	char buf[8192] = {0,};
-	char *pos;
-
-	if (!str) {
-		msg("str is NULL");
-		return;
-	}
-
-	if (strlen(str) > 4096) {
-		msg("%s[%s]", prefix, str);
-		return;
-	}
-
-	pos = buf;
-	for (i = 0; i < strlen(str); i++) {
-		if (str[i] == '\r') {
-			strncpy(pos, "<CR>", 4);
-			pos += 4;
-		}
-		else if (str[i] == '\n') {
-			strncpy(pos, "<LF>", 4);
-			pos += 4;
-		}
-		else {
-			*pos = str[i];
-			pos++;
-		}
-
-	}
-
-	msg("%s[%s]", prefix, buf);
-}
-#endif
-
 TcoreAT *tcore_at_new(TcoreHal *hal)
 {
 	TcoreAT *at;
 
-	at = calloc(1, sizeof(struct tcore_at_type));
+	at = g_try_malloc0(sizeof(struct tcore_at_type));
 	if (!at)
 		return NULL;
 
 	at->hal = hal;
 	at->buf_size = MAX_AT_RESPONSE;
-	at->buf = calloc(1, at->buf_size + 1);
+	at->buf = g_try_malloc0(at->buf_size + 1);
+	if (at->buf == NULL) {
+		g_free(at);
+		return NULL;
+	}
+
 	at->buf_read_pos = at->buf;
 	at->buf_write_pos = at->buf;
 	at->data_mode = MODE_HEX;
 	at->unsolicited_table = g_hash_table_new_full(g_str_hash, g_str_equal,
-			g_free, _free_noti_list );
+			g_free, _free_noti_list);
 
 	return at;
 }
@@ -366,12 +333,12 @@ void tcore_at_free(TcoreAT *at)
 		return;
 
 	if (at->buf)
-		free(at->buf);
+		g_free(at->buf);
 
 	if (at->unsolicited_table)
 		g_hash_table_destroy(at->unsolicited_table);
 
-	free(at);
+	g_free(at);
 }
 
 TReturn tcore_at_remove_notification_full(TcoreAT *at, const char *prefix,
@@ -395,7 +362,7 @@ TReturn tcore_at_remove_notification_full(TcoreAT *at, const char *prefix,
 		return TCORE_RETURN_SUCCESS;
 
 	p = noti->callbacks;
-	for(; p; p = p->next) {
+	for (; p; p = p->next) {
 		item = p->data;
 		if (!item)
 			continue;
@@ -467,12 +434,12 @@ TReturn tcore_at_set_request(TcoreAT *at, TcoreATRequest *req, gboolean send)
 	char next;
 
 	if (!at || !req) {
-		dbg("Invalid data");
+		err("Invalid data");
 		return TCORE_RETURN_EINVAL;
 	}
 
 	if (!req->cmd) {
-		dbg("Invalid cmd");
+		err("Invalid cmd");
 		return TCORE_RETURN_EINVAL;
 	}
 
@@ -489,19 +456,22 @@ TReturn tcore_at_set_request(TcoreAT *at, TcoreATRequest *req, gboolean send)
 #endif
 
 	end = strchr(at->req->cmd, CR);
-	next = *(end + 1);
-	if (next == '\0') {
-		return tcore_hal_send_data(at->hal, strlen(req->cmd), req->cmd);
+	if (end) {
+		next = *(end + 1);
+		if (next == '\0')
+			return tcore_hal_send_data(at->hal, strlen(req->cmd), req->cmd);
+
+		at->req->next_send_pos = end + 1;
+		dbg("backup data = [%c] next data = [%s]", next, at->req->next_send_pos);
+
+		*(end+1) = '\0';
+		ret = tcore_hal_send_data(at->hal, strlen(req->cmd), req->cmd);
+		*(end+1) = next;
+
+		return ret;
 	}
 
-	at->req->next_send_pos = end + 1;
-	dbg("backup data = [%c] next data = [%s]", next, at->req->next_send_pos);
-
-	*(end+1) = '\0';
-	ret = tcore_hal_send_data(at->hal, strlen(req->cmd), req->cmd);
-	*(end+1) = next;
-
-	return ret;
+	return TCORE_RETURN_EINVAL;
 }
 
 TcoreATRequest *tcore_at_get_request(TcoreAT *at)
@@ -536,14 +506,17 @@ TReturn tcore_at_buf_write(TcoreAT *at, unsigned int data_len, const char *data)
 
 	if (write_pos + data_len >= at->buf_size) {
 		/* shift left (trim completed data) */
-		dbg("shift left buffer (request data_len = %d)", data_len);
-		dbg("before read_pos=buf+%d, write_pos=buf+%d", read_pos, write_pos);
 		memmove(at->buf, at->buf_read_pos, at->buf_size - read_pos);
 		at->buf_read_pos = at->buf;
 		at->buf_write_pos = at->buf + write_pos - read_pos;
-		dbg("after  read_pos=buf+%d, write_pos=buf+%d",
-				at->buf_read_pos - at->buf,
-				at->buf_write_pos - at->buf);
+
+		dbg("Shift [Left] - Requested len: %d bytes - " \
+			"before (read_pos: %d write_pos: %d) " \
+			"after (read_pos: %d write_pos: %d)",
+			data_len, read_pos, write_pos,
+			(at->buf_read_pos - at->buf),
+			(at->buf_write_pos - at->buf));
+
 		memset(at->buf_write_pos, 0, at->buf_size - (at->buf_write_pos - at->buf));
 	}
 
@@ -559,16 +532,20 @@ TReturn tcore_at_buf_write(TcoreAT *at, unsigned int data_len, const char *data)
 		at->buf_write_pos = at->buf + write_pos;
 		memset(at->buf_write_pos, 0, at->buf_size - (at->buf_write_pos - at->buf));
 
-		dbg("resize buffer to %d", at->buf_size);
+		dbg("Resize buffer to '%d' bytes", at->buf_size);
 	}
 
+	/*
+	 * Copy Data to write buffer and adjust write buffer pointer
+	 */
 	memcpy(at->buf_write_pos, data, data_len);
-
 	at->buf_write_pos += data_len;
+
 	return TCORE_RETURN_SUCCESS;
 }
 
-TcoreATRequest* tcore_at_request_new(const char *cmd, const char *prefix, enum tcore_at_command_type type)
+TcoreATRequest *tcore_at_request_new(const char *cmd,
+	const char *prefix, enum tcore_at_command_type type)
 {
 	TcoreATRequest *req;
 
@@ -578,7 +555,7 @@ TcoreATRequest* tcore_at_request_new(const char *cmd, const char *prefix, enum t
 	if (strlen(cmd) < 1)
 		return NULL;
 
-	req = calloc(1, sizeof(struct tcore_at_request));
+	req = g_try_malloc0(sizeof(struct tcore_at_request));
 	if (!req)
 		return NULL;
 
@@ -588,7 +565,7 @@ TcoreATRequest* tcore_at_request_new(const char *cmd, const char *prefix, enum t
 		req->cmd = g_strdup_printf("%s%c", cmd, 26);
 
 	if (prefix)
-		req->prefix = strdup(prefix);
+		req->prefix = g_strdup(prefix);
 
 	req->type = type;
 
@@ -601,15 +578,16 @@ void tcore_at_request_free(TcoreATRequest *req)
 		return;
 
 	if (req->cmd)
-		free(req->cmd);
+		g_free(req->cmd);
 
 	if (req->prefix)
-		free(req->prefix);
+		g_free(req->prefix);
 
-	free(req);
+	g_free(req);
 }
 
-void tcore_at_response_free(TcoreATResponse *rsp){
+void tcore_at_response_free(TcoreATResponse *rsp)
+{
 	_response_free(rsp);
 }
 
@@ -617,15 +595,20 @@ void tcore_at_response_free(TcoreATResponse *rsp){
 static int __sum_4_bytes(const char *posn)
 {
 	int sum = 0;
+
 	sum = sum | (*(posn+3)) << 24;
 	sum = sum | (*(posn+2)) << 16;
 	sum = sum | (*(posn+1)) << 8;
-	sum = sum | *posn ;
+	sum = sum | *posn;
+
 	return sum;
 }
 
-/* Function to process binary data received as part of XDRV Indication */
-void tcore_at_process_binary_data(TcoreAT *at, char *position, int data_len)
+/*
+ * Function to process binary data received as part of XDRV Indication
+ */
+void tcore_at_process_binary_data(TcoreAT *at,
+	char *position, int data_len)
 {
 
 	#define NVM_PAYLOAD_LENGTH_0			52
@@ -639,7 +622,9 @@ void tcore_at_process_binary_data(TcoreAT *at, char *position, int data_len)
 	m_length_1 = __sum_4_bytes(&position[NVM_PAYLOAD_LENGTH_1]);
 	data_len_final = data_len_final + data_len;
 
-	dbg("m_length_0 = %d , m_length_1 = %d, data_len_final = %d actual_buffer_size: %d", m_length_0, m_length_1, data_len_final, actual_buffer_size);
+	dbg("m_length_0 = %d , m_length_1 = %d, " \
+		"data_len_final = %d actual_buffer_size: %d",
+		m_length_0, m_length_1, data_len_final, actual_buffer_size);
 	if (actual_buffer_size == 0) {
 		actual_buffer_size = data_len + m_length_0 + m_length_1;
 		dbg("Actual buffer size is %d", actual_buffer_size);
@@ -659,7 +644,7 @@ gboolean tcore_at_process(TcoreAT *at, unsigned int data_len, const char *data)
 {
 	char *pos;
 	char *next_pos;
-	int ret;
+	gboolean is_resp_processed = FALSE;
 
 	if (!at || !data)
 		return FALSE;
@@ -667,7 +652,6 @@ gboolean tcore_at_process(TcoreAT *at, unsigned int data_len, const char *data)
 	tcore_at_buf_write(at, data_len, data);
 
 	pos = at->buf_read_pos;
-	dbg("On entry at->buf_read_pos: 0x%x", at->buf_read_pos);
 
 	while (1) {
 
@@ -676,48 +660,61 @@ gboolean tcore_at_process(TcoreAT *at, unsigned int data_len, const char *data)
 
 		next_pos = _find_next_EOL(pos);
 		if (!next_pos) {
-			dbg("Data could be in Binary mode !!");
 			if (at->rfs_hook) {
-				if (TRUE == at->rfs_hook(pos)){
+				dbg("RFS hook set - Not Binary data!");
+				if (TRUE == at->rfs_hook(pos)) {
 					at->data_mode = MODE_BIN;
 					tcore_at_process_binary_data(at, pos, data_len);
 				}
-				dbg("Not Binary data");
-			}else
-				dbg("Rfs hook is not set !!");
+
+			}
+
 			break;
 		}
 
 		if (pos != next_pos)
 			*next_pos = '\0';
 
-		//dbg("complete line found.");
-		dbg("line = [%s]", pos);
+		dbg("Received 'AT' data: [%s]", pos);
 
-		// check request
+		/* Validate Request */
 		if (!at->req) {
+			err("at->req is NULL");
 			_emit_unsolicited_message(at, pos);
-		}
-		else {
+		} else {
+			tcore_at_final_response ret;
 			if (g_strcmp0(pos, "> ") == 0) {
 				if (at->req->next_send_pos) {
-					dbg("send next: [%s]", at->req->next_send_pos);
-					tcore_hal_send_data(at->hal, strlen(at->req->next_send_pos), at->req->next_send_pos);
-					pos += 3;	/* Including NULL character */
+					dbg("Send next: [%s]", at->req->next_send_pos);
+					tcore_hal_send_data(at->hal,
+						strlen(at->req->next_send_pos), at->req->next_send_pos);
+
+					/* Including NULL character */
+					pos += 3;
 					at->buf_read_pos = pos;
+
 					break;
 				}
 			}
 
 			if (!at->resp) {
 				at->resp = _response_new();
+				if (!at->resp) {
+					err("Failed to create response!");
+					return FALSE;
+				}
 			}
 
 			ret = _check_final_response(pos);
-			if (ret) {
-				if (ret == 1)
+			if (ret != TCORE_AT_FINAL_RESPONSE_UNKNOWN) {
+				/*
+				 * Valid Response
+				 *
+				 * Success OR Failure
+				 */
+				if (ret == TCORE_AT_FINAL_RESPONSE_SUCCESS) {
 					at->resp->success = TRUE;
-				else {
+				} else {
 					gchar *str_escape = NULL;
 					gchar str_secure[12] = {'\0'};
 
@@ -739,97 +736,90 @@ gboolean tcore_at_process(TcoreAT *at, unsigned int data_len, const char *data)
 					at->resp->success = FALSE;
 				}
 
-				at->resp->final_response = strdup(pos);
+				at->resp->final_response = g_strdup(pos);
 
 				_emit_pending_response(at);
-				at->buf_read_pos = next_pos + 1;
-				return TRUE;
-			}
-			else {
+
+				is_resp_processed = TRUE;
+			} else {
+				/*
+				 * Specific Response type OR Possible notification
+				 */
 				switch (at->req->type) {
-					case TCORE_AT_NO_RESULT:
+				case TCORE_AT_NO_RESULT:
+					_emit_unsolicited_message(at, pos);
+				break;
+
+				case TCORE_AT_NUMERIC:
+					if (at->resp->lines == NULL && isdigit(pos[0]))
+						_response_add(at->resp, pos);
+					else
 						_emit_unsolicited_message(at, pos);
-						break;
+				break;
 
-					case TCORE_AT_NUMERIC:
-						if (at->resp->lines == NULL && isdigit(pos[0])) {
-							_response_add(at->resp, pos);
-						}
-						else {
-							_emit_unsolicited_message(at, pos);
-						}
-
-						break;
-
-					case TCORE_AT_SINGLELINE:
-						if (at->resp->lines == NULL) {
-							if (at->req->prefix) {
-								if (g_str_has_prefix(pos, at->req->prefix)) {
-									_response_add(at->resp, pos);
-								}
-								else {
-									_emit_unsolicited_message(at, pos);
-								}
-							}
-							else {
-								_response_add(at->resp, pos);
-							}
-						}
-						else {
-							_emit_unsolicited_message(at, pos);
-						}
-						break;
-
-					case TCORE_AT_MULTILINE:
+				case TCORE_AT_SINGLELINE:
+					if (at->resp->lines == NULL) {
 						if (at->req->prefix) {
-							if (g_str_has_prefix(pos, at->req->prefix)) {
+							if (g_str_has_prefix(pos, at->req->prefix))
 								_response_add(at->resp, pos);
-							}
-							else {
+							else
 								_emit_unsolicited_message(at, pos);
-							}
-						}
-						else {
+						} else {
 							_response_add(at->resp, pos);
 						}
-						break;
-
-					case TCORE_AT_PDU:
-						if (at->req->prefix) {
-							if (g_str_has_prefix(pos, at->req->prefix)) {
-								_response_add(at->resp, pos);
-							}
-							else {
-								if (at->resp->lines != NULL) {
-									_response_add(at->resp, pos);
-								}
-								else {
-									_emit_unsolicited_message(at, pos);
-								}
-							}
-						}
-						else {
-							_response_add(at->resp, pos);
-						}
-						break;
-
-					default:
-						dbg("unknown");
+					} else {
 						_emit_unsolicited_message(at, pos);
-						break;
+					}
+				break;
+
+				case TCORE_AT_MULTILINE:
+					if (at->req->prefix) {
+						if (g_str_has_prefix(pos, at->req->prefix))
+							_response_add(at->resp, pos);
+						else
+							_emit_unsolicited_message(at, pos);
+					} else {
+						_response_add(at->resp, pos);
+					}
+				break;
+
+				case TCORE_AT_PDU:
+					if (at->req->prefix) {
+						if (g_str_has_prefix(pos, at->req->prefix)) {
+							_response_add(at->resp, pos);
+						} else {
+							if (at->resp->lines != NULL)
+								_response_add(at->resp, pos);
+							else
+								_emit_unsolicited_message(at, pos);
+						}
+					} else {
+						_response_add(at->resp, pos);
+					}
+				break;
+
+				default:
+					warn("Unknown Request type: %d", (at->req->type));
+					_emit_unsolicited_message(at, pos);
+				break;
 				}
 			}
 		}
 
-		//
+		/* Progress 'Read' buffer */
 		pos = next_pos + 1;
 		at->buf_read_pos = pos;
 	}
 
-	return FALSE;
+	if (is_resp_processed == FALSE)
+		return FALSE;
+
+	return TRUE;
 }
 
-TcorePending *tcore_at_pending_new(CoreObject *co, const char *cmd, const char *prefix, enum tcore_at_command_type type, TcorePendingResponseCallback func, void *user_data)
+TcorePending *tcore_at_pending_new(CoreObject *co, const char *cmd,
+	const char *prefix, enum tcore_at_command_type type,
+	TcorePendingResponseCallback func, void *user_data)
 {
 	TcorePending *p;
 	TcoreATRequest *req;
@@ -880,8 +870,7 @@ GSList *tcore_at_tok_new(const char *line)
 		pos = (char *)line;
 		if (line[strlen(line)-1] == ')')
 			mark_end = (char *)line + strlen(line) - 1;
-	}
-	else {
+	} else {
 		/* normal at message */
 		pos = strchr(line, ':');
 		if (!pos) {
@@ -893,69 +882,80 @@ GSList *tcore_at_tok_new(const char *line)
 	pos++;
 
 	/* skip whitespace */
-	while (*pos != '\0' && isspace(*pos)) {
+	while (*pos != '\0' && isspace(*pos))
 		pos++;
-	}
 
 	begin = pos;
 
 	do {
 		switch (type) {
 		case TYPE_NONE:
-			if (*pos == '"') {
+			if (*pos == '"')
 				type = TYPE_STR;
-			}
-			else if (*pos == ',') {
+			else if (*pos == ',')
 				tokens = g_slist_append(tokens, strdup(""));
-			}
 			else if (*pos == ' ') {
-				// skip
-			}
-			else if (*pos == '(') {
+				/*
+				 * Skip, no processing for blank space
+				 */
+			} else if (*pos == '(')
 				type = TYPE_PAREN;
-			}
-			else {
+			else
 				type = TYPE_RAW;
-			}
+
 			begin = pos;
-			break;
+		break;
 
 		case TYPE_STR:
 			if (*pos == '"') {
 				type = TYPE_STR_FIN;
-				buf = calloc(1, (pos - begin) + 2);
+				buf = g_try_malloc0((pos - begin) + 2);
+				if (!buf) {
+					g_slist_free_full(tokens, g_free);
+					return NULL;
+				}
+
 				memcpy(buf, begin, pos - begin + 1);
 				tokens = g_slist_append(tokens, buf);
 			}
-			break;
+		break;
 
 		case TYPE_PAREN:
 			if (*pos == ')') {
 				type = TYPE_PAREN_FIN;
-				buf = calloc(1, (pos - begin) + 2);
+				buf = g_try_malloc0((pos - begin) + 2);
+				if (!buf) {
+					g_slist_free_full(tokens, g_free);
+					return NULL;
+				}
 				memcpy(buf, begin, pos - begin + 1);
 				tokens = g_slist_append(tokens, buf);
 			}
-			break;
+		break;
 
 		case TYPE_RAW:
 			if (*pos == ',' || *pos == '\0') {
 				type = TYPE_NONE;
-				buf = calloc(1, (pos - begin) + 1);
+				buf = g_try_malloc0((pos - begin) + 1);
+				if (!buf) {
+					g_slist_free_full(tokens, g_free);
+					return NULL;
+				}
+
 				memcpy(buf, begin, pos - begin);
 				tokens = g_slist_append(tokens, buf);
 			}
-			break;
+		break;
 
 		case TYPE_STR_FIN:
 		case TYPE_PAREN_FIN:
-			if (*pos == ',') {
+			if (*pos == ',')
 				type = TYPE_NONE;
-			}
-			break;
+		break;
+
 		default:
 			err("invalid string type");
-			break;
+		break;
 		}
 
 		if (*pos == '\0' || pos == mark_end)
@@ -965,7 +965,12 @@ GSList *tcore_at_tok_new(const char *line)
 	} while (1);
 
 	if (type == TYPE_RAW) {
-		buf = calloc(1, (pos - begin) + 1);
+		buf = g_try_malloc0((pos - begin) + 1);
+		if (!buf) {
+			g_slist_free_full(tokens, g_free);
+			return NULL;
+		}
+
 		memcpy(buf, begin, pos - begin);
 		tokens = g_slist_append(tokens, buf);
 	}
@@ -995,23 +1000,22 @@ char *tcore_at_tok_extract(const char *src)
 	last = (char *)src + strlen(src) - 1;
 
 	switch (*src) {
-		case '(':
-			if (*last == ')') {
-				dest = g_strdup(src + 1);
-				dest[strlen(dest) - 1] = '\0';
-			}
-			break;
+	case '(':
+		if (*last == ')') {
+			dest = g_strdup(src + 1);
+			dest[strlen(dest) - 1] = '\0';
+		}
+	break;
 
-		case '"':
-			if (*last == '"') {
-				dest = g_strdup(src + 1);
-				dest[strlen(dest) - 1] = '\0';
-			}
-			break;
+	case '"':
+		if (*last == '"') {
+			dest = g_strdup(src + 1);
+			dest[strlen(dest) - 1] = '\0';
+		}
+	break;
 
-		default:
-			return g_strdup(src);
-			break;
+	default:
+		return g_strdup(src);
 	}
 
 	return dest;
@@ -1035,9 +1039,10 @@ gboolean tcore_at_add_hook(TcoreHal *hal, void *hook_func)
 
 	if (at != NULL) {
 		dbg("Setting the rfs hook callback function");
-		at->rfs_hook = (rfs_hook_cb) hook_func;
+		at->rfs_hook = (RfsHookCb)hook_func;
 		return TRUE;
 	}
+
 	dbg("AT is NULL !!!");
 	return FALSE;
 }
@@ -1048,23 +1053,19 @@ void tcore_free_pending_timeout_at_request(TcoreAT *at)
 		return;
 
 	tcore_at_request_free(at->req);
-	tcore_at_response_free(at->resp);
 	at->req = NULL;
+
+	tcore_at_response_free(at->resp);
 	at->resp = NULL;
 }
 
 TReturn tcore_prepare_and_send_at_request(CoreObject *co,
-												const char *at_cmd,
-												const char *at_cmd_prefix,
-												enum tcore_at_command_type at_cmd_type,
-												UserRequest *ur,
-												TcorePendingResponseCallback resp_cb,
-												void *resp_cb_data,
-												TcorePendingSendCallback send_cb,
-												void *send_cb_data,
-												unsigned int timeout,
-												TcorePendingTimeoutCallback timeout_cb,
-												void *timeout_cb_data)
+	const char *at_cmd, const char *at_cmd_prefix,
+	enum tcore_at_command_type at_cmd_type,
+	UserRequest *ur,
+	TcorePendingResponseCallback resp_cb, void *resp_cb_data,
+	TcorePendingSendCallback send_cb, void *send_cb_data,
+	unsigned int timeout, TcorePendingTimeoutCallback timeout_cb, void *timeout_cb_data)
 {
 	TcorePending *pending = NULL;
 	TcoreATRequest *req = NULL;
@@ -1073,7 +1074,7 @@ TReturn tcore_prepare_and_send_at_request(CoreObject *co,
 
 	hal = tcore_object_get_hal(co);
 	if (!hal) {
-		dbg("HAL is NULL");
+		err("HAL is NULL");
 		return ret;
 	}
 	dbg("hal: [0x%x]", hal);
@@ -1081,19 +1082,21 @@ TReturn tcore_prepare_and_send_at_request(CoreObject *co,
 	/* Create Pending Request */
 	pending = tcore_pending_new(co, 0);
 	if (!pending) {
-		dbg("Pending is NULL");
+		err("Pending is NULL");
 		return ret;
 	}
 
 	/* Create AT-Command Request */
 	req = tcore_at_request_new(at_cmd, at_cmd_prefix, at_cmd_type);
 	if (req == NULL) {
-		dbg("Request is NULL");
+		err("Request is NULL");
+
 		tcore_pending_free(pending);
 		return ret;
 	}
+
 	dbg("AT Command: [%s], Prefix(if any): [%s], AT-Command length: [%d]",
-								req->cmd, req->prefix, strlen(req->cmd));
+		req->cmd, req->prefix, strlen(req->cmd));
 
 	tcore_pending_set_request_data(pending, 0, req);
 	tcore_pending_set_response_callback(pending, resp_cb, resp_cb_data);
@@ -1103,7 +1106,12 @@ TReturn tcore_prepare_and_send_at_request(CoreObject *co,
 	tcore_pending_link_user_request(pending, ur);
 
 	ret = tcore_hal_send_request(hal, pending);
-	dbg("ret: [0x%x]", ret);
+	if (ret != TCORE_RETURN_SUCCESS) {
+		err("Failed to send AT-Request!");
+
+		tcore_at_request_free(req);
+		tcore_pending_free(pending);
+	}
+
 	return ret;
 }
-

@@ -93,7 +93,7 @@ void tcore_user_request_free(UserRequest *ur)
 	if (ur->data)
 		free(ur->data);
 
-	if(ur->metainfo)
+	if (ur->metainfo)
 		free(ur->metainfo);
 
 	dbg("user_request(%p) free.", ur);
@@ -208,9 +208,8 @@ TReturn tcore_user_request_send_response(UserRequest *ur,
 		hook = list->data;
 		list = list->next;
 
-		if (!hook) {
+		if (!hook)
 			continue;
-		}
 
 		if (hook->func)
 			hook->func(ur, command, data_len, data, hook->user_data);
@@ -265,13 +264,10 @@ TReturn tcore_user_request_set_data(UserRequest *ur,
 			}
 
 			memcpy(ur->data, data, data_len);
-		}
-		else
+		} else
 			ur->data_len = 0;
-	}
-	else {
+	} else
 		ur->data = NULL;
-	}
 
 	return TCORE_RETURN_SUCCESS;
 }
@@ -298,13 +294,10 @@ TReturn tcore_user_request_set_metainfo(UserRequest *ur,
 			}
 
 			memcpy(ur->metainfo, metainfo, metainfo_len);
-		}
-		else
+		} else
 			ur->metainfo_len = 0;
-	}
-	else {
+	} else
 		ur->metainfo = NULL;
-	}
 
 	return TCORE_RETURN_SUCCESS;
 }

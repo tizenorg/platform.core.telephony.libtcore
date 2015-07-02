@@ -95,7 +95,7 @@ enum tcore_ss_class {
 
 enum tcore_ss_status {
 	TCORE_SS_STATUS_REG = 0x01, /* 0x01 : Registration */
-	TCORE_SS_STATUS_DEREG,      /* 0x02 : De-registration( erase ) */
+	TCORE_SS_STATUS_DEREG,      /* 0x02 : De-registration(erase) */
 	TCORE_SS_STATUS_ACTIVATE,   /* 0x03 : Activation */
 	TCORE_SS_STATUS_DEACTIVATE, /* 0x04 : De-activation */
 	TCORE_SS_STATUS_MAX
@@ -152,6 +152,18 @@ enum tcore_ss_aoc_type {
 	TCORE_SS_AOC_TYPE_MAX    = 0x10
 };
 
+enum tcore_ss_routing_policy {
+	TCORE_SS_ROUTING_POLICY_CS_ALWAYS,
+	TCORE_SS_ROUTING_POLICY_IMS_ALWAYS,
+	TCORE_SS_ROUTING_POLICY_IMS_CS
+};
+
+enum tcore_ussd_routing_policy {
+	TCORE_SS_USSD_ROUTING_POLICY_CS_ALWAYS,
+	TCORE_SS_USSD_ROUTING_POLICY_IMS_ALWAYS,
+	TCORE_SS_USSD_ROUTING_POLICY_IMS_CS
+};
+
 typedef struct ussd_session UssdSession;
 
 struct tcore_ss_operations {
@@ -177,19 +189,25 @@ struct tcore_ss_operations {
 };
 
 
-CoreObject* tcore_ss_new(TcorePlugin *p, const char *name, struct tcore_ss_operations *ops, TcoreHal *hal);
-void        tcore_ss_free(CoreObject *o);
+CoreObject *tcore_ss_new(TcorePlugin *p, const char *name, struct tcore_ss_operations *ops, TcoreHal *hal);
+void tcore_ss_free(CoreObject *o);
 
-void tcore_ss_set_ops(CoreObject *o, struct tcore_ss_operations *ops);
+void tcore_ss_set_ops(CoreObject *o, struct tcore_ss_operations *ops, enum tcore_ops_type ops_type);
 
-struct ussd_session*	tcore_ss_ussd_create_session( CoreObject *o, enum tcore_ss_ussd_type type, void *data, int data_len );
-void					tcore_ss_ussd_destroy_session( struct ussd_session *ussd_s );
-struct ussd_session*	tcore_ss_ussd_get_session( CoreObject *o );
-enum tcore_ss_ussd_type tcore_ss_ussd_get_session_type( struct ussd_session* ussd_s );
-void					tcore_ss_ussd_set_session_type( struct ussd_session* ussd_s, enum tcore_ss_ussd_type type );
-int						tcore_ss_ussd_get_session_data( struct ussd_session* ussd_s, void** data );
-void					tcore_ss_ussd_set_session_data( struct ussd_session* ussd_s, void* data, int data_len );
+struct ussd_session *tcore_ss_ussd_create_session(CoreObject *o, enum tcore_ss_ussd_type type, void *data, int data_len);
+void tcore_ss_ussd_destroy_session(struct ussd_session *ussd_s);
+struct ussd_session *tcore_ss_ussd_get_session(CoreObject *o);
+enum tcore_ss_ussd_type tcore_ss_ussd_get_session_type(struct ussd_session *ussd_s);
+void tcore_ss_ussd_set_session_type(struct ussd_session *ussd_s, enum tcore_ss_ussd_type type);
+int tcore_ss_ussd_get_session_data(struct ussd_session *ussd_s, void **data);
+void tcore_ss_ussd_set_session_data(struct ussd_session *ussd_s, void *data, int data_len);
+
+void tcore_ss_set_ussd_routing(CoreObject *o, enum tcore_ussd_routing_policy ussd_routing_policy);
+enum tcore_ussd_routing_policy tcore_ss_get_ussd_routing(CoreObject *o);
+
+void tcore_ss_set_ss_routing(CoreObject *o, enum tcore_ss_routing_policy ss_routing_policy);
+enum tcore_ss_routing_policy tcore_ss_get_ss_routing(CoreObject *o);
 
 __END_DECLS
 
-#endif
+#endif /* __TCORE_CO_SS_H__ */

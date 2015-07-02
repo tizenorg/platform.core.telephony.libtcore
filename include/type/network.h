@@ -23,11 +23,18 @@
 
 __BEGIN_DECLS
 
+#define NETWORK_MAX_MCC_LEN		3
+#define NETWORK_MAX_MNC_LEN		3
+#define NETWORK_MAX_PLMN_LEN		6
+
+#define NETWORK_MAX_COUNTRY_CODE_LEN		3
+#define NETWORK_MAX_NETWORK_NAME_LEN		40
+#define NETWORK_MAX_SHORT_NAME_LEN		16
+#define NETWORK_MAX_FULL_NAME_LEN		32
+
 #define NETWORK_GERAN_NEIGHBORING_CELL_LIST_MAX 6		/**<	max count of GERAN neighboring cell list	*/
 #define NETWORK_UMTS_NEIGHBORING_CELL_LIST_MAX 24		/**<	max count of UMTS neighboring cell list		*/
 
-#define NETWORK_CDMA_SUBSCRIPTION_MCC_MAX 4
-#define NETWORK_CDMA_SUBSCRIPTION_MNC_MAX 4
 #define NETWORK_CDMA_SUBSCRIPTION_MIN_MAX 11
 #define NETWORK_CDMA_SUBSCRIPTION_MDN_MAX 16
 
@@ -209,6 +216,35 @@ enum telephony_network_ims_voice_status {
 	NETWORK_IMS_VOICE_SUPPORT
 };
 
+/* IMS specific */
+enum telephony_network_ims_reg_feature_type {
+	NETWORK_IMS_REG_FEATURE_TYPE_VOLTE = 0x01, /**< VoLTE Feature type */
+	NETWORK_IMS_REG_FEATURE_TYPE_SMS = 0x02, /**< SMSoverIP Feature type */
+	NETWORK_IMS_REG_FEATURE_TYPE_RCS = 0x04, /**< RCS Feature type */
+	NETWORK_IMS_REG_FEATURE_TYPE_VT = 0x08, /**< VT Feature type */
+};
+
+/* IMS specific */
+enum telephony_network_ims_reg_network_type {
+	NETWORK_IMS_REG_NETWORK_TYPE_INTERNET = 1, /**< VoLTE Feature type */
+	NETWORK_IMS_REG_NETWORK_TYPE_WIFI, /**< SMSoverIP Feature type */
+	NETWORK_IMS_REG_NETWORK_TYPE_IMS, /**< RCS Feature type */
+	NETWORK_IMS_REG_NETWORK_TYPE_EMERGENCY /**< VT Feature type */
+};
+
+/* IMS specific */
+enum telephony_network_ims_reg_ecmp_mode {
+	NETWORK_IMS_REG_ECMP_MODE_NOT_SUPPORT = -1, /**< Not supported */
+	NETWORK_IMS_REG_ECMP_MODE_CS_PREFERRED = 0, /**< CS preferred */
+	NETWORK_IMS_REG_ECMP_MODE_PS_PREFERRED = 1, /**< PS preferred */
+};
+
+enum telephony_network_ecc_rat_search_status {
+	NETWORK_ECC_RAT_SEARCH_STATUS_IDLE,
+	NETWORK_ECC_RAT_SEARCH_STATUS_WAITING,
+	NETWORK_ECC_RAT_SEARCH_STATUS_READY,
+};
+
 struct tel_network_geran_cell_info {
 	int cell_id;	/* Cell ID (-1 indicates cell ID information not present)*/
 	int lac;		/* Location area code (this field is ignored when cell_id not present)*/
@@ -262,12 +298,19 @@ struct tel_network_neighboring_cell_info {
 	struct tel_network_umts_cell_info umts_list[NETWORK_UMTS_NEIGHBORING_CELL_LIST_MAX];
 };
 
+/* IMS specific */
+struct tel_network_ims_registration_info {
+	gboolean is_registered; /**< IMS registration status */
+	unsigned int feature_mask; /**< Registration info of each service (see telephony_network_ims_reg_feature_type enum) */
+	enum telephony_network_ims_reg_network_type network_type; /**< Network type (NETWORK_TYPE_INTERNET, NETWORK_TYPE_IMS, etc) */
+	enum telephony_network_ims_reg_ecmp_mode ecmp_mode; /**< Enumeration for emergency call mode preference */
+};
 
 struct treq_network_search { /* no data */
 };
 struct treq_network_set_plmn_selection_mode {
 	enum telephony_network_select_mode mode;
-	char plmn[7];
+	char plmn[NETWORK_MAX_PLMN_LEN+1];
 	enum telephony_network_access_technology act;
 };
 struct treq_network_get_plmn_selection_mode { /* no data */
@@ -285,7 +328,7 @@ struct treq_network_get_band { /* no data */
 };
 struct treq_network_set_preferred_plmn {
 	enum telephony_network_preferred_plmn_operation operation;
-	char plmn[7];
+	char plmn[NETWORK_MAX_PLMN_LEN+1];
 	enum telephony_network_access_technology act;
 	int ef_index;
 };
@@ -344,8 +387,8 @@ struct tresp_network_search {
 	int list_count;
 	struct {
 		enum telephony_network_plmn_status  status;
-		char name[41];
-		char plmn[7];
+		char name[NETWORK_MAX_NETWORK_NAME_LEN+1];
+		char plmn[NETWORK_MAX_PLMN_LEN+1];
 		enum telephony_network_access_technology act;
 		unsigned int lac;
 		unsigned int rac;
@@ -391,8 +434,8 @@ struct tresp_network_get_preferred_plmn {
 	int list_count;
 	struct {
 		int ef_index;
-		char name[41];
-		char plmn[7];
+		char name[NETWORK_MAX_NETWORK_NAME_LEN+1];
+		char plmn[NETWORK_MAX_PLMN_LEN+1];
 		enum telephony_network_access_technology act;
 		unsigned int lac;
 	} list[150];
@@ -422,7 +465,7 @@ struct tresp_network_set_cancel_manual_search {
 
 struct tresp_network_get_serving_network {
 	TReturn result;
-	char plmn[7];
+	char plmn[NETWORK_MAX_PLMN_LEN+1];
 	enum telephony_network_access_technology act;
 	struct {
 		unsigned int lac;
@@ -473,8 +516,8 @@ struct tresp_network_get_roaming_preference {
 
 struct tresp_network_get_subscription_info {
 	TReturn result;
-	char mcc[NETWORK_CDMA_SUBSCRIPTION_MCC_MAX];
-	char mnc[NETWORK_CDMA_SUBSCRIPTION_MNC_MAX];
+	char mcc[NETWORK_MAX_MCC_LEN + 1];
+	char mnc[NETWORK_MAX_MCC_LEN + 1];
 	char min[NETWORK_CDMA_SUBSCRIPTION_MIN_MAX];
 	char mdn[NETWORK_CDMA_SUBSCRIPTION_MDN_MAX];
 };
@@ -495,6 +538,10 @@ struct tresp_network_set_default_subs {
 struct tresp_network_get_default_subs {
 	TReturn result;
 	enum telephony_network_default_subs default_subs; /* 'default' Subscription */
+};
+
+struct tresp_network_search_ecc_rat {
+	TReturn result;
 };
 
 struct tnoti_network_registration_status {
@@ -522,7 +569,7 @@ struct tnoti_network_signal_strength {
 };
 
 struct tnoti_network_change {
-	char plmn[7];
+	char plmn[NETWORK_MAX_PLMN_LEN+1];
 	enum telephony_network_access_technology act;
 	struct {
 		unsigned int lac;
@@ -550,14 +597,14 @@ struct tnoti_network_timeinfo {
 	int gmtoff;
 	int dstoff;
 	unsigned int isdst;
-	char plmn[7];
+	char plmn[NETWORK_MAX_PLMN_LEN+1];
 	enum telephony_network_mm_info_type mm_type;
 };
 
 struct tnoti_network_identity {
-	char short_name[17];
-	char full_name[33];
-	char plmn[7];
+	char short_name[NETWORK_MAX_SHORT_NAME_LEN+1];
+	char full_name[NETWORK_MAX_FULL_NAME_LEN+1];
+	char plmn[NETWORK_MAX_PLMN_LEN+1];
 };
 
 struct tnoti_network_neighboring_cell_info {
@@ -576,13 +623,25 @@ struct tnoti_network_default_subs {
 	enum telephony_network_default_subs default_subs; /* 'default' Subscription */
 };
 
-/* 3GPP2 spcefic */
+/* 3GPP2 specific */
 struct tnoti_network_emergency_callback_mode {
 	enum telephony_network_emergency_callback_mode mode;
 };
 
+/* IMS specific */
 struct tnoti_network_ims_voice_status {
 	enum telephony_network_ims_voice_status status;
+};
+
+struct tnoti_network_ecc_rat {
+	enum telephony_network_access_technology ecc_rat;
+};
+
+struct tnoti_network_ims_registration_info {
+	gboolean is_registered; /**< IMS registration status */
+	unsigned int feature_mask; /**< Registration info of each service (see telephony_network_ims_reg_feature_type enum) */
+	enum telephony_network_ims_reg_network_type network_type; /**< Network type (NETWORK_TYPE_INTERNET, NETWORK_TYPE_IMS, etc) */
+	enum telephony_network_ims_reg_ecmp_mode ecmp_mode; /**< Enumeration for emergency call mode preference */
 };
 
 

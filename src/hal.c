@@ -37,7 +37,6 @@
 #include "mux.h"
 
 
-//#define IDLE_SEND_PRIORITY G_PRIORITY_DEFAULT
 #define IDLE_SEND_PRIORITY G_PRIORITY_HIGH
 
 struct hook_send_type {
@@ -81,29 +80,26 @@ static gboolean _hal_idle_send(void *user_data)
 	p = tcore_queue_ref_next_pending(h->queue);
 	if (!p) {
 #ifdef TCORE_HAL_DEBUG
-		dbg("next pending is NULL. no send, queue len=%d", tcore_queue_get_length(h->queue));
+		dbg("next pending is NULL. no send, queue len=%d",
+			tcore_queue_get_length(h->queue));
 #endif
 		goto out;
 	}
 
 	data = tcore_pending_ref_request_data(p, &data_len);
 	dbg("queue(%p) len=%d, pending(%p) id=0x%x data_len=%d",
-			h->queue, tcore_queue_get_length(h->queue), p, tcore_pending_get_id(p), data_len);
+		h->queue, tcore_queue_get_length(h->queue), p, tcore_pending_get_id(p), data_len);
 
-	if (h->mode == TCORE_HAL_MODE_AT) {
+	if (h->mode == TCORE_HAL_MODE_AT)
 		ret = tcore_at_set_request(h->at, data, TRUE);
-	}
-	else {
+	else
 		ret = tcore_hal_send_data(h, data_len, data);
-	}
 
 	if (ret == TCORE_RETURN_SUCCESS) {
 		tcore_pending_emit_send_callback(p, TRUE);
 		tcore_pending_start_timer(p);
-	}
-	else {
+	} else
 		tcore_pending_emit_send_callback(p, FALSE);
-	}
 
 	if (ret != TCORE_RETURN_HOOK_STOP) {
 		if (tcore_pending_get_auto_free_status_after_sent(p)) {
@@ -113,8 +109,7 @@ static gboolean _hal_idle_send(void *user_data)
 
 			/* renew idler */
 			renew = TRUE;
-		}
-		else {
+		} else {
 			/* Send fail */
 			if (ret != TCORE_RETURN_SUCCESS) {
 				dbg("send fail.");
@@ -132,8 +127,7 @@ out:
 }
 
 TcoreHal *tcore_hal_new(TcorePlugin *plugin, const char *name,
-		struct tcore_hal_operations *hops,
-		enum tcore_hal_mode mode)
+	struct tcore_hal_operations *hops, enum tcore_hal_mode mode)
 {
 	TcoreHal *h;
 
@@ -269,13 +263,12 @@ TReturn tcore_hal_send_data(TcoreHal *hal, unsigned int data_len, void *data)
 
 	for (list = hal->hook_list_send; list; list = list->next) {
 		hook = list->data;
-		if (!hook) {
+		if (!hook)
 			continue;
-		}
 
-		if (hook->func(hal, data_len, data, hook->user_data) == TCORE_HOOK_RETURN_STOP_PROPAGATION) {
+		if (hook->func(hal, data_len, data, hook->user_data)
+				== TCORE_HOOK_RETURN_STOP_PROPAGATION)
 			return TCORE_RETURN_HOOK_STOP;
-		}
 	}
 
 	return hal->ops->send(hal, data_len, data);
@@ -294,7 +287,7 @@ TReturn tcore_hal_send_request(TcoreHal *hal, TcorePending *pending)
 		return TCORE_RETURN_FAILURE;
 
 	ret = tcore_queue_push(hal->queue, pending);
-	if( ret != TCORE_RETURN_SUCCESS ) {
+	if (ret != TCORE_RETURN_SUCCESS) {
 		dbg("Pushing pending fails : return [ %d ]", ret);
 		return ret;
 	}
@@ -303,11 +296,9 @@ TReturn tcore_hal_send_request(TcoreHal *hal, TcorePending *pending)
 	if (priority == TCORE_PENDING_PRIORITY_IMMEDIATELY) {
 		dbg("IMMEDIATELY pending !!");
 		_hal_idle_send(hal);
-	}
-	else {
-		if (tcore_queue_get_normal_length(hal->queue) <= 1) {
+	} else {
+		if (tcore_queue_get_normal_length(hal->queue) <= 1)
 			g_idle_add_full(IDLE_SEND_PRIORITY, _hal_idle_send, hal, NULL);
-		}
 	}
 
 	return TCORE_RETURN_SUCCESS;
@@ -336,23 +327,21 @@ TReturn tcore_hal_free_timeout_pending_request(TcoreHal *hal, TcorePending *p,
 		dbg("TCORE_HAL_MODE_AT");
 		tcore_free_pending_timeout_at_request(hal->at);
 		p = tcore_queue_pop_by_pending(hal->queue, p);
-		if (!p) {
+		if (!p)
 			dbg("no pending");
-		}
+
 		tcore_user_request_free(tcore_pending_ref_user_request(p));
 		tcore_pending_free(p);
-	}
-	else {
-		if(hal->mode == TCORE_HAL_MODE_CUSTOM) {
+	} else {
+		if (hal->mode == TCORE_HAL_MODE_CUSTOM) {
 			dbg("TCORE_HAL_MODE_CUSTOM");
 			p = tcore_queue_pop_by_pending(hal->queue, p);
-			if (!p) {
+			if (!p)
 				dbg("no pending");
-			}
+
 			tcore_user_request_free(tcore_pending_ref_user_request(p));
 			tcore_pending_free(p);
-		}
-		else if(hal->mode == TCORE_HAL_MODE_TRANSPARENT) {
+		} else if (hal->mode == TCORE_HAL_MODE_TRANSPARENT) {
 			dbg("TCORE_HAL_MODE_TRANSPARENT");
 
 			/* TODO : Need to free resources */
@@ -361,8 +350,9 @@ TReturn tcore_hal_free_timeout_pending_request(TcoreHal *hal, TcorePending *p,
 			tcore_cmux_rcv_from_hal(hal, (unsigned char *)data, data_len);
 		}
 	}
+
 	/* Send next request in queue */
-	g_idle_add_full(IDLE_SEND_PRIORITY, _hal_idle_send, hal, NULL );
+	g_idle_add_full(IDLE_SEND_PRIORITY, _hal_idle_send, hal, NULL);
 
 	return TCORE_RETURN_SUCCESS;
 }
@@ -386,11 +376,10 @@ TReturn tcore_hal_dispatch_response_data(TcoreHal *hal, int id,
 		ret = tcore_at_process(hal->at, data_len, data);
 		if (ret) {
 			/* Send next request in queue */
-			g_idle_add_full(IDLE_SEND_PRIORITY, _hal_idle_send, hal, NULL );
+			g_idle_add_full(IDLE_SEND_PRIORITY, _hal_idle_send, hal, NULL);
 		}
-	}
-	else {
-		if(hal->mode == TCORE_HAL_MODE_CUSTOM) {
+	} else {
+		if (hal->mode == TCORE_HAL_MODE_CUSTOM) {
 			dbg("TCORE_HAL_MODE_CUSTOM");
 			p = tcore_queue_pop_by_id(hal->queue, id);
 			if (!p) {
@@ -401,15 +390,15 @@ TReturn tcore_hal_dispatch_response_data(TcoreHal *hal, int id,
 			tcore_pending_emit_response_callback(p, data_len, data);
 			tcore_user_request_free(tcore_pending_ref_user_request(p));
 			tcore_pending_free(p);
-		}
-		else if(hal->mode == TCORE_HAL_MODE_TRANSPARENT) {
+		} else if (hal->mode == TCORE_HAL_MODE_TRANSPARENT) {
 			dbg("TCORE_HAL_MODE_TRANSPARENT");
 
 			/* Invoke CMUX receive API for decoding */
 			tcore_cmux_rcv_from_hal(hal, (unsigned char *)data, data_len);
 		}
+
 		/* Send next request in queue */
-		g_idle_add_full(IDLE_SEND_PRIORITY, _hal_idle_send, hal, NULL );
+		g_idle_add_full(IDLE_SEND_PRIORITY, _hal_idle_send, hal, NULL);
 	}
 
 	return TCORE_RETURN_SUCCESS;
@@ -445,9 +434,8 @@ TReturn tcore_hal_remove_recv_callback(TcoreHal *hal, TcoreHalReceiveCallback fu
 
 	for (list = hal->callbacks; list; list = list->next) {
 		item = list->data;
-		if (!item) {
+		if (!item)
 			continue;
-		}
 
 		if (item->func == func) {
 			hal->callbacks = g_slist_remove(hal->callbacks, item);
@@ -474,9 +462,8 @@ TReturn tcore_hal_emit_recv_callback(TcoreHal *hal, unsigned int data_len,
 	for (list = hal->callbacks; list; list = list->next) {
 		item = list->data;
 
-		if (item) {
+		if (item && item->func)
 			item->func(hal, data_len, data, item->user_data);
-		}
 	}
 
 	return TCORE_RETURN_SUCCESS;
@@ -512,9 +499,8 @@ TReturn tcore_hal_remove_send_hook(TcoreHal *hal, TcoreHalSendHook func)
 
 	for (list = hal->hook_list_send; list; list = list->next) {
 		hook = list->data;
-		if (!hook) {
+		if (!hook)
 			continue;
-		}
 
 		if (hook->func == func) {
 			hal->hook_list_send = g_slist_remove(hal->hook_list_send, hook);
@@ -568,9 +554,8 @@ TReturn tcore_hal_set_power(TcoreHal *hal, gboolean flag)
 	return hal->ops->power(hal, flag);
 }
 TReturn tcore_hal_setup_netif(TcoreHal *hal, CoreObject *co,
-				TcoreHalSetupNetifCallback func,
-				void *user_data, unsigned int cid,
-				gboolean enable)
+	TcoreHalSetupNetifCallback func, void *user_data,
+	unsigned int cid, gboolean enable)
 {
 	if ((hal == NULL) || (hal->ops == NULL) || (hal->ops->setup_netif == NULL))
 		return TCORE_RETURN_EINVAL;

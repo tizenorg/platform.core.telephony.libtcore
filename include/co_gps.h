@@ -37,9 +37,9 @@ struct tcore_gps_operations {
 	TReturn (*set_smart_assistant_info)(CoreObject *o, UserRequest *ur);
 };
 
-CoreObject*  tcore_gps_new(TcorePlugin *p, const char *name, struct tcore_gps_operations *ops, TcoreHal *hal);
-void         tcore_gps_free(CoreObject *o);
-void tcore_gps_set_ops(CoreObject *o, struct tcore_gps_operations *ops);
+CoreObject *tcore_gps_new(TcorePlugin *p, const char *name, struct tcore_gps_operations *ops, TcoreHal *hal);
+void tcore_gps_free(CoreObject *o);
+void tcore_gps_set_ops(CoreObject *o, struct tcore_gps_operations *ops, enum tcore_ops_type ops_type);
 
 __END_DECLS
 

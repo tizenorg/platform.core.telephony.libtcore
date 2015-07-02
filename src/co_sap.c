@@ -25,109 +25,86 @@
 #include <glib.h>
 
 #include "tcore.h"
+#include "internal/tcore_types.h"
 #include "plugin.h"
 #include "queue.h"
 #include "user_request.h"
 #include "co_sap.h"
 
 struct private_object_data {
-	struct tcore_sap_operations *ops;
+	struct tcore_sap_operations *ops[TCORE_OPS_TYPE_MAX];
 };
 
-static TReturn _dispatcher(CoreObject *o, UserRequest *ur)
+static TReturn _dispatcher(CoreObject *o, UserRequest *ur, enum tcore_ops_type ops_type)
 {
 	enum tcore_request_command command;
-	struct private_object_data *po = NULL;
+	struct private_object_data *po = tcore_object_ref_object(o);
+	struct tcore_sap_operations *ops = NULL;
 
 	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_SAP, TCORE_RETURN_EINVAL);
+	CORE_OBJECT_VALIDATE_OPS_RETURN_VAL(ops_type, TCORE_RETURN_EINVAL);
 
-	po = tcore_object_ref_object(o);
-	if (!po || !po->ops)
-		return TCORE_RETURN_ENOSYS;
+	tcore_check_null_ret_err("po", po, TCORE_RETURN_EINVAL);
+	tcore_check_null_ret_err("ur", ur, TCORE_RETURN_EINVAL);
+
+	ops = po->ops[ops_type];
+	tcore_check_null_ret_err("ops", ops, TCORE_RETURN_FAILURE);
 
 	command = tcore_user_request_get_command(ur);
 	switch (command) {
-		case TREQ_SAP_REQ_CONNECT:
-			po = tcore_object_ref_object(o);
-			if (!po->ops->connect)
-				return TCORE_RETURN_ENOSYS;
+	case TREQ_SAP_REQ_CONNECT:
+		tcore_check_null_ret_err("ops->connect",
+			ops->connect, TCORE_RETURN_ENOSYS);
 
-			return po->ops->connect(o, ur);
-			break;
+		return ops->connect(o, ur);
 
-		case TREQ_SAP_REQ_DISCONNECT:
-			if (!po->ops->disconnect)
-				return TCORE_RETURN_ENOSYS;
+	case TREQ_SAP_REQ_DISCONNECT:
+		tcore_check_null_ret_err("ops->disconnect",
+			ops->disconnect, TCORE_RETURN_ENOSYS);
 
-			return po->ops->disconnect(o, ur);
-			break;
+		return ops->disconnect(o, ur);
 
-		case TREQ_SAP_REQ_STATUS:
-			if (!po->ops->req_status)
-				return TCORE_RETURN_ENOSYS;
+	case TREQ_SAP_REQ_STATUS:
+		tcore_check_null_ret_err("ops->req_status",
+			ops->req_status, TCORE_RETURN_ENOSYS);
 
-			return po->ops->req_status(o, ur);
-			break;
+		return ops->req_status(o, ur);
 
-		case TREQ_SAP_REQ_ATR:
-			if (!po->ops->get_atr)
-				return TCORE_RETURN_ENOSYS;
+	case TREQ_SAP_REQ_ATR:
+		tcore_check_null_ret_err("ops->get_atr",
+			ops->get_atr, TCORE_RETURN_ENOSYS);
 
-			return po->ops->get_atr(o, ur);
-			break;
+		return ops->get_atr(o, ur);
 
-		case TREQ_SAP_TRANSFER_APDU:
-			if (!po->ops->transfer_apdu)
-				return TCORE_RETURN_ENOSYS;
+	case TREQ_SAP_TRANSFER_APDU:
+		tcore_check_null_ret_err("ops->transfer_apdu",
+			ops->transfer_apdu, TCORE_RETURN_ENOSYS);
 
-			return po->ops->transfer_apdu(o, ur);
-			break;
+		return ops->transfer_apdu(o, ur);
 
-		case TREQ_SAP_SET_PROTOCOL:
-			if (!po->ops->set_transport_protocol)
-				return TCORE_RETURN_ENOSYS;
+	case TREQ_SAP_SET_PROTOCOL:
+		tcore_check_null_ret_err("ops->set_transport_protocol",
+			ops->set_transport_protocol, TCORE_RETURN_ENOSYS);
 
-			return po->ops->set_transport_protocol(o, ur);
-			break;
+		return ops->set_transport_protocol(o, ur);
 
-		case TREQ_SAP_SET_POWER:
-			if (!po->ops->set_power)
-				return TCORE_RETURN_ENOSYS;
+	case TREQ_SAP_SET_POWER:
+		tcore_check_null_ret_err("ops->set_power",
+			ops->set_power, TCORE_RETURN_ENOSYS);
 
-			return po->ops->set_power(o, ur);
-			break;
+		return ops->set_power(o, ur);
 
-		case TREQ_SAP_REQ_CARDREADERSTATUS:
-			if (!po->ops->get_cardreader_status)
-				return TCORE_RETURN_ENOSYS;
+	case TREQ_SAP_REQ_CARDREADERSTATUS:
+		tcore_check_null_ret_err("ops->get_cardreader_status",
+			ops->get_cardreader_status, TCORE_RETURN_ENOSYS);
 
-			return po->ops->get_cardreader_status(o, ur);
-			break;
+		return ops->get_cardreader_status(o, ur);
 
-		default:
-			break;
+	default:
+		break;
 	}
+
 	return TCORE_RETURN_SUCCESS;
-}
-
-static void _clone_hook(CoreObject *src, CoreObject *dest)
-{
-	struct private_object_data *src_po = NULL;
-	struct private_object_data *dest_po = NULL;
-
-	if (!src || !dest)
-		return;
-
-	dest_po = calloc(1, sizeof(struct private_object_data));
-	if (!dest_po) {
-		tcore_object_link_object(dest, NULL);
-		return;
-	}
-
-	src_po = tcore_object_ref_object(src);
-	dest_po->ops = src_po->ops;
-
-	tcore_object_link_object(dest, dest_po);
 }
 
 static void _free_hook(CoreObject *o)
@@ -162,12 +139,12 @@ CoreObject *tcore_sap_new(TcorePlugin *p, const char *name,
 		return NULL;
 	}
 
-	po->ops = ops;
+	/* set ops to default type when core object is created. */
+	po->ops[TCORE_OPS_TYPE_CP] = ops;
 
 	tcore_object_set_type(o, CORE_OBJECT_TYPE_SAP);
 	tcore_object_link_object(o, po);
 	tcore_object_set_free_hook(o, _free_hook);
-	tcore_object_set_clone_hook(o, _clone_hook);
 	tcore_object_set_dispatcher(o, _dispatcher);
 
 	return o;
@@ -179,16 +156,18 @@ void tcore_sap_free(CoreObject *o)
 	tcore_object_free(o);
 }
 
-void tcore_sap_set_ops(CoreObject *o, struct tcore_sap_operations *ops)
+void tcore_sap_set_ops(CoreObject *o, struct tcore_sap_operations *ops, enum tcore_ops_type ops_type)
 {
 	struct private_object_data *po = NULL;
 
 	CORE_OBJECT_CHECK(o, CORE_OBJECT_TYPE_SAP);
+	CORE_OBJECT_VALIDATE_OPS_RETURN(ops_type);
 
 	po = (struct private_object_data *)tcore_object_ref_object(o);
 	if (!po) {
+		err("po is NULL");
 		return;
 	}
 
-	po->ops = ops;
+	po->ops[ops_type] = ops;
 }

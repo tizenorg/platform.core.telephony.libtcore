@@ -115,7 +115,7 @@ static void test_buf_write(void)
 	ret = tcore_at_buf_write(at, strlen(msg_2), msg_2);
 	g_assert(ret == TCORE_RETURN_SUCCESS);
 
-	tcore_at_free (at);
+	tcore_at_free(at);
 }
 
 static void test_tok(void)
@@ -207,7 +207,7 @@ static void test_pdu_resp(void)
 	ret = tcore_at_process(at, strlen(msg), msg);
 	g_assert(ret == TRUE);
 
-	tcore_at_free (at);
+	tcore_at_free(at);
 }
 
 int main(int argc, char **argv)

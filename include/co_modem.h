@@ -37,19 +37,20 @@ struct tcore_modem_operations {
 	TReturn (*get_sn)(CoreObject *o, UserRequest *ur);
 	TReturn (*dun_pin_ctrl)(CoreObject *o, UserRequest *ur);
 	TReturn (*get_flight_mode)(CoreObject *o, UserRequest *ur);
+	TReturn (*get_device_info)(CoreObject *o, UserRequest *ur);
 };
 
 
-CoreObject*      tcore_modem_new(TcorePlugin *p, const char *name, struct tcore_modem_operations *ops, TcoreHal *hal);
-void             tcore_modem_free(CoreObject *o);
+CoreObject *tcore_modem_new(TcorePlugin *p, const char *name, struct tcore_modem_operations *ops, TcoreHal *hal);
+void tcore_modem_free(CoreObject *o);
 
-void tcore_modem_set_ops(CoreObject *o, struct tcore_modem_operations *ops);
+void tcore_modem_set_ops(CoreObject *o, struct tcore_modem_operations *ops, enum tcore_ops_type ops_type);
 
-TReturn          tcore_modem_set_flight_mode_state(CoreObject *o, gboolean flag);
-gboolean         tcore_modem_get_flight_mode_state(CoreObject *o);
-TReturn          tcore_modem_set_powered(CoreObject *o, gboolean pwr);
-gboolean         tcore_modem_get_powered(CoreObject *o);
+TReturn tcore_modem_set_flight_mode_state(CoreObject *o, gboolean flag);
+gboolean tcore_modem_get_flight_mode_state(CoreObject *o);
+TReturn tcore_modem_set_powered(CoreObject *o, gboolean pwr);
+gboolean tcore_modem_get_powered(CoreObject *o);
 
 __END_DECLS
 
-#endif
+#endif /* __TCORE_CO_MODEM_H__ */

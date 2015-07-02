@@ -50,12 +50,12 @@ TcorePlugin *tcore_plugin_new(Server *server,
 {
 	TcorePlugin *p;
 
-	p = calloc(1, sizeof(struct tcore_plugin_type));
+	p = g_try_malloc0(sizeof(struct tcore_plugin_type));
 	if (!p)
 		return NULL;
 
 	if (filename)
-		p->filename = strdup(filename);
+		p->filename = g_strdup(filename);
 
 	p->desc = desc;
 	p->property = g_hash_table_new(g_str_hash, g_str_equal);
@@ -90,7 +90,7 @@ void tcore_plugin_free(TcorePlugin *plugin)
 	}
 
 	if (plugin->filename) {
-		free(plugin->filename);
+		g_free(plugin->filename);
 		plugin->filename = NULL;
 	}
 
@@ -106,7 +106,7 @@ void tcore_plugin_free(TcorePlugin *plugin)
 		plugin->handle = NULL;
 	}
 
-	free(plugin);
+	g_free(plugin);
 }
 
 const struct tcore_plugin_define_desc *tcore_plugin_get_description(TcorePlugin *plugin)
@@ -128,9 +128,12 @@ char *tcore_plugin_get_filename(TcorePlugin *plugin)
 	return strdup(plugin->filename);
 }
 
-const char* tcore_plugin_ref_plugin_name(TcorePlugin *plugin)
+const char *tcore_plugin_ref_plugin_name(TcorePlugin *plugin)
 {
 	if (!plugin)
+		return NULL;
+
+	if (!plugin->desc)
 		return NULL;
 
 	if (!plugin->desc->name)
@@ -202,9 +205,8 @@ CoreObject *tcore_plugin_ref_core_object(TcorePlugin *plugin, unsigned int type)
 		if (!co)
 			continue;
 
-		if (tcore_object_get_type(co) == type) {
+		if (tcore_object_get_type(co) == type)
 			return co;
-		}
 	}
 
 	return NULL;
@@ -242,14 +244,15 @@ GSList *tcore_plugin_get_core_objects_bytype(TcorePlugin *plugin, unsigned int t
 		if (!co)
 			continue;
 
-		if ((CORE_OBJECT_TYPE_DEFAULT |(tcore_object_get_type(co) & 0x0FF00000)) == type)
+		if ((CORE_OBJECT_TYPE_DEFAULT | (tcore_object_get_type(co) & 0x0FF00000)) == type)
 			rlist = g_slist_append(rlist, co);
 	}
 
 	return rlist;
 }
 
-TReturn tcore_plugin_core_object_event_emit(TcorePlugin *plugin, const char *event, const void *event_info)
+TReturn tcore_plugin_core_object_event_emit(TcorePlugin *plugin,
+	const char *event, const void *event_info)
 {
 	GSList *list;
 	CoreObject *co;
@@ -284,10 +287,8 @@ TReturn tcore_plugin_link_property(TcorePlugin *plugin, const char *key, void *d
 	if (prev != NULL) {
 		free(prev);
 		g_hash_table_replace(plugin->property, (gpointer)key, data);
-	}
-	else {
+	} else
 		g_hash_table_insert(plugin->property, strdup(key), data);
-	}
 
 	return TCORE_RETURN_SUCCESS;
 }

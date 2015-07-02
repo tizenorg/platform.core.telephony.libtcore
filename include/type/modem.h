@@ -27,6 +27,8 @@ __BEGIN_DECLS
 #define MODEM_DEVICE_MEID_LEN_MAX 17
 #define MODEM_DEVICE_IMEI_LEN_MAX 17
 #define MODEM_DEVICE_IMEISV_LEN_MAX 17
+#define DONGLE_VENDOR_LEN_MAX 32
+#define DONGLE_DEVICE_LEN_MAX 32
 
 enum modem_state {
 	MODEM_STATE_UNKNOWN = -1,
@@ -117,6 +119,12 @@ struct tresp_modem_get_flightmode {
 struct tresp_modem_get_imei {
 	TReturn result;
 	char imei[MODEM_DEVICE_IMEI_LEN_MAX];
+};
+
+struct tresp_modem_get_device_info {
+	TReturn result;
+	char vendor_name[DONGLE_VENDOR_LEN_MAX];
+	char device_name[DONGLE_DEVICE_LEN_MAX];
 };
 
 struct tresp_modem_get_version {

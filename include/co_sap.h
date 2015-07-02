@@ -36,10 +36,10 @@ struct tcore_sap_operations {
 	TReturn (*get_cardreader_status)(CoreObject *o, UserRequest *ur);
 };
 
-CoreObject* tcore_sap_new(TcorePlugin *p, const char *name, struct tcore_sap_operations *ops, TcoreHal *hal);
-void        tcore_sap_free(CoreObject *o);
-void tcore_sap_set_ops(CoreObject *o, struct tcore_sap_operations *ops);
+CoreObject *tcore_sap_new(TcorePlugin *p, const char *name, struct tcore_sap_operations *ops, TcoreHal *hal);
+void tcore_sap_free(CoreObject *o);
+void tcore_sap_set_ops(CoreObject *o, struct tcore_sap_operations *ops, enum tcore_ops_type ops_type);
 
 __END_DECLS
 
-#endif
+#endif /* __TCORE_CO_SAP_H__ */

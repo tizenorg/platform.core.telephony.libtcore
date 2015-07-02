@@ -25,12 +25,13 @@
 #include <glib.h>
 
 #include "tcore.h"
+#include "internal/tcore_types.h"
 #include "plugin.h"
 #include "user_request.h"
 #include "co_gps.h"
 
 struct private_object_data {
-	struct tcore_gps_operations *ops;
+	struct tcore_gps_operations *ops[TCORE_OPS_TYPE_MAX];
 };
 
 static void _free_hook(CoreObject *o)
@@ -39,92 +40,96 @@ static void _free_hook(CoreObject *o)
 
 	po = tcore_object_ref_object(o);
 	if (po) {
-		free(po);
+		g_free(po);
 		tcore_object_link_object(o, NULL);
 	}
 }
 
-static TReturn _dispatcher(CoreObject *o, UserRequest *ur)
+static TReturn _dispatcher(CoreObject *o, UserRequest *ur, enum tcore_ops_type ops_type)
 {
 	enum tcore_request_command command;
-	struct private_object_data *po = NULL;
+	struct private_object_data *po = tcore_object_ref_object(o);
+	struct tcore_gps_operations *ops = NULL;
 
-	if (!o || !ur)
-		return TCORE_RETURN_EINVAL;
+	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_GPS, TCORE_RETURN_EINVAL);
+	CORE_OBJECT_VALIDATE_OPS_RETURN_VAL(ops_type, TCORE_RETURN_EINVAL);
 
-	po = tcore_object_ref_object(o);
-	if (!po || !po->ops)
-		return TCORE_RETURN_ENOSYS;
+	tcore_check_null_ret_err("po", po, TCORE_RETURN_EINVAL);
+	tcore_check_null_ret_err("ur", ur, TCORE_RETURN_EINVAL);
+
+	ops = po->ops[ops_type];
+	tcore_check_null_ret_err("ops", ops, TCORE_RETURN_FAILURE);
 
 	command = tcore_user_request_get_command(ur);
 	switch (command) {
-		case TREQ_GPS_CONFIRM_MEASURE_POS:
-			dbg("TREQ_GPS_CONFIRM_MEASURE_POS");
-			if (!po->ops->confirm_measure_pos)
-				return TCORE_RETURN_ENOSYS;
+	case TREQ_GPS_CONFIRM_MEASURE_POS:
+		dbg("TREQ_GPS_CONFIRM_MEASURE_POS");
+		tcore_check_null_ret_err("ops->confirm_measure_pos",
+			ops->confirm_measure_pos, TCORE_RETURN_ENOSYS);
 
-			return po->ops->confirm_measure_pos(o, ur);
+		return ops->confirm_measure_pos(o, ur);
 
-		case TREQ_GPS_SET_FREQUENCY_AIDING:
-			dbg("TREQ_GPS_SET_FREQUENCY_AIDING");
-			if (!po->ops->set_frequency_aiding)
-				return TCORE_RETURN_ENOSYS;
+	case TREQ_GPS_SET_FREQUENCY_AIDING:
+		dbg("TREQ_GPS_SET_FREQUENCY_AIDING");
+		tcore_check_null_ret_err("ops->set_frequency_aiding",
+			ops->set_frequency_aiding, TCORE_RETURN_ENOSYS);
 
-			return po->ops->set_frequency_aiding(o, ur);
+		return ops->set_frequency_aiding(o, ur);
 
-		case TREQ_ENABLE_SMART_ASSISTANT:
-			dbg("TREQ_ENABLE_SMART_ASSISTANT");
-			if (!po->ops->enable_smart_assistant)
-				return TCORE_RETURN_ENOSYS;
+	case TREQ_ENABLE_SMART_ASSISTANT:
+		dbg("TREQ_ENABLE_SMART_ASSISTANT");
+		tcore_check_null_ret_err("ops->enable_smart_assistant",
+			ops->enable_smart_assistant, TCORE_RETURN_ENOSYS);
 
-			return po->ops->enable_smart_assistant(o, ur);
+		return ops->enable_smart_assistant(o, ur);
 
-		case TREQ_DISABLE_SMART_ASSISTANT:
-			dbg("TREQ_DISABLE_SMART_ASSISTANT");
-			if (!po->ops->disable_smart_assistant)
-				return TCORE_RETURN_ENOSYS;
+	case TREQ_DISABLE_SMART_ASSISTANT:
+		dbg("TREQ_DISABLE_SMART_ASSISTANT");
+		tcore_check_null_ret_err("ops->disable_smart_assistant",
+			ops->disable_smart_assistant, TCORE_RETURN_ENOSYS);
 
-			return po->ops->disable_smart_assistant(o, ur);
+		return ops->disable_smart_assistant(o, ur);
 
-		case TREQ_SYNC_SMART_ASSISTANT_AREA_LIST:
-			dbg("TREQ_SYNC_SMART_ASSISTANT_AREA_LIST");
-			if (!po->ops->sync_smart_assistant_area_list)
-				return TCORE_RETURN_ENOSYS;
+	case TREQ_SYNC_SMART_ASSISTANT_AREA_LIST:
+		dbg("TREQ_SYNC_SMART_ASSISTANT_AREA_LIST");
+		tcore_check_null_ret_err("ops->sync_smart_assistant_area_list",
+			ops->sync_smart_assistant_area_list, TCORE_RETURN_ENOSYS);
 
-			return po->ops->sync_smart_assistant_area_list(o, ur);
+		return ops->sync_smart_assistant_area_list(o, ur);
 
-		case TREQ_DEL_SMART_ASSISTANT_AREA_LIST:
-			dbg("TREQ_DEL_SMART_ASSISTANT_AREA_LIST");
-			if (!po->ops->del_smart_assistant_area_list)
-				return TCORE_RETURN_ENOSYS;
+	case TREQ_DEL_SMART_ASSISTANT_AREA_LIST:
+		dbg("TREQ_DEL_SMART_ASSISTANT_AREA_LIST");
+		tcore_check_null_ret_err("ops->del_smart_assistant_area_list",
+			ops->del_smart_assistant_area_list, TCORE_RETURN_ENOSYS);
 
-			return po->ops->del_smart_assistant_area_list(o, ur);
+		return ops->del_smart_assistant_area_list(o, ur);
 
-		case TREQ_ADD_SMART_ASSISTANT_AREA:
-			dbg("TREQ_ADD_SMART_ASSISTANT_AREA");
-			if (!po->ops->add_smart_assistant_area)
-				return TCORE_RETURN_ENOSYS;
+	case TREQ_ADD_SMART_ASSISTANT_AREA:
+		dbg("TREQ_ADD_SMART_ASSISTANT_AREA");
+		tcore_check_null_ret_err("ops->add_smart_assistant_area",
+			ops->add_smart_assistant_area, TCORE_RETURN_ENOSYS);
 
-			return po->ops->add_smart_assistant_area(o, ur);
+		return ops->add_smart_assistant_area(o, ur);
 
-		case TREQ_MODIFY_SMART_ASSISTANT_AREA:
-			dbg("TREQ_MODIFY_SMART_ASSISTANT_AREA");
-			if (!po->ops->modify_smart_assistant_area)
-				return TCORE_RETURN_ENOSYS;
+	case TREQ_MODIFY_SMART_ASSISTANT_AREA:
+		dbg("TREQ_MODIFY_SMART_ASSISTANT_AREA");
+		tcore_check_null_ret_err("ops->modify_smart_assistant_area",
+			ops->modify_smart_assistant_area, TCORE_RETURN_ENOSYS);
 
-			return po->ops->modify_smart_assistant_area(o, ur);
+		return ops->modify_smart_assistant_area(o, ur);
 
-		case TREQ_SET_SMART_ASSISTANT_INFO:
-			dbg("TREQ_SET_SMART_ASSISTANT_INFO");
-			if (!po->ops->set_smart_assistant_info)
-				return TCORE_RETURN_ENOSYS;
+	case TREQ_SET_SMART_ASSISTANT_INFO:
+		dbg("TREQ_SET_SMART_ASSISTANT_INFO");
+		tcore_check_null_ret_err("ops->set_smart_assistant_info",
+			ops->set_smart_assistant_info, TCORE_RETURN_ENOSYS);
 
-			return po->ops->set_smart_assistant_info(o, ur);
+		return ops->set_smart_assistant_info(o, ur);
 
-		default:
-			dbg("not supported cmd");
-			break;
+	default:
+		dbg("not supported cmd");
+		break;
 	}
+
 	return TCORE_RETURN_SUCCESS;
 }
 
@@ -141,13 +146,14 @@ CoreObject *tcore_gps_new(TcorePlugin *p, const char *name,
 	if (!o)
 		return NULL;
 
-	po = calloc(1, sizeof(struct private_object_data));
+	po = g_try_malloc0(sizeof(struct private_object_data));
 	if (!po) {
 		tcore_object_free(o);
 		return NULL;
 	}
 
-	po->ops = ops;
+	/* set ops to default type when core object is created. */
+	po->ops[TCORE_OPS_TYPE_CP] = ops;
 
 	tcore_object_set_type(o, CORE_OBJECT_TYPE_GPS);
 	tcore_object_link_object(o, po);
@@ -164,16 +170,20 @@ void tcore_gps_free(CoreObject *o)
 	tcore_object_free(o);
 }
 
-void tcore_gps_set_ops(CoreObject *o, struct tcore_gps_operations *ops)
+void tcore_gps_set_ops(CoreObject *o,
+	struct tcore_gps_operations *ops, enum tcore_ops_type ops_type)
 {
 	struct private_object_data *po = NULL;
 
 	CORE_OBJECT_CHECK(o, CORE_OBJECT_TYPE_GPS);
+	CORE_OBJECT_VALIDATE_OPS_RETURN(ops_type);
 
 	po = (struct private_object_data *)tcore_object_ref_object(o);
 	if (!po) {
+		err("po is NULL");
 		return;
 	}
 
-	po->ops = ops;
+	/* set ops according to ops_type */
+	po->ops[ops_type] = ops;
 }

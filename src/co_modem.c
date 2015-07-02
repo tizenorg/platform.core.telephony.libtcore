@@ -25,13 +25,14 @@
 #include <glib.h>
 
 #include "tcore.h"
+#include "internal/tcore_types.h"
 #include "plugin.h"
 #include "user_request.h"
 #include "co_modem.h"
 #include "hal.h"
 
 struct private_object_data {
-	struct tcore_modem_operations *ops;
+	struct tcore_modem_operations *ops[TCORE_OPS_TYPE_MAX];
 
 	gboolean flight_mode;
 	gboolean powered;
@@ -48,91 +49,91 @@ static void _free_hook(CoreObject *o)
 	}
 }
 
-static TReturn _dispatcher(CoreObject *o, UserRequest *ur)
+static TReturn _dispatcher(CoreObject *o, UserRequest *ur, enum tcore_ops_type ops_type)
 {
 	enum tcore_request_command command;
-	struct private_object_data *po = NULL;
+	struct private_object_data *po = tcore_object_ref_object(o);
+	struct tcore_modem_operations *ops = NULL;
 
 	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_MODEM, TCORE_RETURN_EINVAL);
+	CORE_OBJECT_VALIDATE_OPS_RETURN_VAL(ops_type, TCORE_RETURN_EINVAL);
 
-	po = tcore_object_ref_object(o);
-	if (!po || !po->ops)
-		return TCORE_RETURN_ENOSYS;
+	tcore_check_null_ret_err("po", po, TCORE_RETURN_EINVAL);
+	tcore_check_null_ret_err("ur", ur, TCORE_RETURN_EINVAL);
+
+	ops = po->ops[ops_type];
+	tcore_check_null_ret_err("ops", ops, TCORE_RETURN_FAILURE);
 
 	command = tcore_user_request_get_command(ur);
 	switch (command) {
-		case TREQ_MODEM_POWER_ON:
-			if (!po->ops->power_on)
-				return TCORE_RETURN_ENOSYS;
+	case TREQ_MODEM_POWER_ON:
+		tcore_check_null_ret_err("ops->power_on",
+			ops->power_on, TCORE_RETURN_ENOSYS);
 
-			return po->ops->power_on(o, ur);
-			break;
+		return ops->power_on(o, ur);
 
-		case TREQ_MODEM_POWER_OFF:
-			if (!po->ops->power_off)
-				return TCORE_RETURN_ENOSYS;
+	case TREQ_MODEM_POWER_OFF:
+		tcore_check_null_ret_err("ops->power_off",
+			ops->power_off, TCORE_RETURN_ENOSYS);
 
-			return po->ops->power_off(o, ur);
-			break;
+		return ops->power_off(o, ur);
 
-		case TREQ_MODEM_POWER_RESET:
-			if (!po->ops->power_reset)
-				return TCORE_RETURN_ENOSYS;
+	case TREQ_MODEM_POWER_RESET:
+		tcore_check_null_ret_err("ops->power_reset",
+			ops->power_reset, TCORE_RETURN_ENOSYS);
 
-			return po->ops->power_reset(o, ur);
-			break;
+		return ops->power_reset(o, ur);
 
-		case TREQ_MODEM_POWER_LOW:
-			if (!po->ops->power_low)
-				return TCORE_RETURN_ENOSYS;
+	case TREQ_MODEM_POWER_LOW:
+		tcore_check_null_ret_err("ops->power_low",
+			ops->power_low, TCORE_RETURN_ENOSYS);
 
-			return po->ops->power_low(o, ur);
-			break;
+		return ops->power_low(o, ur);
 
-		case TREQ_MODEM_SET_FLIGHTMODE:
-			if (!po->ops->set_flight_mode)
-				return TCORE_RETURN_ENOSYS;
+	case TREQ_MODEM_SET_FLIGHTMODE:
+		tcore_check_null_ret_err("ops->set_flight_mode",
+			ops->set_flight_mode, TCORE_RETURN_ENOSYS);
 
-			return po->ops->set_flight_mode(o, ur);
-			break;
+		return ops->set_flight_mode(o, ur);
 
-		case TREQ_MODEM_GET_IMEI:
-			if (!po->ops->get_imei)
-				return TCORE_RETURN_ENOSYS;
+	case TREQ_MODEM_GET_IMEI:
+		tcore_check_null_ret_err("ops->get_imei",
+			ops->get_imei, TCORE_RETURN_ENOSYS);
 
-			return po->ops->get_imei(o, ur);
-			break;
+		return ops->get_imei(o, ur);
 
-		case TREQ_MODEM_GET_VERSION:
-			if (!po->ops->get_version)
-				return TCORE_RETURN_ENOSYS;
+	case TREQ_MODEM_GET_VERSION:
+		tcore_check_null_ret_err("ops->get_version",
+			ops->get_version, TCORE_RETURN_ENOSYS);
 
-			return po->ops->get_version(o, ur);
-			break;
+		return ops->get_version(o, ur);
 
-		case TREQ_MODEM_GET_SN:
-			if (!po->ops->get_sn)
-				return TCORE_RETURN_ENOSYS;
+	case TREQ_MODEM_GET_SN:
+		tcore_check_null_ret_err("ops->get_sn",
+			ops->get_sn, TCORE_RETURN_ENOSYS);
 
-			return po->ops->get_sn(o, ur);
-			break;
+		return ops->get_sn(o, ur);
 
-		case TREQ_MODEM_SET_DUN_PIN_CONTROL:
-			if (!po->ops->dun_pin_ctrl)
-				return TCORE_RETURN_ENOSYS;
+	case TREQ_MODEM_SET_DUN_PIN_CONTROL:
+		tcore_check_null_ret_err("ops->dun_pin_ctrl",
+			ops->dun_pin_ctrl, TCORE_RETURN_ENOSYS);
 
-			return po->ops->dun_pin_ctrl(o, ur);
-			break;
+		return ops->dun_pin_ctrl(o, ur);
 
-		case TREQ_MODEM_GET_FLIGHTMODE:
-			if (!po->ops->get_flight_mode)
-				return TCORE_RETURN_ENOSYS;
+	case TREQ_MODEM_GET_FLIGHTMODE:
+		tcore_check_null_ret_err("ops->get_flight_mode",
+			ops->get_flight_mode, TCORE_RETURN_ENOSYS);
 
-			return po->ops->get_flight_mode(o, ur);
-			break;
+		return ops->get_flight_mode(o, ur);
 
-		default:
-			return TCORE_RETURN_EINVAL;
+	case TREQ_MODEM_GET_DEVICE_INFO:
+		tcore_check_null_ret_err("ops->get_device_info",
+			ops->get_device_info, TCORE_RETURN_ENOSYS);
+
+		return ops->get_device_info(o, ur);
+
+	default:
+		return TCORE_RETURN_EINVAL;
 	}
 
 	return TCORE_RETURN_SUCCESS;
@@ -157,7 +158,8 @@ CoreObject *tcore_modem_new(TcorePlugin *p, const char *name,
 		return NULL;
 	}
 
-	po->ops = ops;
+	/* set ops to default type when core object is created. */
+	po->ops[TCORE_OPS_TYPE_CP] = ops;
 
 	tcore_object_set_type(o, CORE_OBJECT_TYPE_MODEM);
 	tcore_object_link_object(o, po);
@@ -173,18 +175,20 @@ void tcore_modem_free(CoreObject *o)
 	tcore_object_free(o);
 }
 
-void tcore_modem_set_ops(CoreObject *o, struct tcore_modem_operations *ops)
+void tcore_modem_set_ops(CoreObject *o, struct tcore_modem_operations *ops, enum tcore_ops_type ops_type)
 {
 	struct private_object_data *po = NULL;
 
 	CORE_OBJECT_CHECK(o, CORE_OBJECT_TYPE_MODEM);
+	CORE_OBJECT_VALIDATE_OPS_RETURN(ops_type);
 
 	po = (struct private_object_data *)tcore_object_ref_object(o);
 	if (!po) {
+		err("po is NULL");
 		return;
 	}
 
-	po->ops = ops;
+	po->ops[ops_type] = ops;
 }
 
 TReturn tcore_modem_set_flight_mode_state(CoreObject *o, gboolean flag)

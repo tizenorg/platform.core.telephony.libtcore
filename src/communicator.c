@@ -30,7 +30,7 @@
 #include "communicator.h"
 
 struct tcore_communicator_type {
-	const char *name;
+	char *name;
 	struct tcore_communitor_operations *ops;
 
 	void *user_data;
@@ -39,17 +39,17 @@ struct tcore_communicator_type {
 };
 
 
-Communicator* tcore_communicator_new(TcorePlugin *plugin, const char *name,
-		struct tcore_communitor_operations *ops)
+Communicator *tcore_communicator_new(TcorePlugin *plugin,
+	const char *name, struct tcore_communitor_operations *ops)
 {
 	Communicator *comm;
 
-	comm = calloc(1, sizeof(struct tcore_communicator_type));
+	comm = g_try_malloc0(sizeof(struct tcore_communicator_type));
 	if (!comm)
 		return NULL;
 
 	if (name)
-		comm->name = strdup(name);
+		comm->name = g_strdup(name);
 
 	comm->parent_plugin = plugin;
 	comm->ops = ops;
@@ -65,9 +65,9 @@ void tcore_communicator_free(Communicator *comm)
 		return;
 
 	if (comm->name)
-		free((void *)comm->name);
+		g_free(comm->name);
 
-	free(comm);
+	g_free(comm);
 }
 
 TcorePlugin *tcore_communicator_ref_plugin(Communicator *comm)
@@ -83,7 +83,7 @@ const char *tcore_communicator_ref_name(Communicator *comm)
 	if (!comm)
 		return NULL;
 
-	return comm->name;
+	return (const char *)comm->name;
 }
 
 TReturn tcore_communicator_link_user_data(Communicator *comm, void *data)
@@ -123,7 +123,7 @@ TReturn tcore_communicator_send_response(Communicator *comm, UserRequest *ur,
 	if (!comm || !comm->ops || !comm->ops->send_response)
 		return TCORE_RETURN_EINVAL;
 
-	dbg("ur = %p", ur);
+	dbg("ur = 0x%x", (unsigned int)ur);
 
 	return comm->ops->send_response(comm, ur, command, data_len, data);
 }

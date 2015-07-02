@@ -36,7 +36,7 @@ static void test_7bit(void)
 	/* pack 'hello' */
 	dest = tcore_util_pack_gsm7bit((unsigned char *)"hello", strlen("hello"));
 
-	if(!dest){
+	if (dest) {
 		g_assert(memcmp(packed, dest, strlen((char *)dest)) == 0);
 		free(dest);
 	}

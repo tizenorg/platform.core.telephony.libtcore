@@ -37,7 +37,7 @@ struct tcore_storage_type {
 	TcorePlugin *parent_plugin;
 };
 
-struct storage_callback_type{
+struct storage_callback_type {
 	TcoreStorageKeyCallback cb_fn;
 	void *user_data;
 };
@@ -56,7 +56,7 @@ Storage *tcore_storage_new(TcorePlugin *plugin, const char *name,
 
 	strg->parent_plugin = plugin;
 	strg->ops = ops;
-	strg->callback = g_hash_table_new_full(g_str_hash,g_str_equal, g_free, NULL);
+	strg->callback = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, NULL);
 
 	tcore_server_add_storage(tcore_plugin_ref_server(plugin), strg);
 
@@ -87,9 +87,8 @@ void *tcore_storage_create_handle(Storage *strg, const char *path)
 	if (!path)
 		return NULL;
 
-	if (!strg || !strg->ops || !strg->ops->create_handle) {
+	if (!strg || !strg->ops || !strg->ops->create_handle)
 		return NULL;
-	}
 
 	return strg->ops->create_handle(strg, path);
 }
@@ -99,19 +98,17 @@ gboolean tcore_storage_remove_handle(Storage *strg, void *handle)
 	if (!handle)
 		return FALSE;
 
-	if (!strg || !strg->ops || !strg->ops->remove_handle) {
+	if (!strg || !strg->ops || !strg->ops->remove_handle)
 		return FALSE;
-	}
 
 	return strg->ops->remove_handle(strg, handle);
 }
 
 gboolean tcore_storage_set_int(Storage *strg, enum tcore_storage_key key,
-		int value)
+	int value)
 {
-	if (!strg || !strg->ops || !strg->ops->set_int) {
+	if (!strg || !strg->ops || !strg->ops->set_int)
 		return FALSE;
-	}
 
 	return strg->ops->set_int(strg, key, value);
 }
@@ -119,52 +116,47 @@ gboolean tcore_storage_set_int(Storage *strg, enum tcore_storage_key key,
 gboolean tcore_storage_set_string(Storage *strg, enum tcore_storage_key key,
 		const char *value)
 {
-	if (!strg || !strg->ops || !strg->ops->set_string) {
+	if (!strg || !strg->ops || !strg->ops->set_string)
 		return FALSE;
-	}
 
 	return strg->ops->set_string(strg, key, value);
 }
 
 gboolean tcore_storage_set_bool(Storage *strg, enum tcore_storage_key key,
-		gboolean value)
+	gboolean value)
 {
-	if (!strg || !strg->ops || !strg->ops->set_bool) {
+	if (!strg || !strg->ops || !strg->ops->set_bool)
 		return FALSE;
-	}
 
 	return strg->ops->set_bool(strg, key, value);
 }
 
 int tcore_storage_get_int(Storage *strg, enum tcore_storage_key key)
 {
-	if (!strg || !strg->ops || !strg->ops->get_int) {
+	if (!strg || !strg->ops || !strg->ops->get_int)
 		return -1;
-	}
 
 	return strg->ops->get_int(strg, key);
 }
 
 char *tcore_storage_get_string(Storage *strg, enum tcore_storage_key key)
 {
-	if (!strg || !strg->ops || !strg->ops->get_string) {
+	if (!strg || !strg->ops || !strg->ops->get_string)
 		return NULL;
-	}
 
 	return strg->ops->get_string(strg, key);
 }
 
 gboolean tcore_storage_get_bool(Storage *strg, enum tcore_storage_key key)
 {
-	if (!strg || !strg->ops || !strg->ops->get_bool) {
+	if (!strg || !strg->ops || !strg->ops->get_bool)
 		return FALSE;
-	}
 
 	return strg->ops->get_bool(strg, key);
 }
 
 static void tcore_storage_vkey_callback_dispatcher(Storage *strg,
-		enum tcore_storage_key key, void *value)
+	enum tcore_storage_key key, void *value)
 {
 	gchar *key_gen = NULL;
 	GSList *cb_data = NULL;
@@ -188,7 +180,7 @@ static void tcore_storage_vkey_callback_dispatcher(Storage *strg,
 }
 
 gboolean tcore_storage_set_key_callback(Storage *strg,
-		enum tcore_storage_key key, TcoreStorageKeyCallback cb, void *user_data)
+	enum tcore_storage_key key, TcoreStorageKeyCallback cb, void *user_data)
 {
 	gpointer tmp = NULL;
 	gchar *key_gen = NULL;
@@ -196,9 +188,7 @@ gboolean tcore_storage_set_key_callback(Storage *strg,
 	struct storage_callback_type *tmp_cb = NULL;
 
 	if (!strg || !strg->ops || !strg->ops->set_key_callback)
-	{
 		return FALSE;
-	}
 
 	strg_cb_data = g_new0(struct storage_callback_type, 1);
 	strg_cb_data->cb_fn = cb;
@@ -225,8 +215,7 @@ gboolean tcore_storage_set_key_callback(Storage *strg,
 
 		tmp = g_slist_append(tmp, strg_cb_data);
 		g_hash_table_replace(strg->callback, g_strdup(key_gen), tmp);
-	}
-	else {
+	} else {
 		GSList *data = NULL;
 		data = g_slist_append(data, strg_cb_data);
 		g_hash_table_insert(strg->callback, g_strdup(key_gen), data);
@@ -238,7 +227,7 @@ gboolean tcore_storage_set_key_callback(Storage *strg,
 }
 
 gboolean tcore_storage_remove_key_callback(Storage *strg,
-		enum tcore_storage_key key, TcoreStorageKeyCallback cb)
+	enum tcore_storage_key key, TcoreStorageKeyCallback cb)
 {
 	GSList *tmp = NULL;
 	gchar *key_gen = NULL;
@@ -246,13 +235,12 @@ gboolean tcore_storage_remove_key_callback(Storage *strg,
 	int cb_cnt = 0;
 	struct storage_callback_type *tmp_cb = NULL;
 
-	if (!strg || !strg->ops || !strg->ops->remove_key_callback) {
+	if (!strg || !strg->ops || !strg->ops->remove_key_callback)
 		return FALSE;
-	}
 
 	key_gen = g_strdup_printf("%d", key);
 	tmp = g_hash_table_lookup(strg->callback, key_gen);
-	if (tmp == NULL){
+	if (tmp == NULL) {
 		g_free(key_gen);
 		return FALSE;
 	}
@@ -284,55 +272,51 @@ gboolean tcore_storage_remove_key_callback(Storage *strg,
 }
 
 gboolean tcore_storage_update_query_database(Storage *strg, void *handle,
-		const char *query, GHashTable *in_param)
+	const char *query, GHashTable *in_param)
 {
 	if (!strg || !handle || !query)
 		return FALSE;
 
-	if (!strg->ops || !strg->ops->update_query_database) {
+	if (!strg->ops || !strg->ops->update_query_database)
 		return FALSE;
-	}
 
 	return strg->ops->update_query_database(strg, handle, query, in_param);
 }
 
 gboolean tcore_storage_read_query_database(Storage *strg, void *handle,
-		const char *query, GHashTable *in_param,
-		GHashTable *out_param, int out_param_cnt)
+	const char *query, GHashTable *in_param,
+	GHashTable *out_param, int out_param_cnt)
 {
 	if (!strg || !handle || !query)
 		return FALSE;
 
-	if (!strg->ops || !strg->ops->read_query_database) {
+	if (!strg->ops || !strg->ops->read_query_database)
 		return FALSE;
-	}
 
 	return strg->ops->read_query_database(strg, handle, query,
 			in_param, out_param, out_param_cnt);
 }
 
 gboolean tcore_storage_insert_query_database(Storage *strg, void *handle,
-		const char *query, GHashTable *in_param)
+	const char *query, GHashTable *in_param)
 {
 	if (!strg || !handle || !query)
 		return FALSE;
 
-	if (!strg->ops || !strg->ops->insert_query_database) {
+	if (!strg->ops || !strg->ops->insert_query_database)
 		return FALSE;
-	}
 
 	return strg->ops->insert_query_database(strg, handle, query, in_param);
 }
 
 gboolean tcore_storage_remove_query_database(Storage *strg, void *handle,
-		const char *query, GHashTable *in_param)
+	const char *query, GHashTable *in_param)
 {
 	if (!strg || !handle || !query)
 		return FALSE;
 
-	if (!strg->ops || !strg->ops->remove_query_database) {
+	if (!strg->ops || !strg->ops->remove_query_database)
 		return FALSE;
-	}
 
 	return strg->ops->remove_query_database(strg, handle, query, in_param);
 }

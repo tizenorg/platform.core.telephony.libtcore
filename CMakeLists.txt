@@ -31,30 +31,31 @@ IF (ARCH_EMUL)
 ENDIF (ARCH_EMUL)
 
 SET(SRCS
-		src/server.c
-		src/plugin.c
-		src/hal.c
-		src/at.c
-		src/communicator.c
-		src/storage.c
-		src/queue.c
-		src/user_request.c
-		src/util.c
-		src/core_object.c
-		src/co_modem.c
-		src/co_network.c
-		src/co_ps.c
-		src/co_context.c
-		src/co_sim.c
-		src/co_sat.c
-		src/co_sap.c
-		src/co_call.c
-		src/co_ss.c
-		src/co_sms.c
-		src/co_phonebook.c
-		src/co_gps.c
-		src/co_custom.c
-		src/mux.c
+	src/server.c
+	src/manager.c
+	src/plugin.c
+	src/hal.c
+	src/at.c
+	src/communicator.c
+	src/storage.c
+	src/queue.c
+	src/user_request.c
+	src/util.c
+	src/core_object.c
+	src/co_modem.c
+	src/co_sim.c
+	src/co_network.c
+	src/co_call.c
+	src/co_sms.c
+	src/co_ss.c
+	src/co_phonebook.c
+	src/co_ps.c
+	src/co_context.c
+	src/co_sat.c
+	src/co_sap.c
+	src/co_gps.c
+	src/co_custom.c
+	src/mux.c
 )
 
 
@@ -76,4 +77,4 @@ INSTALL(TARGETS tcore
 INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/tcore.pc DESTINATION ${LIBDIR}/pkgconfig)
 INSTALL(FILES ${CMAKE_SOURCE_DIR}/LICENSE DESTINATION /usr/share/license RENAME libtcore)
 
-ADD_SUBDIRECTORY(unit-test)
+#ADD_SUBDIRECTORY(unit-test)

@@ -36,18 +36,18 @@ typedef struct cmux_channel tcore_cmux_channel;
 typedef struct cmux_obj tcore_cmux_object;
 
 /* CMUX setup complete callback prototype */
-typedef void (*cmux_setup_complete_cb_func) (gpointer user_data);
+typedef void (*cmux_setup_complete_cb_func)(gpointer user_data);
 
 /* CMUX setup callback prototype */
-typedef void (*cmux_setup_cb_func) (int channel_id, TcoreHal *hal,
-									gpointer user_data);
+typedef void (*cmux_setup_cb_func)(int channel_id, TcoreHal *hal,
+	gpointer user_data);
 
 /* CMUX Channel close callback prototype */
-typedef void (*cmux_channel_close_cb_func) (TcoreHal *hal, gpointer user_data);
+typedef void (*cmux_channel_close_cb_func)(TcoreHal *hal, gpointer user_data);
 
 /* CMUX initialization - Internal and Kernel */
 TReturn tcore_cmux_init(TcoreHal *phy_hal, unsigned int frame_size,
-					TcorePendingResponseCallback resp_cb, void *resp_cb_data);
+	TcorePendingResponseCallback resp_cb, void *resp_cb_data);
 
 /* Setup Internal CMUX */
 TReturn tcore_cmux_setup_internal_mux(tcore_cmux_mode mode,

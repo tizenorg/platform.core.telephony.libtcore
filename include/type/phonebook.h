@@ -80,6 +80,12 @@ enum tel_phonebook_dcs {
 	PB_TEXT_HEX, /**< HEX Encoding */
 };
 
+enum tel_phonebook_op {
+	PB_CONTACT_UPDATE, /**< New contact added or updated */
+	PB_CONTACT_DELETE, /**< Existing contact deleted */
+	PB_CONTACT_MAX, /**< MAX value */
+};
+
 struct tel_phonebook_support_list {
 	gboolean b_fdn; /**< Fixed Dialing Number */
 	gboolean b_adn; /**< SIM - ADN(2G phonebook, Under DF phonebook */
@@ -234,6 +240,11 @@ struct tnoti_phonebook_status {
 	struct tel_phonebook_support_list support_list;
 };
 
+struct tnoti_phonebook_contact_change {
+	enum tel_phonebook_type phonebook_type;
+	unsigned short index;
+	enum tel_phonebook_op operation;
+};
 __END_DECLS
 
 

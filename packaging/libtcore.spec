@@ -1,11 +1,11 @@
 %define major 0
 %define minor 2
-%define patchlevel 63
+%define patchlevel 89
 
 Name:           libtcore
 Version:        %{major}.%{minor}.%{patchlevel}
 Release:        1
-License:        Apache
+License:        Apache-2.0
 Summary:        Telephony-core library
 Group:          System/Libraries
 Source0:        libtcore-%{version}.tar.gz
@@ -50,14 +50,14 @@ mkdir -p %{buildroot}%{_datadir}/license
 
 %files
 %manifest libtcore.manifest
-%defattr(-,root,root,-)
+%defattr(644,system,system,-)
 #%doc COPYING
 %{_libdir}/libtcore*
 #%{_bindir}/*
 %{_datadir}/license/libtcore
 
 %files devel
-%defattr(-,root,root,-)
+%defattr(644,system,system,-)
 %{_includedir}/*
 %{_libdir}/pkgconfig/tcore.pc
 

@@ -34,7 +34,7 @@ enum tcore_storage_key {
 	STORAGE_KEY_TELEPHONY_LAC,
 	STORAGE_KEY_TELEPHONY_CELLID,
 	STORAGE_KEY_TELEPHONY_SVCTYPE,
-	STORAGE_KEY_TELEPHONY_SVC_CS,//5
+	STORAGE_KEY_TELEPHONY_SVC_CS, /* 5 */
 
 	STORAGE_KEY_TELEPHONY_SVC_PS,
 	STORAGE_KEY_TELEPHONY_SVC_ROAM,
@@ -44,7 +44,7 @@ enum tcore_storage_key {
 	STORAGE_KEY_TELEPHONY_CALL_STATE,
 	STORAGE_KEY_TELEPHONY_CALL_FORWARD_STATE,
 	STORAGE_KEY_TELEPHONY_TAPI_STATE,
-	STORAGE_KEY_TELEPHONY_SPN_DISP_CONDITION,//15
+	STORAGE_KEY_TELEPHONY_SPN_DISP_CONDITION, /* 15 */
 
 	STORAGE_KEY_TELEPHONY_RSSI,
 	STORAGE_KEY_TELEPHONY_LOW_BATTERY,
@@ -52,7 +52,7 @@ enum tcore_storage_key {
 	STORAGE_KEY_TELEPHONY_SIM_SLOT,
 	STORAGE_KEY_TELEPHONY_SIM_SLOT2,
 	STORAGE_KEY_TELEPHONY_SIM_SLOT_COUNT,
-	STORAGE_KEY_PM_STATE,//20
+	STORAGE_KEY_PM_STATE, /* 20 */
 
 	STORAGE_KEY_PACKET_INDICATOR_STATE,
 	STORAGE_KEY_PACKET_SERVICE_STATE,
@@ -64,7 +64,7 @@ enum tcore_storage_key {
 	STORAGE_KEY_CELLULAR_PKT_TOTAL_RCV2,
 	STORAGE_KEY_CELLULAR_PKT_TOTAL_SNT,
 	STORAGE_KEY_CELLULAR_PKT_TOTAL_SNT2,
-	STORAGE_KEY_CELLULAR_PKT_LAST_RCV,//30
+	STORAGE_KEY_CELLULAR_PKT_LAST_RCV, /* 30 */
 
 	STORAGE_KEY_CELLULAR_PKT_LAST_RCV2,
 	STORAGE_KEY_CELLULAR_PKT_LAST_SNT,
@@ -77,19 +77,19 @@ enum tcore_storage_key {
 	STORAGE_KEY_POWER_SAVING_MODE,
 	STORAGE_KEY_WECONN_ALL_CONNECTED,
 	STORAGE_KEY_SAP_CONNECTION_TYPE,
-	STORAGE_KEY_IDLE_SCREEN_LAUNCHED,
+	STORAGE_KEY_PDP_LAST_CONNECTED_CONTEXT_PROFILE_ID, /* For prepaid sim APN support */
 
 	STORAGE_KEY_TELEPHONY_BOOL = STORAGE_KEY_BOOL,
 	STORAGE_KEY_3G_ENABLE,
 	STORAGE_KEY_TELEPHONY_READY,
 	STORAGE_KEY_SETAPPL_STATE_DATA_ROAMING_BOOL,
-	STORAGE_KEY_SETAPPL_STATE_DATA_ROAMING_APP_STATUS,
 	STORAGE_KEY_SETAPPL_STATE_AUTOMATIC_TIME_UPDATE_BOOL,
 	STORAGE_KEY_SETAPPL_NETWORK_RESTRICT_MODE,
 	STORAGE_KEY_SETAPPL_MOBILE_DATA_POPUP_DONE_BOOL,
 	STORAGE_KEY_MSG_SERVER_READY_BOOL,
 	STORAGE_KEY_FLIGHT_MODE_BOOL,
 	STORAGE_KEY_TESTMODE_FAST_DORMANCY_BOOL,
+	STORAGE_KEY_PDP_LAST_CONNECTED_CONTEXT_BOOL, /* For prepaid sim APN support */
 
 	STORAGE_KEY_TELEPHONY_STRING = STORAGE_KEY_STRING,
 	STORAGE_KEY_TELEPHONY_NWNAME,
@@ -104,7 +104,8 @@ enum tcore_storage_key {
 	STORAGE_KEY_LANGUAGE_SET,
 	STORAGE_KEY_TESTMODE_FAST_DORMANCY,
 	STORAGE_KEY_TESTMODE_FAST_DORMANCY2,
-	STORAGE_KEY_IDLE_SCREEN_LAUNCHED_BOOL
+	STORAGE_KEY_IDLE_SCREEN_LAUNCHED_BOOL,
+	STORAGE_KEY_TELEPHONY_LAST_CONNECTED_CONTEXT_PLMN /* For prepaid sim APN support */
 };
 
 enum storage_value {
@@ -123,74 +124,73 @@ enum storage_value {
 	STORAGE_VALUE_STATE_9 = 9,
 };
 
-typedef void (*TcoreStorageKeyCallback) (enum tcore_storage_key key,
-    void *value, void *user_data);
-typedef void (*TcoreStorageDispatchCallback) (Storage *strg,
-    enum tcore_storage_key key, void *value);
+typedef void (*TcoreStorageKeyCallback)(enum tcore_storage_key key,
+	void *value, void *user_data);
+typedef void (*TcoreStorageDispatchCallback)(Storage *strg,
+	enum tcore_storage_key key, void *value);
 
 struct storage_operations {
-	void* (*create_handle)(Storage *strg, const char *path);
+	void *(*create_handle)(Storage *strg, const char *path);
 	gboolean (*remove_handle)(Storage *strg, void *handle);
 
 	gboolean (*set_int)(Storage *strg, enum tcore_storage_key key, int value);
 	gboolean (*set_string)(Storage *strg, enum tcore_storage_key key, const char *value);
 	gboolean (*set_bool)(Storage *strg, enum tcore_storage_key key, gboolean value);
 	int (*get_int)(Storage *strg, enum tcore_storage_key key);
-	char* (*get_string)(Storage *strg, enum tcore_storage_key key);
+	char *(*get_string)(Storage *strg, enum tcore_storage_key key);
 	gboolean (*get_bool)(Storage *strg, enum tcore_storage_key key);
 	gboolean (*set_key_callback)(Storage *strg, enum tcore_storage_key key,
-			TcoreStorageDispatchCallback cb);
+		TcoreStorageDispatchCallback cb);
 	gboolean (*remove_key_callback)(Storage *strg, enum tcore_storage_key key);
 
 	gboolean (*update_query_database)(Storage *strg, void *handle,
-			const char *query, GHashTable *in_param);
+		const char *query, GHashTable *in_param);
 	gboolean (*read_query_database)(Storage *strg, void *handle,
-			const char *query, GHashTable *in_param,
-			GHashTable *out_param, int out_param_cnt);
+		const char *query, GHashTable *in_param,
+		GHashTable *out_param, int out_param_cnt);
 	gboolean (*insert_query_database)(Storage *strg, void *handle,
-			const char *query, GHashTable *in_param);
+		const char *query, GHashTable *in_param);
 	gboolean (*remove_query_database)(Storage *strg, void *handle,
-			const char *query, GHashTable *in_param);
+		const char *query, GHashTable *in_param);
 };
 
-Storage*     tcore_storage_new(TcorePlugin *plugin, const char *name,
+Storage *tcore_storage_new(TcorePlugin *plugin, const char *name,
                  struct storage_operations *ops);
-void         tcore_storage_free(Storage *strg);
-const char*  tcore_storage_ref_name(Storage *strg);
+void tcore_storage_free(Storage *strg);
+const char *tcore_storage_ref_name(Storage *strg);
 
-void*        tcore_storage_create_handle(Storage *strg, const char *path);
-gboolean     tcore_storage_remove_handle(Storage *strg, void *handle);
+void *tcore_storage_create_handle(Storage *strg, const char *path);
+gboolean tcore_storage_remove_handle(Storage *strg, void *handle);
 
-//storage vconf
-gboolean     tcore_storage_set_int(Storage *strg, enum tcore_storage_key key,
-                 int value);
-int          tcore_storage_get_int(Storage *strg, enum tcore_storage_key key);
+/* Storage - vconf */
+gboolean tcore_storage_set_int(Storage *strg, enum tcore_storage_key key,
+	int value);
+int tcore_storage_get_int(Storage *strg, enum tcore_storage_key key);
 
-gboolean     tcore_storage_set_string(Storage *strg, enum tcore_storage_key key,
-                 const char *value);
-char*        tcore_storage_get_string(Storage *strg, enum tcore_storage_key key);
+gboolean tcore_storage_set_string(Storage *strg, enum tcore_storage_key key,
+	const char *value);
+char *tcore_storage_get_string(Storage *strg, enum tcore_storage_key key);
 
-gboolean     tcore_storage_set_bool(Storage *strg, enum tcore_storage_key key,
-                 gboolean value);
-gboolean     tcore_storage_get_bool(Storage *strg, enum tcore_storage_key key);
+gboolean tcore_storage_set_bool(Storage *strg, enum tcore_storage_key key,
+	gboolean value);
+gboolean tcore_storage_get_bool(Storage *strg, enum tcore_storage_key key);
 
-gboolean     tcore_storage_set_key_callback(Storage *strg,
-                 enum tcore_storage_key key, TcoreStorageKeyCallback cb,
-                 void *user_data);
-gboolean     tcore_storage_remove_key_callback(Storage *strg,
-                 enum tcore_storage_key key, TcoreStorageKeyCallback cb);
+gboolean tcore_storage_set_key_callback(Storage *strg,
+	enum tcore_storage_key key, TcoreStorageKeyCallback cb, void *user_data);
+gboolean tcore_storage_remove_key_callback(Storage *strg,
+	enum tcore_storage_key key, TcoreStorageKeyCallback cb);
 
-//storage database
-gboolean     tcore_storage_update_query_database(Storage *strg, void *handle,
-                 const char *query, GHashTable *in_param);
-gboolean     tcore_storage_read_query_database(Storage *strg, void *handle,
-                 const char *query, GHashTable *in_param, GHashTable *out_param,
-                 int out_param_cnt);
-gboolean     tcore_storage_insert_query_database(Storage *strg, void *handle,
-                 const char *query, GHashTable *in_param);
-gboolean     tcore_storage_remove_query_database(Storage *strg, void *handle,
-                 const char *query, GHashTable *in_param);
+/* Storage - database */
+gboolean tcore_storage_update_query_database(Storage *strg, void *handle,
+	const char *query, GHashTable *in_param);
+gboolean tcore_storage_read_query_database(Storage *strg, void *handle,
+	const char *query, GHashTable *in_param,
+	GHashTable *out_param, int out_param_cnt);
+gboolean tcore_storage_insert_query_database(Storage *strg, void *handle,
+	const char *query, GHashTable *in_param);
+gboolean tcore_storage_remove_query_database(Storage *strg, void *handle,
+	const char *query, GHashTable *in_param);
 
 __END_DECLS
 
-#endif
+#endif /* __TCORE_STORAGE_H__ */

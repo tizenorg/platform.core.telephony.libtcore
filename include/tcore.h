@@ -45,23 +45,31 @@
 #include <type/gps.h>
 #include <util.h>
 
-typedef struct tcore_object_type CoreObject;
-typedef struct tcore_hal_type TcoreHal;
+typedef struct tcore_server_type Server;
+typedef struct tcore_manager_type Manager;
+typedef struct tcore_communicator_type Communicator;
 typedef struct tcore_plugin_type TcorePlugin;
 typedef struct tcore_modem_type TcoreModem;
+typedef struct tcore_object_type CoreObject;
+typedef struct tcore_storage_type Storage;
+
+typedef struct tcore_hal_type TcoreHal;
+
 typedef struct tcore_queue_type TcoreQueue;
 typedef struct tcore_pending_type TcorePending;
-typedef struct tcore_communicator_type Communicator;
 typedef struct tcore_user_request_type UserRequest;
-typedef struct tcore_server_type Server;
-typedef struct tcore_storage_type Storage;
 typedef struct tcore_at_type TcoreAT;
-typedef struct tcore_udev_type TcoreUdev;
 
 enum tcore_hook_return {
 	TCORE_HOOK_RETURN_STOP_PROPAGATION = 0,
-	TCORE_HOOK_RETURN_STOP_PROPAGATION_FAIL,
 	TCORE_HOOK_RETURN_CONTINUE
 };
 
-#endif
+enum tcore_manager_return {
+	TCORE_MANAGER_RETURN_FAILURE = 0,
+	TCORE_MANAGER_RETURN_STOP,
+	TCORE_MANAGER_RETURN_CONTINUE,		/* default continue */
+	TCORE_MANAGER_RETURN_CONTINUE_IMS
+};
+
+#endif /* __TCORE_H__ */

@@ -139,9 +139,8 @@ void tcore_pending_free(TcorePending *pending)
 				free(pending->data);
 	}
 
-	if (pending->timer_src) {
+	if (pending->timer_src)
 		g_source_remove(pending->timer_src);
-	}
 
 	free(pending);
 }
@@ -193,10 +192,8 @@ TReturn tcore_pending_set_request_data(TcorePending *pending,
 			return TCORE_RETURN_ENOMEM;
 
 		memcpy(pending->data, data, data_len);
-	}
-	else {
+	} else
 		pending->data = data;
-	}
 
 	return TCORE_RETURN_SUCCESS;
 }
@@ -239,7 +236,9 @@ TReturn tcore_pending_start_timer(TcorePending *pending)
 	/* pending timer */
 	if (pending->timeout > 0 && pending->on_timeout) {
 		dbg("start pending timer! (%d secs)", pending->timeout);
-		pending->timer_src = g_timeout_add_seconds(pending->timeout, _on_pending_timeout, pending);
+		pending->timer_src =
+			g_timeout_add_seconds(pending->timeout,
+				_on_pending_timeout, pending);
 	}
 	return TCORE_RETURN_SUCCESS;
 }
@@ -384,7 +383,7 @@ TcoreQueue *tcore_queue_new(TcoreHal *h)
 {
 	TcoreQueue *queue;
 
-	queue = calloc(1, sizeof(struct tcore_queue_type));
+	queue = g_try_malloc0(sizeof(struct tcore_queue_type));
 	if (!queue)
 		return FALSE;
 
@@ -392,7 +391,7 @@ TcoreQueue *tcore_queue_new(TcoreHal *h)
 
 	queue->gq = g_queue_new();
 	if (!queue->gq) {
-		free(queue);
+		g_free(queue);
 		return FALSE;
 	}
 
@@ -409,7 +408,7 @@ void tcore_queue_free(TcoreQueue *queue)
 	if (queue->gq)
 		g_queue_free(queue->gq);
 
-	free(queue);
+	g_free(queue);
 }
 
 static void _tcore_queue_push_head(TcoreQueue *queue, TcorePending *pending)
@@ -420,9 +419,8 @@ static void _tcore_queue_push_head(TcoreQueue *queue, TcorePending *pending)
 	do {
 		i++;
 		tmp = g_queue_peek_nth(queue->gq, i);
-		if (!tmp) {
+		if (!tmp)
 			break;
-		}
 
 		if (tmp->priority == TCORE_PENDING_PRIORITY_IMMEDIATELY)
 			continue;
@@ -447,25 +445,24 @@ TReturn tcore_queue_push(TcoreQueue *queue, TcorePending *pending)
 
 	tcore_pending_get_priority(pending, &priority);
 	switch (priority) {
-		case TCORE_PENDING_PRIORITY_IMMEDIATELY:
-		case TCORE_PENDING_PRIORITY_HIGH:
-			pending->queue = queue;
-			_tcore_queue_push_head(queue, pending);
-			break;
+	case TCORE_PENDING_PRIORITY_IMMEDIATELY:
+	case TCORE_PENDING_PRIORITY_HIGH:
+		pending->queue = queue;
+		_tcore_queue_push_head(queue, pending);
+	break;
 
-		case TCORE_PENDING_PRIORITY_DEFAULT:
-		case TCORE_PENDING_PRIORITY_LOW:
-			pending->queue = queue;
-			g_queue_push_tail(queue->gq, pending);
-			break;
+	case TCORE_PENDING_PRIORITY_DEFAULT:
+	case TCORE_PENDING_PRIORITY_LOW:
+		pending->queue = queue;
+		g_queue_push_tail(queue->gq, pending);
+	break;
 
-		default:
-			return TCORE_RETURN_EINVAL;
-			break;
+	default:
+		return TCORE_RETURN_EINVAL;
 	}
 
 	dbg("pending(%p) push to queue(%p). queue length=%d",
-			pending, queue, g_queue_get_length(queue->gq));
+		pending, queue, g_queue_get_length(queue->gq));
 
 	return TCORE_RETURN_SUCCESS;
 }
@@ -497,7 +494,7 @@ TcorePending *tcore_queue_pop_by_pending(TcoreQueue *queue, TcorePending *pendin
 		}
 
 		i++;
-	} while(1);
+	} while (1);
 
 	return NULL;
 }
@@ -544,7 +541,7 @@ TcorePending *tcore_queue_ref_tail(TcoreQueue *queue)
 
 
 static TcorePending *_tcore_queue_search_full(TcoreQueue *queue, unsigned int id,
-		enum tcore_request_command command, enum search_field field, gboolean flag_pop)
+	enum tcore_request_command command, enum search_field field, gboolean flag_pop)
 {
 	TcorePending *pending = NULL;
 	int i = 0;
@@ -564,8 +561,7 @@ static TcorePending *_tcore_queue_search_full(TcoreQueue *queue, unsigned int id
 				i++;
 				continue;
 			}
-		}
-		else if ((field & 0xF0) == 0x20) {
+		} else if ((field & 0xF0) == 0x20) {
 			/* search option is sent pending */
 			if (pending->flag_sent == FALSE) {
 				i++;
@@ -575,18 +571,17 @@ static TcorePending *_tcore_queue_search_full(TcoreQueue *queue, unsigned int id
 
 		if ((field & 0x0F) == SEARCH_FIELD_ID_ALL) {
 			if (pending->id == id) {
-				if (flag_pop == TRUE) {
+				if (flag_pop == TRUE)
 					pending = g_queue_pop_nth(queue->gq, i);
-				}
+
 				break;
 			}
-		}
-		else if ((field & 0x0F) == SEARCH_FIELD_COMMAND_ALL) {
+		} else if ((field & 0x0F) == SEARCH_FIELD_COMMAND_ALL) {
 			ur = tcore_pending_ref_user_request(pending);
 			if (tcore_user_request_get_command(ur) == command) {
-				if (flag_pop == TRUE) {
+				if (flag_pop == TRUE)
 					pending = g_queue_pop_nth(queue->gq, i);
-				}
+
 				break;
 			}
 		}
@@ -632,22 +627,18 @@ TcorePending *tcore_queue_ref_next_pending(TcoreQueue *queue)
 
 	do {
 		pending = g_queue_peek_nth(queue->gq, i);
-		if (!pending) {
+		if (!pending)
 			return NULL;
-		}
 
 		/* skip already sent immediately pending */
 		if (pending->priority == TCORE_PENDING_PRIORITY_IMMEDIATELY) {
-			if (pending->flag_sent == FALSE) {
+			if (pending->flag_sent == FALSE)
 				break;
-			}
 
 			i++;
 			continue;
-		}
-		else {
+		} else
 			break;
-		}
 	} while (pending != NULL);
 
 	if (pending->flag_sent == TRUE) {
@@ -676,9 +667,8 @@ unsigned int tcore_queue_get_normal_length(TcoreQueue *queue)
 
 	do {
 		pending = g_queue_peek_nth(queue->gq, i);
-		if (!pending) {
+		if (!pending)
 			break;
-		}
 
 		if (pending->priority == TCORE_PENDING_PRIORITY_IMMEDIATELY) {
 			i++;
@@ -716,8 +706,7 @@ TReturn tcore_queue_cancel_pending_by_command(TcoreQueue *queue, enum tcore_requ
 		if (queue->hal) {
 			dbg("hal %p", queue->hal);
 			tcore_hal_dispatch_response_data(queue->hal, pending->id, 0, NULL);
-		}
-		else {
+		} else {
 			dbg("no hal");
 			pending = tcore_queue_pop_by_pending(queue, pending);
 			tcore_pending_emit_response_callback(pending, 0, NULL);

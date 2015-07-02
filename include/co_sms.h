@@ -26,23 +26,23 @@
 __BEGIN_DECLS
 
 
-#define nDefaultSMSPWithoutAlphaId	28
+#define nDefaultSMSPWithoutAlphaId		28
 
 #define SMSPValidDestAddr			0x01
 #define SMSPValidSvcAddr			0x02
 #define SMSPValidPID				0x04
 #define SMSPValidDCS				0x08
-#define SMSPValidVP					0x10
+#define SMSPValidVP				0x10
 
 #define nDestAddrOffset				1
 #define nSCAAddrOffset				13
-#define nPIDOffset					25
-#define nDCSOffset					26
+#define nPIDOffset				25
+#define nDCSOffset				26
 #define nVPOffset					27
 
 struct property_sms_info {
-	int	g_trans_id;
-	int	SMSPRecordLen;
+	int g_trans_id;
+	int SMSPRecordLen;
 };
 
 struct tcore_sms_operations {
@@ -76,19 +76,19 @@ struct tcore_sms_operations {
  * @remark
  * @Refer
  */
-int  _tcore_util_sms_encode_smsParameters(const struct telephony_sms_Params *incoming, unsigned char *data, int SMSPRecordLen);
-int  tcore_util_sms_decode_smsParameters(uint8_t *incoming, uint32_t length, struct telephony_sms_Params *params);
-
+int  _tcore_util_sms_encode_smsParameters(const struct telephony_sms_Params *incoming,
+	unsigned char *data, int SMSPRecordLen);
+int  tcore_util_sms_decode_smsParameters(uint8_t *incoming, uint32_t length,
+	struct telephony_sms_Params *params);
 
 void tcore_util_sms_semioctet_to_octect(int* nScLength);
 enum telephony_sms_ready_status  tcore_sms_get_ready_status(CoreObject *o);
 gboolean  tcore_sms_set_ready_status(CoreObject *o, enum telephony_sms_ready_status status);
-CoreObject* tcore_sms_new(TcorePlugin *p, const char *name, struct tcore_sms_operations *ops, TcoreHal *hal);
+CoreObject *tcore_sms_new(TcorePlugin *p, const char *name, struct tcore_sms_operations *ops, TcoreHal *hal);
 void  tcore_sms_free(CoreObject * n);
 
-void tcore_sms_set_ops(CoreObject *o, struct tcore_sms_operations *ops);
+void tcore_sms_set_ops(CoreObject *o, struct tcore_sms_operations *ops, enum tcore_ops_type ops_type);
 
 __END_DECLS
 
-#endif
-
+#endif /* __TCORE_CO_SMS_H__ */

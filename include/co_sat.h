@@ -71,14 +71,14 @@ struct tcore_sat_operations {
 	TReturn (*user_confirmation)(CoreObject *o, UserRequest *ur);
 };
 
-int tcore_sat_decode_proactive_command(unsigned char* tlv_origin, unsigned int tlv_length, struct tcore_sat_proactive_command* decoded_tlv);
-int tcore_sat_decode_call_control_result(unsigned char* tlv_origin, unsigned int tlv_length, struct tnoti_sat_call_control_result_ind* call_ctrl_result_tlv);
+int tcore_sat_decode_proactive_command(unsigned char *tlv_origin, unsigned int tlv_length, struct tcore_sat_proactive_command *decoded_tlv);
+int tcore_sat_decode_call_control_result(unsigned char *tlv_origin, unsigned int tlv_length, struct tnoti_sat_call_control_result_ind *call_ctrl_result_tlv);
 int tcore_sat_encode_envelop_cmd(const struct treq_sat_envelop_cmd_data *src_envelop, char *dst_envelop);
 int tcore_sat_encode_terminal_response(const struct treq_sat_terminal_rsp_data *src_tr, char *dst_tr);
 
-CoreObject* tcore_sat_new(TcorePlugin *p, const char *name, struct tcore_sat_operations *ops, TcoreHal *hal);
-void        tcore_sat_free(CoreObject *n);
+CoreObject *tcore_sat_new(TcorePlugin *p, const char *name, struct tcore_sat_operations *ops, TcoreHal *hal);
+void tcore_sat_free(CoreObject *n);
 
-void tcore_sat_set_ops(CoreObject *o, struct tcore_sat_operations *ops);
+void tcore_sat_set_ops(CoreObject *o, struct tcore_sat_operations *ops, enum tcore_ops_type ops_type);
 
-#endif
+#endif /* __TCORE_CO_SAT_H__ */

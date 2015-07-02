@@ -54,11 +54,11 @@ struct private_object_data {
 	union tcore_ip4_type dns_primary_v4;
 	union tcore_ip4_type dns_secondary_v4;
 
-	/*IPv6 will be supported*/
-	char* ip_v6;
-	char* gateway_v6;
-	char* dns_primary_v6;
-	char* dns_secondary_v6;
+	/* IPv6 will be supported */
+	char *ip_v6;
+	char *gateway_v6;
+	char *dns_primary_v6;
+	char *dns_secondary_v6;
 
 	pcscf_addr *pcscf_ipv4;
 	pcscf_addr *pcscf_ipv6;
@@ -69,8 +69,7 @@ struct private_object_data {
 	char devname[16];
 
 	/* Dedicated bearer information */
-	unsigned char dedicated_bearer_cnt;
-	struct dedicated_bearer_info dedicated_bearer[MAX_NUM_DEDICATED_BEARER];
+	struct dedicated_bearer_info dedicated_bearer;
 };
 
 static void _free_hook(CoreObject *o)
@@ -193,9 +192,8 @@ TReturn tcore_context_set_apn(CoreObject *o, const char *apn)
 		po->apn = NULL;
 	}
 
-	if (apn) {
+	if (apn)
 		po->apn = g_strdup(apn);
-	}
 
 	return TCORE_RETURN_SUCCESS;
 }
@@ -231,9 +229,8 @@ TReturn tcore_context_set_address(CoreObject *o, const char *addr)
 		po->addr = NULL;
 	}
 
-	if (addr) {
+	if (addr)
 		po->addr = g_strdup(addr);
-	}
 
 	return TCORE_RETURN_SUCCESS;
 }
@@ -409,9 +406,8 @@ TReturn tcore_context_set_username(CoreObject *o, const char *username)
 		po->username = NULL;
 	}
 
-	if (username) {
+	if (username)
 		po->username = g_strdup(username);
-	}
 
 	return TCORE_RETURN_SUCCESS;
 }
@@ -447,9 +443,8 @@ TReturn tcore_context_set_password(CoreObject *o, const char *password)
 		po->password = NULL;
 	}
 
-	if (password) {
+	if (password)
 		po->password = g_strdup(password);
-	}
 
 	return TCORE_RETURN_SUCCESS;
 }
@@ -485,9 +480,8 @@ TReturn tcore_context_set_dns1(CoreObject *o, const char *dns)
 		po->dns1 = NULL;
 	}
 
-	if (dns) {
+	if (dns)
 		po->dns1 = g_strdup(dns);
-	}
 
 	return TCORE_RETURN_SUCCESS;
 }
@@ -507,9 +501,8 @@ TReturn tcore_context_set_ipv6_dns1(CoreObject *o, const char *dns)
 		po->dns_primary_v6 = NULL;
 	}
 
-	if (dns) {
+	if (dns)
 		po->dns_primary_v6 = g_strdup(dns);
-	}
 
 	return TCORE_RETURN_SUCCESS;
 }
@@ -545,9 +538,8 @@ TReturn tcore_context_set_dns2(CoreObject *o, const char *dns)
 		po->dns2 = NULL;
 	}
 
-	if (dns) {
+	if (dns)
 		po->dns2 = g_strdup(dns);
-	}
 
 	return TCORE_RETURN_SUCCESS;
 }
@@ -567,9 +559,8 @@ TReturn tcore_context_set_ipv6_dns2(CoreObject *o, const char *dns)
 		po->dns_secondary_v6 = NULL;
 	}
 
-	if (dns) {
+	if (dns)
 		po->dns_secondary_v6 = g_strdup(dns);
-	}
 
 	return TCORE_RETURN_SUCCESS;
 }
@@ -633,9 +624,8 @@ TReturn tcore_context_set_proxy(CoreObject *o, const char *proxy)
 		po->apn = NULL;
 	}
 
-	if (proxy) {
+	if (proxy)
 		po->proxy = g_strdup(proxy);
-	}
 
 	return TCORE_RETURN_SUCCESS;
 }
@@ -671,9 +661,8 @@ TReturn tcore_context_set_mmsurl(CoreObject *o, const char *mmsurl)
 		po->mmsurl = NULL;
 	}
 
-	if (mmsurl) {
+	if (mmsurl)
 		po->mmsurl = g_strdup(mmsurl);
-	}
 
 	return TCORE_RETURN_SUCCESS;
 }
@@ -709,9 +698,8 @@ TReturn tcore_context_set_profile_name(CoreObject *o, const char *profile_name)
 		po->profile_name = NULL;
 	}
 
-	if (profile_name) {
+	if (profile_name)
 		po->profile_name = g_strdup(profile_name);
-	}
 
 	return TCORE_RETURN_SUCCESS;
 }
@@ -767,9 +755,8 @@ TReturn tcore_context_set_devinfo(CoreObject *o, struct tnoti_ps_pdp_ipconfigura
 	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PS_CONTEXT, TCORE_RETURN_EINVAL);
 
 	po = tcore_object_ref_object(o);
-	if (!po)
-		return TCORE_RETURN_EINVAL;
-	if (!devinfo)
+
+	if (!po || !devinfo)
 		return TCORE_RETURN_EINVAL;
 
 	/* Free context resource if it was already allocated */
@@ -785,23 +772,27 @@ TReturn tcore_context_set_devinfo(CoreObject *o, struct tnoti_ps_pdp_ipconfigura
 	memcpy(&(po->gateway_v4), devinfo->gateway, sizeof(union tcore_ip4_type));
 	memcpy(po->devname, devinfo->devname, sizeof(char) * 16);
 
-	po->pcscf_ipv4 = g_malloc0(sizeof(pcscf_addr));
-	po->pcscf_ipv4->count = devinfo->pcscf_ipv4_count;
-	if (po->pcscf_ipv4->count > 0) {
-		unsigned int i;
-		po->pcscf_ipv4->addr = g_malloc0(sizeof(char *) * po->pcscf_ipv4->count);
-		for (i = 0; i < po->pcscf_ipv4->count; i++) {
-			po->pcscf_ipv4->addr[i] = g_strdup(devinfo->pcscf_ipv4[i]);
+	po->pcscf_ipv4 = g_try_malloc0(sizeof(pcscf_addr));
+	if (po->pcscf_ipv4) {
+		po->pcscf_ipv4->count = devinfo->pcscf_ipv4_count;
+		if (po->pcscf_ipv4->count > 0) {
+			unsigned int i;
+			po->pcscf_ipv4->addr = g_try_malloc0(sizeof(char *) * po->pcscf_ipv4->count);
+			if ((po->pcscf_ipv4->addr) && (devinfo->pcscf_ipv4))
+				for (i = 0; i < po->pcscf_ipv4->count; i++)
+					po->pcscf_ipv4->addr[i] = g_strdup(devinfo->pcscf_ipv4[i]);
 		}
 	}
 
-	po->pcscf_ipv6 = g_malloc0(sizeof(pcscf_addr));
-	po->pcscf_ipv6->count = devinfo->pcscf_ipv6_count;
-	if (po->pcscf_ipv6->count > 0) {
-		unsigned int i;
-		po->pcscf_ipv6->addr = g_malloc0(sizeof(char *) * po->pcscf_ipv6->count);
-		for (i = 0; i < po->pcscf_ipv6->count; i++) {
-			po->pcscf_ipv6->addr[i] = g_strdup(devinfo->pcscf_ipv6[i]);
+	po->pcscf_ipv6 = g_try_malloc0(sizeof(pcscf_addr));
+	if (po->pcscf_ipv6) {
+		po->pcscf_ipv6->count = devinfo->pcscf_ipv6_count;
+		if (po->pcscf_ipv6->count > 0) {
+			unsigned int i;
+			po->pcscf_ipv6->addr = g_try_malloc0(sizeof(char *) * po->pcscf_ipv6->count);
+			if ((po->pcscf_ipv6->addr) && (devinfo->pcscf_ipv6))
+				for (i = 0; i < po->pcscf_ipv6->count; i++)
+					po->pcscf_ipv6->addr[i] = g_strdup(devinfo->pcscf_ipv6[i]);
 		}
 	}
 
@@ -819,17 +810,25 @@ TReturn tcore_context_reset_devinfo(CoreObject *o)
 	if (!po)
 		return TCORE_RETURN_EINVAL;
 
-	if(po->ip_v6) g_free(po->ip_v6);
-	po->ip_v6 = NULL;
+	if (po->ip_v6) {
+		g_free(po->ip_v6);
+		po->ip_v6 = NULL;
+	}
 
-	if(po->dns_primary_v6) g_free(po->dns_primary_v6);
-	po->dns_primary_v6 = NULL;
+	if (po->dns_primary_v6) {
+		g_free(po->dns_primary_v6);
+		po->dns_primary_v6 = NULL;
+	}
 
-	if(po->dns_secondary_v6) g_free(po->dns_secondary_v6);
-	po->dns_secondary_v6 = NULL;
+	if (po->dns_secondary_v6) {
+		g_free(po->dns_secondary_v6);
+		po->dns_secondary_v6 = NULL;
+	}
 
-	if(po->gateway_v6) g_free(po->gateway_v6);
-	po->gateway_v6 = NULL;
+	if (po->gateway_v6) {
+		g_free(po->gateway_v6);
+		po->gateway_v6 = NULL;
+	}
 
 	if (po->pcscf_ipv4) {
 		for (i = 0; i < po->pcscf_ipv4->count; i++)
@@ -850,6 +849,68 @@ TReturn tcore_context_reset_devinfo(CoreObject *o)
 	memset(&(po->dns_secondary_v4), 0, sizeof(union tcore_ip4_type));
 	memset(&(po->gateway_v4), 0, sizeof(union tcore_ip4_type));
 	memset(po->devname, 0, sizeof(char) * 16);
+
+	return TCORE_RETURN_SUCCESS;
+}
+
+TReturn tcore_context_set_bearer_info(CoreObject *o, struct tnoti_ps_dedicated_bearer_info *bearer_info)
+{
+	struct private_object_data *po = NULL;
+
+	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PS_CONTEXT, TCORE_RETURN_EINVAL);
+
+	po = tcore_object_ref_object(o);
+	if (!po)
+		return TCORE_RETURN_EINVAL;
+
+	if (!bearer_info)
+		return TCORE_RETURN_EINVAL;
+
+	if (bearer_info->dedicated_bearer.num_dedicated_bearer > 0)
+		memcpy(&(po->dedicated_bearer), &(bearer_info->dedicated_bearer), sizeof(struct dedicated_bearer_info));
+
+	return TCORE_RETURN_SUCCESS;
+}
+
+TReturn tcore_context_get_bearer_info(CoreObject *o, struct dedicated_bearer_info *bearer_info)
+{
+	struct private_object_data *po = NULL;
+	guchar count = 0;
+
+	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PS_CONTEXT, TCORE_RETURN_EINVAL);
+
+	po = tcore_object_ref_object(o);
+	if (!po)
+		return TCORE_RETURN_EINVAL;
+
+	if (!bearer_info)
+		return TCORE_RETURN_EINVAL;
+
+	count = po->dedicated_bearer.num_dedicated_bearer;
+	if (count > MAX_NUM_DEDICATED_BEARER)
+		return TCORE_RETURN_EINVAL;
+
+	if (count > 0) {
+		bearer_info->num_dedicated_bearer = count;
+		bearer_info->secondary_context_id = po->dedicated_bearer.secondary_context_id;
+		memcpy(bearer_info->qos, po->dedicated_bearer.qos, count*sizeof(struct qos_parameter));
+	}
+
+	return TCORE_RETURN_SUCCESS;
+}
+
+TReturn tcore_context_reset_bearer_info(CoreObject *o)
+{
+	struct private_object_data *po = NULL;
+
+	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PS_CONTEXT, TCORE_RETURN_EINVAL);
+
+	po = tcore_object_ref_object(o);
+	if (!po)
+		return TCORE_RETURN_EINVAL;
+
+	if (po->dedicated_bearer.num_dedicated_bearer > 0)
+		memset(&(po->dedicated_bearer), 0, sizeof(struct dedicated_bearer_info));
 
 	return TCORE_RETURN_SUCCESS;
 }
@@ -880,7 +941,7 @@ void tcore_context_cp_service_info(CoreObject *dest, CoreObject *src)
 	memcpy(d_po->devname, s_po->devname, sizeof(char) * 16);
 }
 
-char* tcore_context_get_ipv4_addr(CoreObject *o)
+char *tcore_context_get_ipv4_addr(CoreObject *o)
 {
 	struct private_object_data *po = NULL;
 
@@ -893,7 +954,7 @@ char* tcore_context_get_ipv4_addr(CoreObject *o)
 	return tcore_util_get_string_by_ip4type(po->ip_v4);
 }
 
-char* tcore_context_get_ipv4_dns1(CoreObject *o)
+char *tcore_context_get_ipv4_dns1(CoreObject *o)
 {
 	struct private_object_data *po = NULL;
 
@@ -906,7 +967,7 @@ char* tcore_context_get_ipv4_dns1(CoreObject *o)
 	return tcore_util_get_string_by_ip4type(po->dns_primary_v4);
 }
 
-char* tcore_context_get_ipv4_dns2(CoreObject *o)
+char *tcore_context_get_ipv4_dns2(CoreObject *o)
 {
 	struct private_object_data *po = NULL;
 
@@ -919,7 +980,7 @@ char* tcore_context_get_ipv4_dns2(CoreObject *o)
 	return tcore_util_get_string_by_ip4type(po->dns_secondary_v4);
 }
 
-char* tcore_context_get_ipv4_gw(CoreObject *o)
+char *tcore_context_get_ipv4_gw(CoreObject *o)
 {
 	struct private_object_data *po = NULL;
 
@@ -932,7 +993,7 @@ char* tcore_context_get_ipv4_gw(CoreObject *o)
 	return tcore_util_get_string_by_ip4type(po->gateway_v4);
 }
 
-char* tcore_context_get_ipv4_devname(CoreObject *o)
+char *tcore_context_get_ipv4_devname(CoreObject *o)
 {
 	struct private_object_data *po = NULL;
 
@@ -948,7 +1009,7 @@ char* tcore_context_get_ipv4_devname(CoreObject *o)
 	return g_strdup(po->devname);
 }
 
-char* tcore_context_get_ipv6_addr(CoreObject *o)
+char *tcore_context_get_ipv6_addr(CoreObject *o)
 {
 	struct private_object_data *po = NULL;
 
@@ -961,7 +1022,7 @@ char* tcore_context_get_ipv6_addr(CoreObject *o)
 	return g_strdup(po->ip_v6);
 }
 
-char* tcore_context_get_ipv6_dns1(CoreObject *o)
+char *tcore_context_get_ipv6_dns1(CoreObject *o)
 {
 	struct private_object_data *po = NULL;
 
@@ -974,7 +1035,7 @@ char* tcore_context_get_ipv6_dns1(CoreObject *o)
 	return g_strdup(po->dns_primary_v6);
 }
 
-char* tcore_context_get_ipv6_dns2(CoreObject *o)
+char *tcore_context_get_ipv6_dns2(CoreObject *o)
 {
 	struct private_object_data *po = NULL;
 
@@ -987,7 +1048,7 @@ char* tcore_context_get_ipv6_dns2(CoreObject *o)
 	return g_strdup(po->dns_secondary_v6);
 }
 
-char* tcore_context_get_ipv6_gw(CoreObject *o)
+char *tcore_context_get_ipv6_gw(CoreObject *o)
 {
 	struct private_object_data *po = NULL;
 
@@ -1014,14 +1075,21 @@ pcscf_addr *tcore_context_get_pcscf_ipv4_addr(CoreObject *o)
 	if (!po->pcscf_ipv4)
 		return NULL;
 
-	pcscf_tmp = g_malloc0(sizeof(pcscf_addr));
+	pcscf_tmp = g_try_malloc0(sizeof(pcscf_addr));
+	if (!pcscf_tmp)
+		return NULL;
+
 	pcscf_tmp->count = po->pcscf_ipv4->count;
 	if (pcscf_tmp->count > 0) {
 		unsigned int i;
-		pcscf_tmp->addr = g_malloc0(sizeof(char *) * po->pcscf_ipv4->count);
-		for (i = 0; i < po->pcscf_ipv4->count; i++) {
-			pcscf_tmp->addr[i] = g_strdup(po->pcscf_ipv4->addr[i]);
+		pcscf_tmp->addr = g_try_malloc0(sizeof(char *) * po->pcscf_ipv4->count);
+		if (!pcscf_tmp->addr) {
+			g_free(pcscf_tmp);
+			return NULL;
 		}
+
+		for (i = 0; i < po->pcscf_ipv4->count; i++)
+			pcscf_tmp->addr[i] = g_strdup(po->pcscf_ipv4->addr[i]);
 	}
 
 	return pcscf_tmp;
@@ -1041,14 +1109,21 @@ pcscf_addr *tcore_context_get_pcscf_ipv6_addr(CoreObject *o)
 	if (!po->pcscf_ipv6)
 		return NULL;
 
-	pcscf_tmp = g_malloc0(sizeof(pcscf_addr));
+	pcscf_tmp = g_try_malloc0(sizeof(pcscf_addr));
+	if (!pcscf_tmp)
+		return NULL;
+
 	pcscf_tmp->count = po->pcscf_ipv6->count;
 	if (pcscf_tmp->count > 0) {
 		unsigned int i;
-		pcscf_tmp->addr = g_malloc0(sizeof(char *) * po->pcscf_ipv6->count);
-		for (i = 0; i < po->pcscf_ipv6->count; i++) {
-			pcscf_tmp->addr[i] = g_strdup(po->pcscf_ipv6->addr[i]);
+		pcscf_tmp->addr = g_try_malloc0(sizeof(char *) * po->pcscf_ipv6->count);
+		if (!pcscf_tmp->addr) {
+			g_free(pcscf_tmp);
+			return NULL;
 		}
+
+		for (i = 0; i < po->pcscf_ipv6->count; i++)
+			pcscf_tmp->addr[i] = g_strdup(po->pcscf_ipv6->addr[i]);
 	}
 
 	return pcscf_tmp;
