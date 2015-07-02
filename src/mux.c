@@ -772,7 +772,7 @@ static gboolean _cmux_recv_cmux_data(tcore_cmux_object *cmux_obj,
 		return FALSE;
 	}
 
-	dbg("Dispatching to logical HAL - hal: [0x%x]", (unsigned int)hal);
+	dbg("Dispatching to logical HAL - hal: [0x%x]", hal);
 	if (tcore_hal_dispatch_response_data(hal, 0,
 			cmux_obj->internal_mux.info_field_len,
 			cmux_obj->internal_mux.info_field)
