@@ -1,6 +1,6 @@
 prefix=@PREFIX@
 exec_prefix=${prefix}
-libdir=@LIBDIR@
+libdir=${exec_prefix}/lib
 includedir=${prefix}/include
 
 Name: tcore
