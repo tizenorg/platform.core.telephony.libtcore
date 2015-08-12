@@ -40,7 +40,9 @@
 #include "storage.h"
 #include "util.h"
 
+#ifndef MODEMS_PATH
 #define MODEMS_PATH "/usr/lib/telephony/plugins/modems/"
+#endif
 
 struct tcore_server_type {
 	GMainLoop *mainloop;
