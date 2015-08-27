@@ -97,8 +97,9 @@ enum tcore_call_end_type {
 };
 
 enum tcore_call_silent_redial_reason{
-	TCORE_CALL_SILENT_REDIAL_REASON_NULL,
-	TCORE_CALL_SILENT_REDIAL_REASONL_MULTIRAT_EMERGENCY,
+	TCORE_CALL_SILENT_REDIAL_REASON_NONE,
+	TCORE_CALL_SILENT_REDIAL_REASON_MULTIRAT_EMERGENCY,
+	TCORE_CALL_SILENT_REDIAL_REASON_CS_FALLBACK	//VoLTE call Fail with some reason which is pre-defined by network operator. Need to silent-redial to CS bearer
 };
 
 typedef struct call_object CallObject;
@@ -197,6 +198,8 @@ CallObject *tcore_call_object_current_on_mo_processing(CoreObject *o);
 CallObject *tcore_call_object_find_by_id(CoreObject *o, int id);
 CallObject *tcore_call_object_find_by_handle(CoreObject *o, int handle);
 CallObject *tcore_call_object_find_by_number(CoreObject *o, char *num);
+int tcore_call_get_id_by_handle(CoreObject *o, int handle);
+int tcore_call_get_handle_by_id(CoreObject *o, int call_id);
 GSList *tcore_call_object_find_by_status(CoreObject *o, enum tcore_call_status cs);
 
 gboolean tcore_call_object_set_id(CallObject *co , int call_id);
@@ -268,7 +271,6 @@ TReturn tcore_call_control_transfer(CoreObject *o, UserRequest *ur, ConfirmCallb
 TReturn tcore_call_control_deflect(CoreObject *o, UserRequest *ur, const char *number, ConfirmCallback cb, void *user_data);
 
 void tcore_call_control_set_operations(CoreObject *o, struct tcore_call_control_operations *ops);
-
 
 void tcore_call_information_mo_col(CoreObject *o, char *number);
 void tcore_call_information_mo_waiting(CoreObject *o);

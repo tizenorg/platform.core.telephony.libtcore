@@ -547,6 +547,26 @@ CallObject *tcore_call_object_current_on_mo_processing(CoreObject *o)
 	return call_obj;
 }
 
+int tcore_call_get_id_by_handle(CoreObject *o, int handle)
+{
+	CallObject *co = NULL;
+
+	co = tcore_call_object_find_by_handle(o, handle);
+	tcore_check_null_ret_err("co", co, -1);
+
+	return tcore_call_object_get_id(co);
+}
+
+int tcore_call_get_handle_by_id(CoreObject *o, int call_id)
+{
+	CallObject *co = NULL;
+
+	co = tcore_call_object_find_by_id(o, call_id);
+	tcore_check_null_ret_err("co", co, -1);
+
+	return tcore_call_object_get_handle(co);
+}
+
 CallObject *tcore_call_object_find_by_id(CoreObject *o, int id)
 {
 	struct private_object_data *po = NULL;
@@ -718,8 +738,8 @@ gboolean tcore_call_object_set_cli_info(CallObject *co,
 
 int tcore_call_object_get_number(CallObject *co, char *num)
 {
-	tcore_check_null_ret_err("co", co, 0);
-	tcore_check_null_ret_err("num", num, 0);
+	tcore_check_null_ret_err( "co", co, -1);
+	tcore_check_null_ret_err( "num", num, -1);
 
 	strncpy(num, co->cli.number, MAX_CALL_NUMBER_LEN);
 	return co->cli.number_len;
@@ -760,8 +780,8 @@ gboolean tcore_call_object_set_cna_info(CallObject *co, enum tcore_call_cna_mode
 
 int tcore_call_object_get_name(CallObject *co, char *name)
 {
-	tcore_check_null_ret_err("co", co, 0);
-	tcore_check_null_ret_err("name", name, 0);
+	tcore_check_null_ret_err( "co", co, -1);
+	tcore_check_null_ret_err( "name", name, -1);
 
 	strncpy(name, co->cna.name, MAX_CALL_NAME_LEN);
 	return co->cna.name_len;

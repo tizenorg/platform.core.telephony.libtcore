@@ -42,20 +42,20 @@ SET(SRCS
 	src/queue.c
 	src/user_request.c
 	src/util.c
-	src/core_object.c
-	src/co_modem.c
-	src/co_sim.c
-	src/co_network.c
-	src/co_call.c
-	src/co_sms.c
-	src/co_ss.c
-	src/co_phonebook.c
-	src/co_ps.c
-	src/co_context.c
-	src/co_sat.c
-	src/co_sap.c
-	src/co_gps.c
-	src/co_custom.c
+	src/core_object/core_object.c
+	src/core_object/co_modem.c
+	src/core_object/co_sim.c
+	src/core_object/co_network.c
+	src/core_object/co_call.c
+	src/core_object/co_sms.c
+	src/core_object/co_ss.c
+	src/core_object/co_phonebook.c
+	src/core_object/co_ps.c
+	src/core_object/co_context.c
+	src/core_object/co_sat.c
+	src/core_object/co_sap.c
+	src/core_object/co_gps.c
+	src/core_object/co_custom.c
 	src/mux.c
 )
 

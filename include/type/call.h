@@ -848,6 +848,7 @@ struct tnoti_call_status_incoming {
 	struct telephony_call_cna_info cna;
 	gboolean		forward;
 	unsigned int	active_line;
+	char number_plus[MAX_CALL_NUMBER_LEN];
 };
 
 struct tnoti_call_status_waiting {

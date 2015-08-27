@@ -60,7 +60,8 @@ TReturn tcore_server_dispatch_request(Server *s, UserRequest *ur);
 TReturn tcore_server_send_notification(Server *s,
 	CoreObject *source, enum tcore_notification_command command,
 	unsigned int data_len, void *data);
-
+TReturn tcore_server_broadcast_notification(Server *s, CoreObject *source,
+	enum tcore_notification_command command, unsigned int data_len, void *data);
 TReturn tcore_server_add_request_hook(Server *s,
 	enum tcore_request_command command,
 	TcoreServerRequestHook func, void *user_data);

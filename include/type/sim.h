@@ -686,6 +686,24 @@ enum tel_sim_pcscf_type {
 	SIM_PCSCF_TYPE_IPV6, /**< IPv6 */
 };
 
+enum tel_sim_powerstate {
+	SIM_POWER_OFF = 0x00, /**< OFF */
+	SIM_POWER_ON = 0x01, /**< ON */
+	SIM_POWER_UNSPECIFIED = 0xFF /**< Unspecified */
+};
+
+enum tel_sim_provision {
+	SIM_PROVISION_DEACTIVATE = 0x00, /**< De-activate Provisioning */
+	SIM_PROVISION_ACTIVATE = 0x01, /**< Activate Provisioning */
+	SIM_PROVISION_UNSPECIFIED = 0xFF /**< Unspecified */
+};
+
+enum tel_sim_img_coding_scheme{
+	SIM_IMG_CODING_SCHEME_BASIC = 0x11,
+	SIM_IMG_CODING_SCHEME_COLOUR = 0x21,
+	SIM_IMG_CODING_SCHEME_RESERVED = 0xFF
+};
+
 struct tel_sim_sst {
 	char service[SIM_SST_SERVICE_CNT_MAX];	/**< should accessed with 'enum tel_sim_sst_service' as index */
 };
@@ -888,137 +906,6 @@ struct tel_sim_cphs_info_number {
 	unsigned char Ext1RecordId;				/**< Extensiion1 Record Identifier */
 };
 
-enum tel_sim_powerstate {
-	SIM_POWER_OFF = 0x00, /**< OFF */
-	SIM_POWER_ON = 0x01, /**< ON */
-	SIM_POWER_UNSPECIFIED = 0xFF /**< Unspecified */
-};
-
-
-struct treq_sim_verify_pins {
-	enum tel_sim_pin_type pin_type;
-	unsigned int pin_length;
-	char pin[9];
-};
-
-struct treq_sim_verify_puks {
-	enum tel_sim_pin_type puk_type;
-	unsigned int puk_length;
-	char puk[9];
-	unsigned int pin_length;
-	char pin[9];
-};
-
-struct treq_sim_change_pins {
-	enum tel_sim_pin_type type;
-	unsigned int old_pin_length;
-	char old_pin[9];
-	unsigned int new_pin_length;
-	char new_pin[9];
-};
-
-struct treq_sim_get_facility_status {
-	enum tel_sim_facility_type type;
-};
-
-struct treq_sim_disable_facility {
-	enum tel_sim_facility_type type;
-	unsigned int password_length;
-	char password[39];
-};
-
-struct treq_sim_enable_facility {
-	enum tel_sim_facility_type type;
-	unsigned int password_length;
-	char password[39];
-};
-
-struct treq_sim_get_lock_info {
-	enum tel_sim_facility_type type;
-};
-
-struct treq_sim_transmit_apdu {
-	unsigned int apdu_length;
-	unsigned char apdu[SIM_APDU_DATA_LEN_MAX];
-};
-
-struct treq_sim_set_language {
-	enum tel_sim_language_type language;
-};
-
-struct treq_sim_req_authentication {
-	enum tel_sim_auth_type auth_type;		/**< Authentication type */
-	unsigned int rand_length;			/**< the length of RAND */
-	unsigned int autn_length;			/**< the length of AUTN. it is not used in case of GSM AUTH */
-	char rand_data[SIM_AUTH_REQ_DATA_LEN_MAX + 1];	/**< RAND data */
-	char autn_data[SIM_AUTH_REQ_DATA_LEN_MAX + 1];	/**< AUTN data. it is not used in case of GSM AUTH */
-};
-
-struct treq_sim_set_powerstate {
-	enum tel_sim_powerstate state;
-};
-
-struct tresp_sim_set_powerstate {
-	enum tel_sim_power_set_result result;
-};
-
-
-
-struct tresp_sim_verify_pins {
-	enum tel_sim_pin_operation_result result;
-	enum tel_sim_pin_type pin_type;
-	int retry_count;
-};
-
-struct tresp_sim_verify_puks {
-	enum tel_sim_pin_operation_result result;
-	enum tel_sim_pin_type pin_type;
-	int retry_count;
-};
-
-struct tresp_sim_change_pins {
-	enum tel_sim_pin_operation_result result;
-	enum tel_sim_pin_type pin_type;
-	int retry_count;
-};
-
-struct tresp_sim_get_facility_status {
-	enum tel_sim_pin_operation_result result;
-	enum tel_sim_facility_type type;
-	gboolean b_enable;
-};
-
-struct tresp_sim_disable_facility {
-	enum tel_sim_pin_operation_result result;
-	enum tel_sim_facility_type type;
-	int retry_count;
-};
-
-struct tresp_sim_enable_facility {
-	enum tel_sim_pin_operation_result result;
-	enum tel_sim_facility_type type;
-	int retry_count;
-};
-
-struct tresp_sim_get_lock_info {
-	enum tel_sim_pin_operation_result result;
-	enum tel_sim_facility_type type;
-	enum tel_sim_lock_status lock_status;
-	int retry_count;
-};
-
-struct tresp_sim_transmit_apdu {
-	enum tel_sim_access_result result;
-	unsigned int apdu_resp_length;
-	unsigned char *apdu_resp;
-};
-
-struct tresp_sim_get_atr {
-	enum tel_sim_access_result result;
-	unsigned int atr_length;
-	unsigned char atr[256 + 2];
-};
-
 struct tel_sim_ecc {
 	char ecc_num[SIM_ECC_BYTE_LEN_MAX * 2 + 1];		/**< Emergency Call Code info-ECC is coded in BCD format. null termination used*/
 	char ecc_string[SIM_ECC_STRING_LEN_MAX + 1];		/**< Alphabet identifier. null termination used*/
@@ -1039,10 +926,6 @@ struct tel_sim_ext {
 struct tel_sim_language {
 	int language_count;
 	enum tel_sim_language_type language[SIM_LANG_CNT_MAX];
-};
-
-struct tresp_sim_set_data {
-	enum tel_sim_access_result result;
 };
 
 struct tel_sim_iccid {
@@ -1078,11 +961,6 @@ struct tel_sim_mailbox {
 	struct tel_sim_mb_number mb[SIM_MSP_CNT_MAX*5]; /**< each profile mailbox number can exist 5 numbers */
 };
 
-struct treq_sim_set_mailbox {
-	gboolean b_cphs;
-	struct tel_sim_mb_number mb_info;
-};
-
 struct tel_sim_cfis {
 	int rec_index;
 	unsigned char msp_num;				/**< MSP number*/
@@ -1109,12 +987,6 @@ struct tel_sim_cphs_cf {
 struct tel_sim_callforwarding {
 	gboolean b_cphs;
 	struct tel_sim_cf_list cf_list;
-	struct tel_sim_cphs_cf cphs_cf;
-};
-
-struct treq_sim_set_callforwarding {
-	gboolean b_cphs;
-	struct tel_sim_cfis cf;
 	struct tel_sim_cphs_cf cphs_cf;
 };
 
@@ -1219,16 +1091,10 @@ struct tel_sim_file_list{
 	enum tel_sim_file_id file_id[SIM_FILE_ID_LIST_MAX_COUNT];
 };
 
-enum img_coding_scheme{
-	IMAGE_CODING_SCHEME_BASIC = 0x11,
-	IMAGE_CODING_SCHEME_COLOUR = 0x21,
-	IMAGE_CODING_SCHEME_RESERVED = 0xFF
-};
-
 struct tel_sim_img{
 	unsigned char width;
 	unsigned char height;
-	enum img_coding_scheme ics;
+	enum tel_sim_img_coding_scheme ics;
 	unsigned short iidf_fileid;
 	unsigned short offset;
 	unsigned short length;
@@ -1236,30 +1102,171 @@ struct tel_sim_img{
 };
 
 struct tel_sim_impi {
-	char *impi;
+	char *impi; /**< ISIM IMPI data */
 };
 
 struct tel_sim_impu {
-	char *impu;
+	char *impu; /**< ISIM IMPU data */
 };
 
 struct tel_sim_impu_list {
-	unsigned int count;
-	struct tel_sim_impu impu[SIM_IMPU_CNT_MAX];
+	unsigned int count; /**< ISIM IMPU data count */
+	struct tel_sim_impu impu[SIM_IMPU_CNT_MAX]; /**< ISIM IMPU list */
 };
 
 struct tel_sim_domain {
-	char *domain;
+	char *domain; /**< ISIM Domain data */
 };
 
 struct tel_sim_pcscf {
-	enum tel_sim_pcscf_type type;
-	char *pcscf;
+	enum tel_sim_pcscf_type type; /**< ISIM P-CSCF type */
+	char *pcscf; /**< ISIM P-CSCF data */
 };
 
 struct tel_sim_pcscf_list {
-	unsigned int count;
-	struct tel_sim_pcscf pcscf[SIM_PCSCF_CNT_MAX];
+	unsigned int count; /**< ISIM P-CSCF data count */
+	struct tel_sim_pcscf pcscf[SIM_PCSCF_CNT_MAX]; /**< ISIM P-CSCF list */
+};
+
+struct treq_sim_verify_pins {
+	enum tel_sim_pin_type pin_type;
+	unsigned int pin_length;
+	char pin[9];
+};
+
+struct treq_sim_verify_puks {
+	enum tel_sim_pin_type puk_type;
+	unsigned int puk_length;
+	char puk[9];
+	unsigned int pin_length;
+	char pin[9];
+};
+
+struct treq_sim_change_pins {
+	enum tel_sim_pin_type type;
+	unsigned int old_pin_length;
+	char old_pin[9];
+	unsigned int new_pin_length;
+	char new_pin[9];
+};
+
+struct treq_sim_get_facility_status {
+	enum tel_sim_facility_type type;
+};
+
+struct treq_sim_disable_facility {
+	enum tel_sim_facility_type type;
+	unsigned int password_length;
+	char password[39];
+};
+
+struct treq_sim_enable_facility {
+	enum tel_sim_facility_type type;
+	unsigned int password_length;
+	char password[39];
+};
+
+struct treq_sim_get_lock_info {
+	enum tel_sim_facility_type type;
+};
+
+struct treq_sim_transmit_apdu {
+	unsigned int apdu_length;
+	unsigned char apdu[SIM_APDU_DATA_LEN_MAX];
+};
+
+struct treq_sim_set_language {
+	enum tel_sim_language_type language;
+};
+
+struct treq_sim_req_authentication {
+	enum tel_sim_auth_type auth_type;		/**< Authentication type */
+	unsigned int rand_length;			/**< the length of RAND */
+	unsigned int autn_length;			/**< the length of AUTN. it is not used in case of GSM AUTH */
+	char rand_data[SIM_AUTH_REQ_DATA_LEN_MAX + 1];	/**< RAND data */
+	char autn_data[SIM_AUTH_REQ_DATA_LEN_MAX + 1];	/**< AUTN data. it is not used in case of GSM AUTH */
+};
+
+struct treq_sim_set_powerstate {
+	enum tel_sim_powerstate state;
+};
+
+struct treq_sim_set_mailbox {
+	gboolean b_cphs;
+	struct tel_sim_mb_number mb_info;
+};
+
+struct treq_sim_set_callforwarding {
+	gboolean b_cphs;
+	struct tel_sim_cfis cf;
+	struct tel_sim_cphs_cf cphs_cf;
+};
+
+struct treq_sim_set_provisioning {
+	enum tel_sim_provision cmd;
+};
+
+struct tresp_sim_set_powerstate {
+	enum tel_sim_power_set_result result;
+};
+
+struct tresp_sim_verify_pins {
+	enum tel_sim_pin_operation_result result;
+	enum tel_sim_pin_type pin_type;
+	int retry_count;
+};
+
+struct tresp_sim_verify_puks {
+	enum tel_sim_pin_operation_result result;
+	enum tel_sim_pin_type pin_type;
+	int retry_count;
+};
+
+struct tresp_sim_change_pins {
+	enum tel_sim_pin_operation_result result;
+	enum tel_sim_pin_type pin_type;
+	int retry_count;
+};
+
+struct tresp_sim_get_facility_status {
+	enum tel_sim_pin_operation_result result;
+	enum tel_sim_facility_type type;
+	gboolean b_enable;
+};
+
+struct tresp_sim_disable_facility {
+	enum tel_sim_pin_operation_result result;
+	enum tel_sim_facility_type type;
+	int retry_count;
+};
+
+struct tresp_sim_enable_facility {
+	enum tel_sim_pin_operation_result result;
+	enum tel_sim_facility_type type;
+	int retry_count;
+};
+
+struct tresp_sim_get_lock_info {
+	enum tel_sim_pin_operation_result result;
+	enum tel_sim_facility_type type;
+	enum tel_sim_lock_status lock_status;
+	int retry_count;
+};
+
+struct tresp_sim_transmit_apdu {
+	enum tel_sim_access_result result;
+	unsigned int apdu_resp_length;
+	unsigned char *apdu_resp;
+};
+
+struct tresp_sim_get_atr {
+	enum tel_sim_access_result result;
+	unsigned int atr_length;
+	unsigned char atr[256 + 2];
+};
+
+struct tresp_sim_set_data {
+	enum tel_sim_access_result result;
 };
 
 struct tresp_sim_read {
@@ -1302,6 +1309,10 @@ struct tresp_sim_req_authentication {
 	char cipher_data[SIM_AUTH_RESP_DATA_LEN_MAX + 1]; /**< cipher key */
 	unsigned int integrity_length; /**< the length of integrity key length */
 	char integrity_data[SIM_AUTH_RESP_DATA_LEN_MAX + 1]; /**< integrity key */
+};
+
+struct tresp_sim_set_provisioning {
+	enum tel_sim_access_result result;
 };
 
 struct tnoti_sim_status {

@@ -502,6 +502,28 @@ TReturn tcore_server_dispatch_request(Server *s, UserRequest *ur)
 	if (!s || !ur)
 		return TCORE_RETURN_EINVAL;
 
+	/* In case Manager is available, process Request in Manager */
+	if (s->manager) {
+		enum tcore_manager_return mgr_ret;
+
+		mgr_ret = tcore_manager_dispatch_request(s->manager, ur);
+		switch (mgr_ret) {
+		case TCORE_MANAGER_RETURN_FAILURE:
+			return TCORE_RETURN_FAILURE;
+
+		case TCORE_MANAGER_RETURN_STOP:
+			return TCORE_RETURN_SUCCESS;
+
+		case TCORE_MANAGER_RETURN_CONTINUE_IMS:
+			ops_type = TCORE_OPS_TYPE_IMS;
+		break;
+
+		default:
+			ops_type = TCORE_OPS_TYPE_CP;
+		break;
+		}
+	}
+
 	for (list = s->hook_list_request; list; list = list->next) {
 		hook = list->data;
 		if (!hook)
@@ -516,22 +538,6 @@ TReturn tcore_server_dispatch_request(Server *s, UserRequest *ur)
 					return TCORE_RETURN_SUCCESS;
 			}
 		}
-	}
-
-	/* In case Manager is available, process Request in Manager */
-	if (s->manager) {
-		enum tcore_manager_return mgr_ret;
-
-		mgr_ret = tcore_manager_dispatch_request(s->manager, ur);
-
-		if (mgr_ret == TCORE_MANAGER_RETURN_FAILURE)
-			return TCORE_RETURN_FAILURE;
-		else if (mgr_ret == TCORE_MANAGER_RETURN_STOP)
-			return TCORE_RETURN_SUCCESS;
-		else if (mgr_ret == TCORE_MANAGER_RETURN_CONTINUE_IMS)
-			ops_type = TCORE_OPS_TYPE_IMS;
-		else
-			ops_type = TCORE_OPS_TYPE_CP;
 	}
 
 	modem_name = tcore_user_request_get_modem_name(ur);
@@ -582,32 +588,17 @@ TReturn tcore_server_dispatch_request(Server *s, UserRequest *ur)
 	return ret;
 }
 
-TReturn tcore_server_send_notification(Server *s, CoreObject *source,
-		enum tcore_notification_command command,
-		unsigned int data_len, void *data)
+TReturn tcore_server_broadcast_notification(Server *s, CoreObject *source,
+	enum tcore_notification_command command, unsigned int data_len, void *data)
 {
 	GSList *list;
 	Communicator *comm;
 	struct hook_notification_type *hook;
+
 	if (!s)
 		return TCORE_RETURN_EINVAL;
 
-	/* In case Manager is available, process Notification in Manager */
-	if (s->manager) {
-		enum tcore_manager_return mgr_ret;
-
-		/* Send notification to 'manager' */
-		mgr_ret = tcore_manager_send_notification(s->manager,
-			source, command, data_len, data);
-
-		if (mgr_ret == TCORE_MANAGER_RETURN_FAILURE)
-			return TCORE_RETURN_FAILURE;
-		else if (mgr_ret == TCORE_MANAGER_RETURN_STOP)
-			return TCORE_RETURN_SUCCESS;
-		/* in other cases, send notification to communicator. */
-	}
-
-	for (list = s->hook_list_notification; list;) {
+	for (list = s->hook_list_notification; list; ) {
 		hook = list->data;
 		list = list->next;
 		if (!hook)
@@ -620,7 +611,7 @@ TReturn tcore_server_send_notification(Server *s, CoreObject *source,
 				return TCORE_RETURN_SUCCESS;
 	}
 
-	for (list = s->communicators; list;) {
+	for (list = s->communicators; list; ) {
 		comm = list->data;
 		list = list->next;
 		if (!comm)
@@ -630,6 +621,30 @@ TReturn tcore_server_send_notification(Server *s, CoreObject *source,
 	}
 
 	return TCORE_RETURN_SUCCESS;
+}
+
+TReturn tcore_server_send_notification(Server *s, CoreObject *source,
+		enum tcore_notification_command command,
+		unsigned int data_len, void *data)
+{
+	if (!s)
+		return TCORE_RETURN_EINVAL;
+
+	/* In case Manager is available, process Notification in Manager */
+	if (s->manager) {
+		enum tcore_manager_return mgr_ret;
+
+		/* Send notification to 'manager' */
+		mgr_ret = tcore_manager_send_notification(s->manager,
+				source, command, data_len, data);
+		if (mgr_ret == TCORE_MANAGER_RETURN_FAILURE)
+			return TCORE_RETURN_FAILURE;
+		else if (mgr_ret == TCORE_MANAGER_RETURN_STOP)
+			return TCORE_RETURN_SUCCESS;
+		/* in other cases, send notification to communicator. */
+	}
+
+	return tcore_server_broadcast_notification(s, source, command, data_len, data);
 }
 
 TReturn tcore_server_add_request_hook(Server *s,
@@ -925,13 +940,13 @@ TReturn tcore_server_load_modem_plugin(Server *s,
 	/* Open '.so' */
 	handle = dlopen(filename, RTLD_LAZY);
 	if (handle == NULL) {
-		err("Failed to load '%s': %s", filename, dlerror());
+		err("dlopen() failed:[%s]", filename);
 		goto out;
 	}
 
 	desc = dlsym(handle, "plugin_define_desc");
 	if (desc == NULL) {
-		err("Failed to obtain the address of plugin_define_desc: %s", dlerror());
+		err("dlsym() failed:[%s]", "plugin_define_desc");
 		dlclose(handle);
 		goto out;
 	}

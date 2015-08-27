@@ -39,13 +39,14 @@ struct tcore_sim_operations {
 	TReturn (*get_atr)(CoreObject *o, UserRequest *ur);
 	TReturn (*req_authentication)(CoreObject *o, UserRequest *ur);
 	TReturn (*set_powerstate)(CoreObject *o, UserRequest *ur);
+	TReturn (*set_provisioning)(CoreObject *o, UserRequest *ur);
 };
 
 enum tcore_sim_file_type_e {
 	SIM_FTYPE_DEDICATED = 0x00, /**< Dedicated */
 	SIM_FTYPE_TRANSPARENT = 0x01, /**< Transparent -binary type*/
 	SIM_FTYPE_LINEAR_FIXED = 0x02, /**< Linear fixed - record type*/
-	SIM_FTYPE_CYCLIC = 0x04, /**< Cyclic - record type*/
+	SIM_FTYPE_CYCLIC = 0x06, /**< Cyclic - record type*/
 	SIM_FTYPE_INVALID_TYPE = 0xFF /**< Invalid type */
 };
 

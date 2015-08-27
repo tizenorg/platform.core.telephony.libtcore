@@ -1328,14 +1328,7 @@ TReturn tcore_util_reset_ipv4_socket(const char *name, const char *ipaddr)
 		close(fd);
 		return TCORE_RETURN_FAILURE;
 	}
-
-	if (ipaddr) {
-		dbg("devname: %s, ipaddr: %s", name, ipaddr);
-	} else {
-		memset(&sai, 0, sizeof(struct sockaddr_in));
-		memcpy(&sai, &ifr.ifr_addr, sizeof(struct sockaddr_in));
-		dbg("devname: %s, ipaddr: %s", name, inet_ntoa(sai.sin_addr));
-	}
+	dbg("devname: [%s], ipaddr: [%s]", name, ipaddr);
 
 	close(fd);
 	return TCORE_RETURN_SUCCESS;

@@ -31,7 +31,7 @@
 
 struct tcore_communicator_type {
 	char *name;
-	struct tcore_communitor_operations *ops;
+	struct tcore_communicator_operations *ops;
 
 	void *user_data;
 
@@ -40,7 +40,7 @@ struct tcore_communicator_type {
 
 
 Communicator *tcore_communicator_new(TcorePlugin *plugin,
-	const char *name, struct tcore_communitor_operations *ops)
+	const char *name, struct tcore_communicator_operations *ops)
 {
 	Communicator *comm;
 
@@ -123,7 +123,7 @@ TReturn tcore_communicator_send_response(Communicator *comm, UserRequest *ur,
 	if (!comm || !comm->ops || !comm->ops->send_response)
 		return TCORE_RETURN_EINVAL;
 
-	dbg("ur = 0x%x", ur);
+	dbg("ur: [%p]", ur);
 
 	return comm->ops->send_response(comm, ur, command, data_len, data);
 }
