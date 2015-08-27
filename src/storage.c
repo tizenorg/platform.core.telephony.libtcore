@@ -297,6 +297,20 @@ gboolean tcore_storage_read_query_database(Storage *strg, void *handle,
 			in_param, out_param, out_param_cnt);
 }
 
+gboolean tcore_storage_read_query_database_in_order(Storage *strg, void *handle,
+	const char *query, GHashTable *in_param,
+	GSList **out_param, int out_param_cnt)
+{
+	if (!strg || !handle || !query)
+		return FALSE;
+
+	if (!strg->ops || !strg->ops->read_query_database)
+		return FALSE;
+
+	return strg->ops->read_query_database_in_order(strg, handle, query,
+			in_param, out_param, out_param_cnt);
+}
+
 gboolean tcore_storage_insert_query_database(Storage *strg, void *handle,
 	const char *query, GHashTable *in_param)
 {

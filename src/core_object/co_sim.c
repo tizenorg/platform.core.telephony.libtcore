@@ -42,11 +42,6 @@
 #define SIM_TOTAL_FILE_SIZE_TAG		0x81
 #define SIM_SHORT_FILE_IDENTIFIER_TAG		0x88
 
-/* USIM file types */
-#define SIM_FTYPE_TRANSPARENT			0x1
-#define SIM_FTYPE_LINEAR_FIXED			0x2
-#define SIM_FTYPE_CYCLIC			0x6
-
 /* GSM file types */
 #define SIM_FTYPE_RFU				0x0
 #define SIM_FTYPE_MF				0x1
@@ -278,6 +273,12 @@ static TReturn _dispatcher(CoreObject *o, UserRequest *ur, enum tcore_ops_type o
 			ops->set_powerstate, TCORE_RETURN_ENOSYS);
 
 		return ops->set_powerstate(o, ur);
+
+	case TREQ_SIM_SET_PROVISIONING:
+		tcore_check_null_ret_err("ops->set_provisioning",
+			ops->set_provisioning, TCORE_RETURN_ENOSYS);
+
+		return ops->set_provisioning(o, ur);
 
 	default:
 		warn("unhandled request command[%d]", command);

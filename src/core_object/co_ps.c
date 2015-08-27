@@ -258,6 +258,7 @@ void tcore_ps_set_ops(CoreObject *o,
 TReturn tcore_ps_add_context(CoreObject *o, CoreObject *ctx_o)
 {
 	struct private_object_data *po = NULL;
+	unsigned int count;
 
 	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PS, TCORE_RETURN_EINVAL);
 	CORE_OBJECT_CHECK_RETURN(ctx_o, CORE_OBJECT_TYPE_PS_CONTEXT, TCORE_RETURN_EINVAL);
@@ -266,7 +267,9 @@ TReturn tcore_ps_add_context(CoreObject *o, CoreObject *ctx_o)
 	if (!po)
 		return TCORE_RETURN_EINVAL;
 
+	count = g_slist_length(po->context_list);
 	po->context_list = g_slist_insert(po->context_list, ctx_o, 0);
+	dbg("num. of contexts: %d -> %d", count, g_slist_length(po->context_list));
 
 	return TCORE_RETURN_SUCCESS;
 }
@@ -274,6 +277,7 @@ TReturn tcore_ps_add_context(CoreObject *o, CoreObject *ctx_o)
 TReturn tcore_ps_remove_context(CoreObject *o, CoreObject *ctx_o)
 {
 	struct private_object_data *po = NULL;
+	unsigned int count;
 
 	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PS, TCORE_RETURN_EINVAL);
 	CORE_OBJECT_CHECK_RETURN(ctx_o, CORE_OBJECT_TYPE_PS_CONTEXT, TCORE_RETURN_EINVAL);
@@ -283,7 +287,9 @@ TReturn tcore_ps_remove_context(CoreObject *o, CoreObject *ctx_o)
 		return TCORE_RETURN_EINVAL;
 
 	tcore_ps_clear_context_id(o, ctx_o);
+	count = g_slist_length(po->context_list);
 	po->context_list = g_slist_remove(po->context_list, ctx_o);
+	dbg("num. of contexts: %d -> %d", count, g_slist_length(po->context_list));
 
 	return TCORE_RETURN_SUCCESS;
 }
@@ -798,7 +804,8 @@ TReturn tcore_ps_deactivate_context(CoreObject *o, CoreObject *ps_context, void 
 
 	context_state = tcore_context_get_state(ps_context);
 	if (context_state == CONTEXT_STATE_DEACTIVATED) {
-		dbg("Context State : CONTEXT_STATE_DEACTIVATED");
+		warn("Context State : CONTEXT_STATE_DEACTIVATED");
+		tcore_ps_clear_context_id(o, ps_context);
 		return TCORE_RETURN_SUCCESS;
 	} else if (context_state == CONTEXT_STATE_DEACTIVATING) {
 		dbg("Context State : CONTEXT_STATE_DEACTIVATING");

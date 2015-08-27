@@ -218,9 +218,6 @@ static void _emit_unsolicited_message(TcoreAT *at, const char *line)
 	if (!at || !line)
 		return;
 
-	dbg("pdu_status:  [%s] data_mode: [%s]",
-		(at->pdu_status ? "TRUE" : "FALSE"),
-		(at->data_mode == MODE_BIN ? "Binary" : "Hex"));
 	if (at->pdu_status == FALSE) {
 		g_hash_table_iter_init(&iter, at->unsolicited_table);
 
@@ -679,7 +676,6 @@ gboolean tcore_at_process(TcoreAT *at, unsigned int data_len, const char *data)
 
 		/* Validate Request */
 		if (!at->req) {
-			err("at->req is NULL");
 			_emit_unsolicited_message(at, pos);
 		} else {
 			tcore_at_final_response ret;

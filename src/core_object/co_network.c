@@ -43,7 +43,7 @@ struct private_object_data {
 	char *plmn;
 	gboolean roaming_state;
 	int restricted_state;
-	unsigned int lac;
+	unsigned int lac; /* represent LAC or TAC(in case of LTE) */
 	unsigned int rac;
 	unsigned int cell_id;
 	gboolean gsm_dtm_support; /* DTM (Dual Transfer Mode) */
@@ -243,6 +243,12 @@ static TReturn _dispatcher(CoreObject *co, UserRequest *ur, enum tcore_ops_type 
 			ops->search_ecc_rat, TCORE_RETURN_ENOSYS);
 
 		return ops->search_ecc_rat(co, ur);
+
+	case TREQ_NETWORK_IMS_DEREGISTER:
+		tcore_check_null_ret_err("ops->ims_deregister",
+			ops->ims_deregister, TCORE_RETURN_ENOSYS);
+
+		return ops->ims_deregister(co, ur);
 
 	default:
 	break;

@@ -23,7 +23,7 @@
 
 __BEGIN_DECLS
 
-struct tcore_communitor_operations {
+struct tcore_communicator_operations {
 	TReturn (*send_response)(Communicator *comm, UserRequest *ur,
 		enum tcore_response_command command,
 		unsigned int data_len, const void *data);
@@ -34,7 +34,7 @@ struct tcore_communitor_operations {
 };
 
 Communicator *tcore_communicator_new(TcorePlugin *plugin,
-	const char *name, struct tcore_communitor_operations *ops);
+	const char *name, struct tcore_communicator_operations *ops);
 void tcore_communicator_free();
 
 TcorePlugin *tcore_communicator_ref_plugin(Communicator *comm);

@@ -226,10 +226,9 @@ enum telephony_network_ims_reg_feature_type {
 
 /* IMS specific */
 enum telephony_network_ims_reg_network_type {
-	NETWORK_IMS_REG_NETWORK_TYPE_INTERNET = 1, /**< VoLTE Feature type */
-	NETWORK_IMS_REG_NETWORK_TYPE_WIFI, /**< SMSoverIP Feature type */
-	NETWORK_IMS_REG_NETWORK_TYPE_IMS, /**< RCS Feature type */
-	NETWORK_IMS_REG_NETWORK_TYPE_EMERGENCY /**< VT Feature type */
+	NETWORK_IMS_REG_NETWORK_TYPE_UNKNOWN, /**< Unknown */
+	NETWORK_IMS_REG_NETWORK_TYPE_MOBILE, /**< Mobile */
+	NETWORK_IMS_REG_NETWORK_TYPE_WIFI, /**< WiFi */
 };
 
 /* IMS specific */
@@ -541,6 +540,10 @@ struct tresp_network_get_default_subs {
 };
 
 struct tresp_network_search_ecc_rat {
+	TReturn result;
+};
+
+struct tresp_network_ims_deregister {
 	TReturn result;
 };
 

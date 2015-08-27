@@ -727,7 +727,7 @@ enum icon_qualifier{
 struct tel_sat_icon{
 	unsigned char width;
 	unsigned char height;
-	enum img_coding_scheme ics;
+	enum tel_sim_img_coding_scheme ics;
 	unsigned short icon_data_len;
 	unsigned short clut_data_len;
 	char icon_file[SAT_IMG_DATA_FILE_PATH_LEN_MAX];

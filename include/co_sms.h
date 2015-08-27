@@ -40,11 +40,6 @@ __BEGIN_DECLS
 #define nDCSOffset				26
 #define nVPOffset					27
 
-struct property_sms_info {
-	int g_trans_id;
-	int SMSPRecordLen;
-};
-
 struct tcore_sms_operations {
 	TReturn (*send_umts_msg)(CoreObject *o, UserRequest *ur);
 	TReturn (*read_msg)(CoreObject *o, UserRequest *ur);

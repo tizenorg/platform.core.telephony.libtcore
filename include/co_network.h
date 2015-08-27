@@ -124,6 +124,7 @@ struct tcore_network_operations {
 	TReturn (*get_roaming_preference)(CoreObject *o, UserRequest *ur); /* 3GPP2 spcefic */
 	TReturn (*get_subscription_info)(CoreObject *o, UserRequest *ur); /* 3GPP2 spcefic */
 	TReturn (*search_ecc_rat)(CoreObject *o, UserRequest *ur);
+	TReturn (*ims_deregister)(CoreObject *o, UserRequest *ur);
 };
 
 

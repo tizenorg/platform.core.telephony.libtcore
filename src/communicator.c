@@ -31,7 +31,7 @@
 
 struct tcore_communicator_type {
 	char *name;
-	struct tcore_communitor_operations *ops;
+	struct tcore_communicator_operations *ops;
 
 	void *user_data;
 
@@ -40,7 +40,7 @@ struct tcore_communicator_type {
 
 
 Communicator *tcore_communicator_new(TcorePlugin *plugin,
-	const char *name, struct tcore_communitor_operations *ops)
+	const char *name, struct tcore_communicator_operations *ops)
 {
 	Communicator *comm;
 

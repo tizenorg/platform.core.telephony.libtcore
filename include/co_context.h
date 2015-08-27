@@ -151,6 +151,8 @@ pcscf_addr *tcore_context_get_pcscf_ipv4_addr(CoreObject *o);
 pcscf_addr *tcore_context_get_pcscf_ipv6_addr(CoreObject *o);
 TReturn tcore_context_set_attach_apn(CoreObject *o, gboolean flag);
 gboolean tcore_context_get_attach_apn(CoreObject *o);
+TReturn tcore_context_set_roaming_apn(CoreObject *o, gboolean flag);
+gboolean tcore_context_get_roaming_apn(CoreObject *o);
 
 __END_DECLS
 

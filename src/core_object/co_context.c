@@ -36,6 +36,7 @@ struct private_object_data {
 	enum co_context_role role;
 	gboolean default_profile;
 	gboolean attach_apn;
+	gboolean roaming_apn;
 
 	char *apn;
 	char *addr;
@@ -1155,4 +1156,32 @@ gboolean tcore_context_get_attach_apn(CoreObject *o)
 		return FALSE;
 
 	return po->attach_apn;
+}
+
+TReturn tcore_context_set_roaming_apn(CoreObject *o, gboolean flag)
+{
+	struct private_object_data *po = NULL;
+
+	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PS_CONTEXT, TCORE_RETURN_EINVAL);
+
+	po = tcore_object_ref_object(o);
+	if (!po)
+		return TCORE_RETURN_EINVAL;
+
+	po->roaming_apn = flag;
+
+	return TCORE_RETURN_SUCCESS;
+}
+
+gboolean tcore_context_get_roaming_apn(CoreObject *o)
+{
+	struct private_object_data *po = NULL;
+
+	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PS_CONTEXT, FALSE);
+
+	po = tcore_object_ref_object(o);
+	if (!po)
+		return FALSE;
+
+	return po->roaming_apn;
 }

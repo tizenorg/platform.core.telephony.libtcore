@@ -85,7 +85,6 @@ enum tcore_storage_key {
 	STORAGE_KEY_SETAPPL_STATE_DATA_ROAMING_BOOL,
 	STORAGE_KEY_SETAPPL_STATE_AUTOMATIC_TIME_UPDATE_BOOL,
 	STORAGE_KEY_SETAPPL_NETWORK_RESTRICT_MODE,
-	STORAGE_KEY_SETAPPL_MOBILE_DATA_POPUP_DONE_BOOL,
 	STORAGE_KEY_MSG_SERVER_READY_BOOL,
 	STORAGE_KEY_FLIGHT_MODE_BOOL,
 	STORAGE_KEY_TESTMODE_FAST_DORMANCY_BOOL,
@@ -148,6 +147,9 @@ struct storage_operations {
 	gboolean (*read_query_database)(Storage *strg, void *handle,
 		const char *query, GHashTable *in_param,
 		GHashTable *out_param, int out_param_cnt);
+	gboolean (*read_query_database_in_order)(Storage *strg, void *handle,
+		const char *query, GHashTable *in_param,
+		GSList **out_param, int out_param_cnt);
 	gboolean (*insert_query_database)(Storage *strg, void *handle,
 		const char *query, GHashTable *in_param);
 	gboolean (*remove_query_database)(Storage *strg, void *handle,
@@ -186,6 +188,9 @@ gboolean tcore_storage_update_query_database(Storage *strg, void *handle,
 gboolean tcore_storage_read_query_database(Storage *strg, void *handle,
 	const char *query, GHashTable *in_param,
 	GHashTable *out_param, int out_param_cnt);
+gboolean tcore_storage_read_query_database_in_order(Storage *strg, void *handle,
+	const char *query, GHashTable *in_param,
+	GSList **out_param, int out_param_cnt);
 gboolean tcore_storage_insert_query_database(Storage *strg, void *handle,
 	const char *query, GHashTable *in_param);
 gboolean tcore_storage_remove_query_database(Storage *strg, void *handle,
