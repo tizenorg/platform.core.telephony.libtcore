@@ -280,13 +280,13 @@ enum telephony_ss_error {
 struct treq_ss_barring {
 	enum telephony_ss_class class;
 	enum telephony_ss_barring_mode mode;
-	char password[ MAX_SS_BARRING_PASSWORD_LEN ];
+	char password[ MAX_SS_BARRING_PASSWORD_LEN + 1 ];
 };
 
 struct treq_ss_barring_change_password {
-	char password_old[ MAX_SS_BARRING_PASSWORD_LEN ];
-	char password_new[ MAX_SS_BARRING_PASSWORD_LEN ];
-	char password_confirm[ MAX_SS_BARRING_PASSWORD_LEN ];
+	char password_old[ MAX_SS_BARRING_PASSWORD_LEN + 1 ];
+	char password_new[ MAX_SS_BARRING_PASSWORD_LEN + 1 ];
+	char password_confirm[ MAX_SS_BARRING_PASSWORD_LEN + 1 ];
 };
 
 #define MAX_SS_FORWARDING_NUMBER_LEN 32
