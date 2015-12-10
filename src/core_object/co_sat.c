@@ -78,6 +78,7 @@
 #define SATK_IMMEDIATE_RESPONSE_TAG			0x2B /* IMMEDIATE RESPONSE TAG */
 #define SATK_DTMF_STRING_TAG				0x2C /* DTMF STRING TAG */
 #define SATK_LANGUAGE_TAG				0x2D /* LANGUAGE TAG */
+#define SATK_AID_TAG					0x2F /* AID TAG */
 #define SATK_BROWSER_IDENTITY_TAG			0x30 /* BROWSER IDENTITY TAG */
 #define SATK_URL_TAG					0x31 /* URL TAG */
 #define SATK_BEARER_TAG				0x32 /* BEARER TAG */
@@ -96,6 +97,13 @@
 #define SATK_REMOTE_ENTITY_ADDRESS_TAG		0x49 /* REMOTE ENTITY ADDRESS TAG */
 #define SATK_TEXT_ATTRIBUTE_TAG			0x50 /* TEXT ATTRIBUTE TAG */
 #define SATK_TEXT_ATTRIBUTE_LIST_TAG			0x51 /* TEXT ATTRIBUTE LIST TAG */
+#define SATK_IMEISV_TAG 				0x62 /* IMEISV TAG */
+#define SATK_BATTERY_STATE_TAG 			0x63 /* BATTERY STATE TAG */
+#define SATK_BROWSING_STATUS_TAG 		0x64 /* BROWSING STATUS TAG */
+#define SATK_NETWORK_SEARCH_MODE_TAG 	0x65 /* NETWORK SEARCH MODE TAG */
+#define SATK_FRAME_LAYOUT_TAG 			0x66 /* FRAME LAYOUT TAG */
+#define SATK_FRAME_INFORMATION_TAG 		0x67 /* FRAME INFORMATION TAG */
+#define SATK_FRAME_IDENTIFIER_TAG 		0x68 /* FRAME IDENTIFIER TAG */
 
 /* general data object lengths */
 #define SATK_DCS_LENGTH				0x01
@@ -117,7 +125,9 @@
 #define SATK_BUFFER_SIZE_LENGTH			0x02 /*  BUFFER SIZE LENGTH */
 #define SATK_UICC_ME_TRANS_INTERFACE_LEVEL_LENGTH	0x03 /*  UICC TERMINAL TRANSPORT INTERFACE LEVEL LENGTH */
 #define SATK_CHANNEL_DATA_LENGTH_VALUE_LENGTH	0x01 /*  CHANNEL DATA LENGTH VALUE LENGTH */
-#define SATK_CHANNEL_STATUS_LENGTH			0x02 /*  CHANNEL STATUS LENGTH */
+#define SATK_CHANNEL_STATUS_LENGTH				0x02 /*  CHANNEL STATUS LENGTH */
+#define SATK_AID_LENGTH							0x01 /*  APPLICATION IDENTIFIER LENGTH */
+#define SATK_FRAME_IDENTIFIER_LENGTH			0x01 /*  FRAME IDENTIFIER LENGTH */
 
 struct private_object_data {
 	struct tcore_sat_operations *ops[TCORE_OPS_TYPE_MAX];
@@ -2536,6 +2546,90 @@ static enum tcore_sat_result _sat_decode_text_attribute_tlv(unsigned char *tlv_s
 	return TCORE_SAT_SUCCESS;
 }
 
+static enum tcore_sat_result _sat_decode_application_identifier_tlv(unsigned char *tlv_str, int tlv_len,
+	int curr_offset, struct tel_sat_application_identifier *aid_obj, int *consumed_data_len)
+{
+	int temp_index = 0;
+
+	if (tlv_str == NULL || consumed_data_len == NULL || aid_obj == NULL) {
+		dbg("[SAT] SAT PARSER -  tlv_str == NULL || consumed_data_len == NULL || aid_obj == NULL");
+		return TCORE_SAT_ERROR_FATAL;
+	}
+
+	if (tlv_len <= (curr_offset + 1)) {
+		dbg("[SAT] SAT PARSER -  incorrect length original_command_len=%d", tlv_len);
+		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
+	}
+
+	/* tag */
+	temp_index = curr_offset;
+	if ((tlv_str[temp_index++] & 0x7F) != SATK_AID_TAG) {
+		dbg("[SAT] SAT PARSER -  AID tag missing.");
+		return TCORE_SAT_REQUIRED_VALUE_MISSING; //send TR
+	}
+
+	if (tlv_str[temp_index] != SATK_AID_LENGTH) {
+		dbg("[SAT] SAT PARSER -  AID length incorrect.");
+		return TCORE_SAT_REQUIRED_VALUE_MISSING; //send TR
+	}
+
+	/* length */
+	aid_obj->length = tlv_str[temp_index++];
+	if (aid_obj->length > SAT_AID_LEN_MAX) {
+		dbg("[SAT] SAT PARSER -  AID length is longer than SAT_AID_LEN_MAX");
+		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
+	}
+
+	if (aid_obj->length > 0) {
+		aid_obj->b_is_exist = TRUE;
+		memcpy(aid_obj->identifier, &tlv_str[temp_index], aid_obj->length);
+	}
+
+	*consumed_data_len = 1 + 1 + aid_obj->length;
+
+	dbg("[SAT] SAT PARSER -  length=%d, RID[%x%x%x%x%x]",
+		aid_obj->length, aid_obj->identifier[0],
+		aid_obj->identifier[1], aid_obj->identifier[2],
+		aid_obj->identifier[3], aid_obj->identifier[4]);
+	return TCORE_SAT_SUCCESS;
+}
+
+static enum tcore_sat_result _sat_decode_frame_identifier_tlv(unsigned char *tlv_str, int tlv_len,
+	int curr_offset, struct tel_sat_frame_identifier *frame_id_obj, int *consumed_data_len)
+{
+	int temp_index = 0;
+
+	if (tlv_str == NULL || consumed_data_len == NULL || frame_id_obj == NULL) {
+		dbg("[SAT] SAT PARSER -  tlv_str == NULL || consumed_data_len == NULL || frame_id_obj == NULL");
+		return TCORE_SAT_ERROR_FATAL;
+	}
+
+	if (tlv_len <= (curr_offset + 2)) {
+		dbg("[SAT] SAT PARSER -  incorrect length original_command_len=%d", tlv_len);
+		return TCORE_SAT_COMMAND_NOT_UNDERSTOOD;
+	}
+
+	/* tag */
+	temp_index = curr_offset;
+	if ((tlv_str[temp_index++] & 0x7F) != SATK_FRAME_IDENTIFIER_TAG) {
+		dbg("[SAT] SAT PARSER -  frame id tag missing.");
+		return TCORE_SAT_REQUIRED_VALUE_MISSING; //send TR
+	}
+
+	if (tlv_str[temp_index++] != SATK_FRAME_IDENTIFIER_LENGTH) {
+		dbg("[SAT] SAT PARSER -  frame id length incorrect.");
+		return TCORE_SAT_REQUIRED_VALUE_MISSING; //send TR
+	}
+
+	/* value */
+	frame_id_obj->b_is_exist = TRUE;
+	frame_id_obj->identifier = tlv_str[temp_index++];
+
+	*consumed_data_len = 1 + 1 + 1;
+	dbg("[SAT] SAT PARSER -  frame id = 0x%x", frame_id_obj->identifier);
+	return TCORE_SAT_SUCCESS;
+}
+
 /*
  * decode proactive cmd
  */
@@ -3253,9 +3347,75 @@ static enum tcore_sat_result _sat_decode_refresh(unsigned char *o_cmd_data, int 
 			&data_len_consumed);
 		if (rv != TCORE_SAT_SUCCESS)
 			return rv;
-	} else
+	} else {
 		sat_cmd_ind_data->data.refresh.file_list.file_count = 0;
+	}
 
+	if (temp_index+data_len_consumed >= o_length) {
+		dbg("[SAT] SAT PARSER - no more TLVs to decode.");
+		return TCORE_SAT_SUCCESS;
+	}
+
+	/* AID - optional */
+	if ((cmd_data[temp_index]&0x7F) == SATK_AID_TAG) {
+		data_len_consumed = 0;
+		rv = _sat_decode_application_identifier_tlv(o_cmd_data, o_length, temp_index, &sat_cmd_ind_data->data.refresh.aid, &data_len_consumed);
+		if (rv != TCORE_SAT_SUCCESS)
+			return rv;
+		temp_index+=data_len_consumed;
+		if (temp_index >= o_length) {
+			dbg("[SAT] SAT PARSER - no more TLVs to decode.");
+			return TCORE_SAT_SUCCESS;
+		}
+	}
+
+	/* alpha identifier - optional */
+	if ((cmd_data[temp_index]&0x7F) == SATK_ALPHA_IDENTIFIER_TAG) {
+		data_len_consumed = 0;
+		rv = _sat_decode_alpha_identifier_tlv(o_cmd_data, o_length, temp_index, &sat_cmd_ind_data->data.refresh.alpha_id, &data_len_consumed);
+		if (rv != TCORE_SAT_SUCCESS)
+			return rv;
+		temp_index+=data_len_consumed;
+		if (temp_index >= o_length) {
+			dbg("[SAT] SAT PARSER - no more TLVs to decode.");
+			return TCORE_SAT_SUCCESS;
+		}
+	}
+
+	/* icon identifier - optional */
+	if ((cmd_data[temp_index]&0x7F) == SATK_ICON_IDENTIFIER_TAG) {
+		data_len_consumed = 0;
+		rv = _sat_decode_icon_identifier_tlv(o_cmd_data, o_length, temp_index, &sat_cmd_ind_data->data.refresh.icon_id, &data_len_consumed);
+		if (rv != TCORE_SAT_SUCCESS)
+			return rv;
+		temp_index+=data_len_consumed;
+		if (temp_index >= o_length) {
+			dbg("[SAT] SAT PARSER - no more TLVs to decode.");
+			return TCORE_SAT_SUCCESS;
+		}
+	}
+
+	/* text attribute - optional */
+	if ((cmd_data[temp_index]&0x7F) == SATK_TEXT_ATTRIBUTE_TAG) {
+		data_len_consumed = 0;
+		rv = _sat_decode_text_attribute_tlv(o_cmd_data, o_length, temp_index, &sat_cmd_ind_data->data.refresh.text_attribute, &data_len_consumed);
+		if (rv != TCORE_SAT_SUCCESS)
+			return rv;
+		temp_index+=data_len_consumed;
+		if (temp_index >= o_length) {
+			dbg("[SAT] SAT PARSER - no more TLVs to decode.");
+			return TCORE_SAT_SUCCESS;
+		}
+	}
+
+	/* frame identifier - optional */
+	if ((cmd_data[temp_index]&0x7F) == SATK_FRAME_IDENTIFIER_TAG) {
+		data_len_consumed = 0;
+		rv = _sat_decode_frame_identifier_tlv(o_cmd_data, o_length, temp_index, &sat_cmd_ind_data->data.refresh.frame_id, &data_len_consumed);
+		if (rv != TCORE_SAT_SUCCESS)
+			return rv;
+		temp_index+=data_len_consumed;
+	}
 	dbg("[SAT] SAT PARSER - :decoding done!.");
 	return TCORE_SAT_SUCCESS;
 }
@@ -5988,7 +6148,6 @@ static int _sat_encode_item_identifier_tlv(const struct tel_sat_item_identifier 
 	return 3;
 }
 
-#if 0
 static int _sat_encode_duration_tlv(const struct tel_sat_duration *src, char *dst, int current_temp_index)
 {
 	dst[current_temp_index++] = SATK_DURATION_TAG;
@@ -5999,7 +6158,6 @@ static int _sat_encode_duration_tlv(const struct tel_sat_duration *src, char *ds
 	/*duration total len 4 */
 	return 4;
 }
-#endif
 
 static int _sat_encode_text_tlv(const struct tel_sat_text_string_object *src, char *dst, int current_temp_index, gboolean raw_dcs)
 {
@@ -6462,9 +6620,16 @@ static int _sat_encode_get_inkey(const struct tel_sat_tr_get_inkey_tlv *src_tr, 
 	case RESULT_COMMAND_DATA_NOT_UNDERSTOOD_BY_ME:
 	case RESULT_COMMAND_NUMBER_NOT_KNOWN_BY_ME:
 	case RESULT_ERROR_REQUIRED_VALUES_ARE_MISSING:
+		dst_tr[temp_index++] = 1;
+		dst_tr[temp_index++] = src_tr->result_type;
+	break;
 	case RESULT_NO_RESPONSE_FROM_USER:
 		dst_tr[temp_index++] = 1;
 		dst_tr[temp_index++] = src_tr->result_type;
+		if (src_tr->duration.time_interval > 0) {
+			encoded_len = _sat_encode_duration_tlv(&src_tr->duration, dst_tr, temp_index);
+			temp_index += encoded_len;
+		}
 	break;
 
 	case RESULT_ME_UNABLE_TO_PROCESS_COMMAND:

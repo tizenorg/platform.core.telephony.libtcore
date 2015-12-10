@@ -1080,6 +1080,15 @@ struct tel_sat_uicc_terminal_interface_transport_level{
 };
 
 /*
+ * 8.60 AID (Application Identifier)
+ */
+struct tel_sat_application_identifier {
+	gboolean b_is_exist;
+	unsigned short length;
+	unsigned char identifier[SAT_AID_LEN_MAX]; /* length is 16 byte, Refer TS 101.220 */
+};
+
+/*
  * 8.68 Remote entity address
  */
 enum remote_entity_coding_type{
@@ -1116,6 +1125,14 @@ struct tel_sat_text_attribute{
 struct tel_sat_text_attribute_list{
 	unsigned int list_cnt;
 	struct tel_sat_text_attribute text_attribute_list[SAT_ITEM_TEXT_ATTRIBUTES_LIST_MAX_COUNT];
+};
+
+/*
+ * 8.80 Frame Identifier
+ */
+struct tel_sat_frame_identifier {
+	gboolean b_is_exist;
+	unsigned char identifier;
 };
 
 /*
@@ -1278,11 +1295,15 @@ struct tel_sat_setup_call_tlv{
 /*
  * 6.6.13 REFRESH
  */
-struct tel_sat_refresh_tlv{
+struct tel_sat_refresh_tlv {
 	struct tel_sat_cmd_detail_info command_detail;
 	struct tel_sat_device_identities device_id;
 	struct tel_sat_file_list file_list;
-	char aid[16]; // 8.60 AID - length is 16 byte, Refer TS 101.220
+	struct tel_sat_application_identifier aid; /* 8.60 AID - length is 16 byte, Refer TS 101.220 */
+	struct tel_sat_alpha_identifier alpha_id;
+	struct tel_sat_icon_identifier icon_id;
+	struct tel_sat_text_attribute text_attribute;
+	struct tel_sat_frame_identifier frame_id;
 };
 
 /*
