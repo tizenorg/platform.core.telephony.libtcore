@@ -2811,9 +2811,15 @@ gboolean tcore_sim_decode_isim_pcscf(struct tel_sim_pcscf *p_out, unsigned char 
 
 	/* P-CSCF Address length */
 	len = p_in[1];
+	if (len <= 0) {
+		err("invalid address length : len : %d", len);
+		return FALSE;
+	}
 
-	if (in_length < len + 2)
+	if (in_length < len + 2) {
 		err("invalid length. in_length[%d] < TLV_len[%d] + 2", in_length, len);
+		return FALSE;
+	}
 
 	/* P-CSCF Address type */
 	if (p_in[2] == 0x00)
