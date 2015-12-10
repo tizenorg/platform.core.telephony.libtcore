@@ -1551,7 +1551,8 @@ gboolean tcore_sim_decode_xdn(struct tel_sim_dialing_number *p_xdn, unsigned cha
 
 	memset((void *)p_xdn, 0, sizeof(struct tel_sim_dialing_number));
 
-	if (in_length == 0)
+	/* Min Length 14 is Spec Defined File ID MBDN -6FC7 & CPHS MAILBOX 6F17 */
+	if (in_length == 0 || in_length < 14)
 		return FALSE;
 
 	if (_is_empty(p_in, in_length) == TRUE)
@@ -1559,9 +1560,9 @@ gboolean tcore_sim_decode_xdn(struct tel_sim_dialing_number *p_xdn, unsigned cha
 
 	X = in_length - 14; /* get alpha id max length */
 
-	if (X != 0) {
-		_get_string((unsigned char *)p_xdn->alpha_id, p_in, X);
-		p_xdn->alpha_id_max_len = X;
+	if (X > 0) {
+		p_xdn->alpha_id_max_len = X > SIM_XDN_ALPHA_ID_LEN_MAX ? SIM_XDN_ALPHA_ID_LEN_MAX : X;
+		_get_string((unsigned char *)p_xdn->alpha_id, p_in, p_xdn->alpha_id_max_len);
 	}
 
 	/* get dialing number length */
@@ -1839,7 +1840,8 @@ gboolean tcore_sim_decode_uecc(struct tel_sim_ecc *p_ecc, unsigned char *p_in, i
 	_bcd_to_digit((char *) p_ecc->ecc_num, (char *)&p_in[0], bcd_byte);
 
 	/* get the alpha identifier of ECC */
-	_get_string((unsigned char *) p_ecc->ecc_string, (unsigned char *)&p_in[3], in_length - 3);
+	_get_string((unsigned char *)p_ecc->ecc_string, (unsigned char *)&p_in[3],
+	 			(in_length - 3 > SIM_ECC_STRING_LEN_MAX) ? SIM_ECC_STRING_LEN_MAX : in_length - 3);
 
 	eccServiceCategory = p_in[in_length - 1];
 
