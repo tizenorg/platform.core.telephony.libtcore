@@ -482,7 +482,7 @@ try_again:
 	str_converted = (gchar *)g_convert((const gchar *)in, (gssize)in_len,
 			"UTF8", "UCS-2BE", &byte_read, &byte_converted, NULL);
 
-	dbg("read:[%d] converted:[%d] out:[%s]", byte_read, byte_converted, str_converted);
+	dbg("read:[%d] converted:[%d]", byte_read, byte_converted);
 
 	*out_len = byte_converted;
 	if (str_converted) {
@@ -1231,6 +1231,37 @@ TReturn tcore_util_netif_set(const char *name,
 		}
 	}
 
+	close(fd);
+	return TCORE_RETURN_SUCCESS;
+}
+
+TReturn tcore_util_netif_get_index(const char *name, int *if_index)
+{
+	int ret;
+	int fd;
+	struct ifreq ifr;
+
+	if (!name || !if_index)
+		return TCORE_RETURN_EINVAL;
+
+	if (strlen(name) > IFNAMSIZ)
+		return TCORE_RETURN_EINVAL;
+
+	fd = socket(AF_INET, SOCK_DGRAM, 0);
+	if (fd < 0)
+		return TCORE_RETURN_FAILURE;
+
+	memset(&ifr, 0, sizeof(struct ifreq));
+	strncpy(ifr.ifr_name, name, IFNAMSIZ);
+	ifr.ifr_name[IFNAMSIZ - 1] = '\0';
+
+	ret = ioctl(fd, SIOCGIFINDEX, &ifr);
+	if (ret < 0) {
+		close(fd);
+		return TCORE_RETURN_FAILURE;
+	}
+
+	*if_index = ifr.ifr_ifindex;
 	close(fd);
 	return TCORE_RETURN_SUCCESS;
 }
