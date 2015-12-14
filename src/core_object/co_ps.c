@@ -781,11 +781,6 @@ TReturn tcore_ps_deactivate_context(CoreObject *o, CoreObject *ps_context, void 
 	if (!po)
 		return TCORE_RETURN_EINVAL;
 
-	if (!po->online) {
-		dbg("ps network is not online !");
-		return TCORE_RETURN_PS_NETWORK_NOT_READY;
-	}
-
 	if (!ps_context)
 		return TCORE_RETURN_EINVAL;
 
@@ -795,9 +790,7 @@ TReturn tcore_ps_deactivate_context(CoreObject *o, CoreObject *ps_context, void 
 
 	rv = _ps_is_duplicated_apn(o, ps_context);
 	if (rv) {
-		unsigned char cid = 0;
-		cid = tcore_context_get_id(ps_context);
-		po->cid[cid].contexts = g_slist_remove(po->cid[cid].contexts, ps_context);
+		tcore_ps_clear_context_id(o, ps_context);
 		tcore_context_set_state(ps_context, CONTEXT_STATE_DEACTIVATED);
 		return TCORE_RETURN_SUCCESS;
 	}
