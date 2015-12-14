@@ -42,7 +42,7 @@ __BEGIN_DECLS
 #define SIM_XDN_NUMBER_LEN_MAX 20 //telephony defined
 #define SIM_MSISDN_NUMBER_LEN_MAX 26 //telephony defined
 #define SIM_ECC_BYTE_LEN_MAX 3 //3gpp
-#define SIM_ECC_STRING_LEN_MAX 50 //telephony defined
+#define SIM_ECC_STRING_LEN_MAX 30 //telephony defined
 #define SIM_ECC_RECORD_CNT_MAX 15 //telephony defined
 #define SIM_EXT_RECORD_CNT_MAX 15 //telephony defined
 #define SIM_CF_RECORD_CNT_MAX 2 //telephony defined
