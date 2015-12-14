@@ -2749,7 +2749,10 @@ gboolean tcore_sim_decode_isim_impi(struct tel_sim_impi *p_out, unsigned char *p
 	if (in_length < len + 2)
 		err("invalid length. in_length[%d] < TLV_len[%d] + 2", in_length, len);
 
-	p_out->impi = g_memdup(&p_in[2], len);
+	p_out->impi = calloc(1, len + 1);
+
+	memcpy(p_out->impi, &p_in[2], len);
+
 
 	return TRUE;
 }
