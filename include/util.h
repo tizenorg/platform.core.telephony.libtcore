@@ -64,6 +64,7 @@ TReturn tcore_util_netif_up(const char *name);
 TReturn tcore_util_netif_down(const char *name);
 TReturn tcore_util_netif_set(const char *name,
 	const char *ipaddr, const char *gateway, const char *netmask);
+TReturn tcore_util_netif_get_index(const char *name, int *if_index);
 TReturn tcore_util_netif_set_arp(const char *name, gboolean disable);
 TReturn tcore_util_reset_ipv4_socket(const char *name, const char *ipaddr);
 TReturn tcore_util_netif_set_mtu(const char *name, unsigned int mtu);
