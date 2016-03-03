@@ -22,6 +22,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <tzplatform_config.h>
+
 #include <glib.h>
 
 #include "tcore.h"
