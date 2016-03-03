@@ -1,6 +1,6 @@
 %define major 0
 %define minor 2
-%define patchlevel 94
+%define patchlevel 95
 
 Name:           libtcore
 Version:        %{major}.%{minor}.%{patchlevel}
@@ -12,6 +12,7 @@ Source0:        libtcore-%{version}.tar.gz
 BuildRequires:  cmake
 BuildRequires:  pkgconfig(glib-2.0)
 BuildRequires:  pkgconfig(gudev-1.0)
+BuildRequires:  pkgconfig(libtzplatform-config)
 Requires(post): /sbin/ldconfig
 Requires(postun): /sbin/ldconfig
 

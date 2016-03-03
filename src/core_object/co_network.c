@@ -22,6 +22,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <tzplatform_config.h>
+
 #include <glib.h>
 
 #include "tcore.h"
@@ -32,6 +34,8 @@
 #include "user_request.h"
 #include "co_network.h"
 #include "storage.h"
+
+#define NETWORK_MCC_MNC_OPER_LIST_GSMA_DB tzplatform_mkpath(TZ_SYS_DB, ".mcc_mnc_oper_list.db")
 
 struct private_object_data {
 	struct tcore_network_operations *ops[TCORE_OPS_TYPE_MAX];

@@ -60,8 +60,6 @@ __BEGIN_DECLS
  */
 #define PROP_MODEM_READ_ESN_FOR_ACTIVATION  "esn_for_activation"
 
-#define NETWORK_MCC_MNC_OPER_LIST_GSMA_DB "/opt/dbspace/.mcc_mnc_oper_list.db"
-
 enum tcore_network_service_domain_type {
 	TCORE_NETWORK_SERVICE_DOMAIN_TYPE_CIRCUIT,
 	TCORE_NETWORK_SERVICE_DOMAIN_TYPE_PACKET
