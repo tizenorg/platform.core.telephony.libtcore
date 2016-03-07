@@ -559,6 +559,18 @@ struct tnoti_network_location_cellinfo {
 	unsigned int cell_id;
 };
 
+/*
+ * @brief The structure type for CDMA location cell info.
+ * @since_tizen 3.0
+ */
+struct tnoti_network_location_cellinfo_cdma {
+	int system_id;
+	int network_id;
+	int bs_id;
+	int bs_latitude;
+	int bs_longitude;
+};
+
 struct tnoti_network_icon_info {
 	enum telephony_network_icon_info_type type;
 	int rssi;
