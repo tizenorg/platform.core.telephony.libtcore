@@ -33,6 +33,14 @@ Branch: refs/heads/tizen
 Code-Review+2: JooSeok Park <jooseok.park@samsung.com>
 Verified+1: JooSeok Park <jooseok.park@samsung.com>
 Submitted-by: JooSeok Park <jooseok.park@samsung.com>
+Submitted-at: Mon, 07 Mar 2016 16:46:10 -0700
+Reviewed-on: https://review.tizen.org/gerrit/61265
+Project: platform/core/telephony/libtcore
+Branch: refs/heads/tizen
+
+Code-Review+2: JooSeok Park <jooseok.park@samsung.com>
+Verified+1: JooSeok Park <jooseok.park@samsung.com>
+Submitted-by: JooSeok Park <jooseok.park@samsung.com>
 Submitted-at: Mon, 07 Mar 2016 15:46:10 -0800
 Reviewed-on: https://review.tizen.org/gerrit/61265
 Project: platform/core/telephony/libtcore
