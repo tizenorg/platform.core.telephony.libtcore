@@ -102,6 +102,8 @@ TReturn tcore_context_set_address(CoreObject *o, const char *addr);
 char *tcore_context_get_address(CoreObject *o);
 TReturn tcore_context_set_type(CoreObject *o, enum co_context_type type);
 enum co_context_type tcore_context_get_type(CoreObject *o);
+TReturn tcore_context_set_roam_pdp_type(CoreObject *o, enum co_context_type type);
+enum co_context_type tcore_context_get_roam_pdp_type(CoreObject *o);
 TReturn tcore_context_set_data_compression(CoreObject *o, enum co_context_d_comp comp);
 enum co_context_d_comp tcore_context_get_data_compression(CoreObject *o);
 TReturn tcore_context_set_header_compression(CoreObject *o, enum co_context_h_comp comp);

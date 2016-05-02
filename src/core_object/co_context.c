@@ -41,6 +41,7 @@ struct private_object_data {
 	char *apn;
 	char *addr;
 	enum co_context_type type;
+	enum co_context_type roam_pdp_type;
 	enum co_context_d_comp d_comp;
 	enum co_context_h_comp h_comp;
 	enum co_context_tech tech_pref;
@@ -306,6 +307,34 @@ enum co_context_type tcore_context_get_type(CoreObject *o)
 		return 0;
 
 	return po->type;
+}
+
+TReturn tcore_context_set_roam_pdp_type(CoreObject *o, enum co_context_type roam_pdp_type)
+{
+	struct private_object_data *po = NULL;
+
+	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PS_CONTEXT, TCORE_RETURN_EINVAL);
+
+	po = tcore_object_ref_object(o);
+	if (!po)
+		return TCORE_RETURN_EINVAL;
+
+	po->roam_pdp_type = roam_pdp_type;
+
+	return TCORE_RETURN_SUCCESS;
+}
+
+enum co_context_type tcore_context_get_roam_pdp_type(CoreObject *o)
+{
+	struct private_object_data *po = NULL;
+
+	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PS_CONTEXT, 0);
+
+	po = tcore_object_ref_object(o);
+	if (!po)
+		return 0;
+
+	return po->roam_pdp_type;
 }
 
 TReturn tcore_context_set_data_compression(CoreObject *o, enum co_context_d_comp comp)
