@@ -1,6 +1,6 @@
 %define major 0
 %define minor 2
-%define patchlevel 97
+%define patchlevel 98
 
 Name:           libtcore
 Version:        %{major}.%{minor}.%{patchlevel}
@@ -51,14 +51,14 @@ mkdir -p %{buildroot}%{_datadir}/license
 
 %files
 %manifest libtcore.manifest
-%defattr(644,system,system,-)
+%defattr(644,root,root,-)
 #%doc COPYING
 %{_libdir}/libtcore*
 #%{_bindir}/*
 %{_datadir}/license/libtcore
 
 %files devel
-%defattr(644,system,system,-)
+%defattr(644,root,root,-)
 %{_includedir}/*
 %{_libdir}/pkgconfig/tcore.pc
 
