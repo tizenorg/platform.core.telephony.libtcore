@@ -1064,7 +1064,7 @@ char *tcore_sim_encode_li(int *out_length, struct tel_sim_language *p_in)
 	memset((void *)tmp_out, 0xff, (p_in->language_count) * 2);
 
 	for (i = 0; i < p_in->language_count; i++) {
-		if (p_in->language[i] < SIM_LANG_UNSPECIFIED) {
+		if (p_in->language[i] <= SIM_LANG_JAPANESE) {
 			strncpy((char *) &tmp_out[i * 2], LanguageCode[p_in->language[i]], 2);
 			dbg("sim_encode_li: p_out[%s]:[%x][%x]", tmp_out, tmp_out[i*2], tmp_out[(i*2)+1]);
 		}
