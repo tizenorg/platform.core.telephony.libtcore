@@ -1038,6 +1038,53 @@ gboolean tcore_sim_decode_li(enum tel_sim_file_id file_id, struct tel_sim_langua
 	}
 }
 
+static const char *_convert_language_code_to_string(enum tel_sim_language_type lang)
+{
+	switch (lang) {
+	case SIM_LANG_GERMAN:
+		return "de";
+	case SIM_LANG_ENGLISH:
+		return "en";
+	case SIM_LANG_ITALIAN:
+		return "it";
+	case SIM_LANG_FRENCH:
+		return "fr";
+	case SIM_LANG_SPANISH:
+		return "es";
+	case SIM_LANG_DUTCH:
+		return "nl";
+	case SIM_LANG_SWEDISH:
+		return "sv";
+	case SIM_LANG_DANISH:
+		return "da";
+	case SIM_LANG_PORTUGUESE:
+		return "pt";
+	case SIM_LANG_FINNISH:
+		return "fi";
+	case SIM_LANG_NORWEGIAN:
+		return "no";
+	case SIM_LANG_GREEK:
+		return "el";
+	case SIM_LANG_TURKISH:
+		return "tr";
+	case SIM_LANG_HUNGARIAN:
+		return "hu";
+	case SIM_LANG_POLISH:
+		return "pl";
+	case SIM_LANG_KOREAN:
+		return "ko";
+	case SIM_LANG_CHINESE:
+		return "zh";
+	case SIM_LANG_RUSSIAN:
+		return "ru";
+	case SIM_LANG_JAPANESE:
+		return "ja";
+	case SIM_LANG_UNSPECIFIED:
+	default:
+		return "ff";
+	}
+}
+
 /**
  * This function is used to encode EFLI (3G)
  */
@@ -1045,12 +1092,6 @@ char *tcore_sim_encode_li(int *out_length, struct tel_sim_language *p_in)
 {
 	int i = 0;
 	char *tmp_out = NULL;
-	const char *LanguageCode[] = {
-		"de", "en", "it", "fr",
-		"es", "nl", "sv", "da",
-		"pt", "fi", "no", "el",
-		"tr", "hu", "pl", "ko",
-		"zh", "ru", "ja"};
 
 	if (out_length == NULL || p_in == NULL) {
 		dbg("out_length or p_in is null");
@@ -1064,10 +1105,8 @@ char *tcore_sim_encode_li(int *out_length, struct tel_sim_language *p_in)
 	memset((void *)tmp_out, 0xff, (p_in->language_count) * 2);
 
 	for (i = 0; i < p_in->language_count; i++) {
-		if (p_in->language[i] < SIM_LANG_UNSPECIFIED) {
-			strncpy((char *) &tmp_out[i * 2], LanguageCode[p_in->language[i]], 2);
-			dbg("sim_encode_li: p_out[%s]:[%x][%x]", tmp_out, tmp_out[i*2], tmp_out[(i*2)+1]);
-		}
+		strncpy((char *) &tmp_out[i * 2], _convert_language_code_to_string(p_in->language[i]), 2);
+		dbg("sim_encode_li: p_out[%s]:[%x][%x]", tmp_out, tmp_out[i*2], tmp_out[(i*2)+1]);
 	}
 
 	*out_length = i*2;
