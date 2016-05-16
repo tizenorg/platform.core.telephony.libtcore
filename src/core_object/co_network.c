@@ -1105,7 +1105,7 @@ gboolean tcore_network_load_mcc_mnc_oper_list_from_db(TcorePlugin *p,
 		mcc, mnc);
 	dbg("query = [%s]", query);
 
-	result = g_hash_table_new_full(g_str_hash, g_str_equal, NULL,
+	result = g_hash_table_new_full(g_str_hash, g_str_equal, g_free,
 		(GDestroyNotify) g_hash_table_destroy);
 	if (!result) {
 		err("fail to create new hash table");
