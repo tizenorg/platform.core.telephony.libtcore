@@ -496,7 +496,7 @@ TcorePending *tcore_queue_pop_by_pending(TcoreQueue *queue, TcorePending *pendin
 		i++;
 	} while (1);
 
-	return NULL;
+	//return NULL; /* unreachable */
 }
 
 TcorePending *tcore_queue_pop_timeout_pending(TcoreQueue *queue)
