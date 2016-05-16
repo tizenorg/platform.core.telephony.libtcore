@@ -190,7 +190,7 @@ TReturn tcore_context_set_apn(CoreObject *o, const char *apn)
 		return FALSE;
 
 	if (po->apn) {
-		free(po->apn);
+		g_free(po->apn);
 		po->apn = NULL;
 	}
 
@@ -227,7 +227,7 @@ TReturn tcore_context_set_address(CoreObject *o, const char *addr)
 		return TCORE_RETURN_EINVAL;
 
 	if (po->addr) {
-		free(po->addr);
+		g_free(po->addr);
 		po->addr = NULL;
 	}
 
@@ -432,7 +432,7 @@ TReturn tcore_context_set_username(CoreObject *o, const char *username)
 		return TCORE_RETURN_EINVAL;
 
 	if (po->username) {
-		free(po->username);
+		g_free(po->username);
 		po->username = NULL;
 	}
 
@@ -469,7 +469,7 @@ TReturn tcore_context_set_password(CoreObject *o, const char *password)
 		return TCORE_RETURN_EINVAL;
 
 	if (po->password) {
-		free(po->password);
+		g_free(po->password);
 		po->password = NULL;
 	}
 
@@ -506,7 +506,7 @@ TReturn tcore_context_set_dns1(CoreObject *o, const char *dns)
 		return TCORE_RETURN_EINVAL;
 
 	if (po->dns1) {
-		free(po->dns1);
+		g_free(po->dns1);
 		po->dns1 = NULL;
 	}
 
@@ -527,7 +527,7 @@ TReturn tcore_context_set_ipv6_dns1(CoreObject *o, const char *dns)
 		return TCORE_RETURN_EINVAL;
 
 	if (po->dns_primary_v6) {
-		free(po->dns_primary_v6);
+		g_free(po->dns_primary_v6);
 		po->dns_primary_v6 = NULL;
 	}
 
@@ -564,7 +564,7 @@ TReturn tcore_context_set_dns2(CoreObject *o, const char *dns)
 		return TCORE_RETURN_EINVAL;
 
 	if (po->dns2) {
-		free(po->dns2);
+		g_free(po->dns2);
 		po->dns2 = NULL;
 	}
 
@@ -585,7 +585,7 @@ TReturn tcore_context_set_ipv6_dns2(CoreObject *o, const char *dns)
 		return TCORE_RETURN_EINVAL;
 
 	if (po->dns_secondary_v6) {
-		free(po->dns_secondary_v6);
+		g_free(po->dns_secondary_v6);
 		po->dns_secondary_v6 = NULL;
 	}
 
@@ -650,7 +650,7 @@ TReturn tcore_context_set_proxy(CoreObject *o, const char *proxy)
 		return FALSE;
 
 	if (po->proxy) {
-		free(po->proxy);
+		g_free(po->proxy);
 		po->apn = NULL;
 	}
 
@@ -687,7 +687,7 @@ TReturn tcore_context_set_mmsurl(CoreObject *o, const char *mmsurl)
 		return FALSE;
 
 	if (po->mmsurl) {
-		free(po->mmsurl);
+		g_free(po->mmsurl);
 		po->mmsurl = NULL;
 	}
 
@@ -724,7 +724,7 @@ TReturn tcore_context_set_profile_name(CoreObject *o, const char *profile_name)
 		return FALSE;
 
 	if (po->profile_name) {
-		free(po->profile_name);
+		g_free(po->profile_name);
 		po->profile_name = NULL;
 	}
 
