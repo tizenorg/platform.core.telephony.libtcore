@@ -1,6 +1,6 @@
 %define major 0
 %define minor 3
-%define patchlevel 2
+%define patchlevel 3
 
 Name:           libtcore
 Version:        %{major}.%{minor}.%{patchlevel}

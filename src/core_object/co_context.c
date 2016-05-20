@@ -78,8 +78,53 @@ static void _free_hook(CoreObject *o)
 {
 	struct private_object_data *po = NULL;
 
+	CORE_OBJECT_CHECK(o, CORE_OBJECT_TYPE_PS_CONTEXT);
+
 	po = tcore_object_ref_object(o);
 	if (po) {
+		unsigned int i;
+
+		if (po->apn)
+			g_free(po->apn);
+		if (po->addr)
+			g_free(po->addr);
+		if (po->username)
+			g_free(po->username);
+		if (po->password)
+			g_free(po->password);
+		if (po->dns1)
+			g_free(po->dns1);
+		if (po->dns2)
+			g_free(po->dns2);
+
+		if (po->ip_v6)
+			g_free(po->ip_v6);
+		if (po->gateway_v6)
+			g_free(po->gateway_v6);
+		if (po->dns_primary_v6)
+			g_free(po->dns_primary_v6);
+		if (po->dns_secondary_v6)
+			g_free(po->dns_secondary_v6);
+
+		if (po->pcscf_ipv4) {
+			for (i = 0; i < po->pcscf_ipv4->count; i++)
+				g_free(po->pcscf_ipv4->addr[i]);
+			g_free(po->pcscf_ipv4);
+		}
+
+		if (po->pcscf_ipv6) {
+			for (i = 0; i < po->pcscf_ipv6->count; i++)
+				g_free(po->pcscf_ipv6->addr[i]);
+			g_free(po->pcscf_ipv6);
+		}
+
+		if (po->proxy)
+			g_free(po->proxy);
+		if (po->mmsurl)
+			g_free(po->mmsurl);
+		if (po->profile_name)
+			g_free(po->profile_name);
+
 		free(po);
 		tcore_object_link_object(o, NULL);
 	}
@@ -651,7 +696,7 @@ TReturn tcore_context_set_proxy(CoreObject *o, const char *proxy)
 
 	if (po->proxy) {
 		g_free(po->proxy);
-		po->apn = NULL;
+		po->proxy = NULL;
 	}
 
 	if (proxy)
