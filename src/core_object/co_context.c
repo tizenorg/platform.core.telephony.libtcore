@@ -1001,6 +1001,9 @@ void tcore_context_cp_service_info(CoreObject *dest, CoreObject *src)
 	d_po = tcore_object_ref_object(dest);
 	s_po = tcore_object_ref_object(src);
 
+	if (!d_po || !s_po)
+		return;
+
 	d_po->state = s_po->state;
 	d_po->id = s_po->id;
 
