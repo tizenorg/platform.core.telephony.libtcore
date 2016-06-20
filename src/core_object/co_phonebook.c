@@ -119,6 +119,8 @@ gboolean tcore_phonebook_get_status(CoreObject *o)
 	struct private_object_data *po = NULL;
 	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PHONEBOOK, FALSE);
 	po = tcore_object_ref_object(o);
+	if (!po)
+		return FALSE;
 
 	return po->b_init;
 }
@@ -128,6 +130,8 @@ gboolean tcore_phonebook_set_status(CoreObject *o, gboolean b_init)
 	struct private_object_data *po = NULL;
 	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PHONEBOOK, FALSE);
 	po = tcore_object_ref_object(o);
+	if (!po)
+		return FALSE;
 
 	po->b_init = b_init;
 
@@ -185,6 +189,8 @@ enum tel_phonebook_type tcore_phonebook_get_selected_type(CoreObject *o)
 	struct private_object_data *po = NULL;
 	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PHONEBOOK, PB_TYPE_UNKNOWNN);
 	po = tcore_object_ref_object(o);
+	if (!po)
+		return PB_TYPE_UNKNOWNN;
 
 	return po->selected;
 }
@@ -194,6 +200,8 @@ gboolean tcore_phonebook_set_selected_type(CoreObject *o, enum tel_phonebook_typ
 	struct private_object_data *po = NULL;
 	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PHONEBOOK, FALSE);
 	po = tcore_object_ref_object(o);
+	if (!po)
+		return FALSE;
 
 	po->selected = t;
 

@@ -111,6 +111,8 @@ static gboolean _ps_is_active_context(CoreObject *o, CoreObject *ps_context)
 	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PS, FALSE);
 
 	po = tcore_object_ref_object(o);
+	if (!po)
+		return FALSE;
 
 	for (idx_cid = 1; idx_cid <= po->num_of_pdn; idx_cid++) {
 		if (po->cid[idx_cid].cid == 0)
@@ -153,6 +155,8 @@ static gboolean _ps_is_duplicated_apn(CoreObject *o, CoreObject *ps_context)
 	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PS, FALSE);
 
 	po = tcore_object_ref_object(o);
+	if (!po)
+		return FALSE;
 	t_apn = tcore_context_get_apn(ps_context);
 
 	for (idx_cid = 1; idx_cid <= po->num_of_pdn; idx_cid++) {
@@ -353,6 +357,9 @@ unsigned int tcore_ps_set_cid_active(CoreObject *o, unsigned int cid, unsigned i
 		return 0;
 
 	po = tcore_object_ref_object(o);
+	if (!po)
+		return 0;
+
 	for (idx_cid = 1; idx_cid <= po->num_of_pdn; idx_cid++) {
 		if (po->cid[idx_cid].cid == cid) {
 			po->cid[idx_cid].active = enable;
@@ -373,6 +380,9 @@ unsigned int tcore_ps_get_cid_active(CoreObject *o, unsigned int cid)
 		return 0;
 
 	po = tcore_object_ref_object(o);
+	if (!po)
+		return 0;
+
 	for (idx_cid = 1; idx_cid <= po->num_of_pdn; idx_cid++)
 		if (po->cid[idx_cid].cid == cid)
 			return po->cid[idx_cid].active;
@@ -389,6 +399,8 @@ GSList *tcore_ps_get_active_cids(CoreObject *o)
 	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PS, NULL);
 
 	po = tcore_object_ref_object(o);
+	if (!po)
+		return NULL;
 
 	for (idx_cid = 1; idx_cid <= po->num_of_pdn; idx_cid++)
 		if (po->cid[idx_cid].active)
@@ -407,6 +419,9 @@ unsigned int tcore_ps_set_cid_connected(CoreObject *o, unsigned int cid, unsigne
 		return 0;
 
 	po = tcore_object_ref_object(o);
+	if (!po)
+		return 0;
+
 	for (idx_cid = 1; idx_cid <= po->num_of_pdn; idx_cid++) {
 		if (po->cid[idx_cid].cid == cid) {
 			po->cid[idx_cid].connected = connected;
@@ -427,6 +442,9 @@ unsigned int tcore_ps_get_cid_connected(CoreObject *o, unsigned int cid)
 		return 0;
 
 	po = tcore_object_ref_object(o);
+	if (!po)
+		return 0;
+
 	for (idx_cid = 1; idx_cid <= po->num_of_pdn; idx_cid++)
 		if (po->cid[idx_cid].cid == cid)
 			return po->cid[idx_cid].connected;
@@ -443,6 +461,8 @@ GSList *tcore_ps_get_connected_cids(CoreObject *o)
 	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PS, NULL);
 
 	po = tcore_object_ref_object(o);
+	if (!po)
+		return NULL;
 
 	for (idx_cid = 1; idx_cid <= po->num_of_pdn; idx_cid++)
 		if (po->cid[idx_cid].connected)
@@ -459,6 +479,8 @@ unsigned int tcore_ps_is_active_apn(CoreObject *o, const char *apn)
 	CORE_OBJECT_CHECK_RETURN(o, CORE_OBJECT_TYPE_PS, 0);
 
 	po = tcore_object_ref_object(o);
+	if (!po)
+		return 0;
 
 	for (idx_cid = 1; idx_cid <= po->num_of_pdn; idx_cid++) {
 		if (po->cid[idx_cid].cid == 0)
